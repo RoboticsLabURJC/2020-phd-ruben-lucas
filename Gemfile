@@ -3,7 +3,7 @@
 source "https://rubygems.org"
 
 gem "jekyll"
-gem "minimal-mistakes-jekyll"
+#gem "minimal-mistakes-jekyll"
 
 git_source(:github) {|repo_name| "https://github.com/#{repo_name}" }
 
