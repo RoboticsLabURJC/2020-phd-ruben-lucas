@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2020-11-30T04:09:36-08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Robotics Lab URJC</title><subtitle>Programming Robot Intelligence</subtitle><author><name>Rubén Lucas</name></author><entry><title type="html">Introduction (months 1 and 2)</title><link href="http://localhost:4000/your%20category/previous-work/" rel="alternate" type="text/html" title="Introduction (months 1 and 2)" /><published>2020-11-29T00:00:00-08:00</published><updated>2020-11-29T00:00:00-08:00</updated><id>http://localhost:4000/your%20category/previous-work</id><content type="html" xml:base="http://localhost:4000/your%20category/previous-work/">&lt;p&gt;Simple text to see the appearance and result of the documentation in a post.&lt;/p&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2020-11-30T07:12:33-08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Robotics Lab URJC</title><subtitle>Programming Robot Intelligence</subtitle><author><name>Rubén Lucas</name></author><entry><title type="html">Introduction (months 1 and 2)</title><link href="http://localhost:4000/your%20category/previous-work/" rel="alternate" type="text/html" title="Introduction (months 1 and 2)" /><published>2020-11-29T00:00:00-08:00</published><updated>2020-11-29T00:00:00-08:00</updated><id>http://localhost:4000/your%20category/previous-work</id><content type="html" xml:base="http://localhost:4000/your%20category/previous-work/">&lt;p&gt;Simple text to see the appearance and result of the documentation in a post.&lt;/p&gt;
 
 &lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
 
@@ -7,7 +7,7 @@
     &lt;p&gt;&lt;a href=&quot;https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning_autonomous_navigation-vanessa-2020.pdf&quot;&gt;TFM Vanesa Fernández&lt;/a&gt;&lt;/p&gt;
   &lt;/li&gt;
   &lt;li&gt;
-    &lt;p&gt;[TFM Jéssica Fernández](https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning_traffic_sensor-jessica-2020.pdf&lt;/p&gt;
+    &lt;p&gt;&lt;a href=&quot;https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning_traffic_sensor-jessica-2020.pdf&quot;&gt;TFM Jéssica Fernández&lt;/a&gt;&lt;/p&gt;
   &lt;/li&gt;
   &lt;li&gt;
     &lt;p&gt;&lt;a href=&quot;https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning-autonomous_navigation-francisco_perez-2020.pdf&quot;&gt;TFM Francisco Pérez&lt;/a&gt;&lt;/p&gt;
