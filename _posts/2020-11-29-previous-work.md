@@ -28,7 +28,7 @@ Simple text to see the appearance and result of the documentation in a post.
 
 - [TFM Vanesa Fernández](https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning_autonomous_navigation-vanessa-2020.pdf)
 
-- [TFM Jéssica Fernández](https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning_traffic_sensor-jessica-2020.pdf
+- [TFM Jéssica Fernández](https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning_traffic_sensor-jessica-2020.pdf)
 
 - [TFM Francisco Pérez](https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning-autonomous_navigation-francisco_perez-2020.pdf)
 
