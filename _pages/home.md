@@ -40,8 +40,8 @@ youTube_id: ID7qaEcIu4k
 
 Hello, everybody.
 
-You can find my PHD and previous work in my personal repository:
+You can find my PHD work in this repository:
 
 ```
-https://github.com/rubenlucas93/
+https://github.com/rubenlucas93/2020-phd-ruben-lucas
 ```
