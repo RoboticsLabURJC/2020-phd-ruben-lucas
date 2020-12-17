@@ -43,5 +43,5 @@ Hello, everybody.
 You can find my PHD work in this repository:
 
 ```
-https://github.com/rubenlucas93/2020-phd-ruben-lucas
+https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas
 ```
