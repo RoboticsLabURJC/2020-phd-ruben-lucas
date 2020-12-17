@@ -1,4 +1,5 @@
-# 2020-phd-ruben-lucas
+# RUBEN LUCAS PHD
 
-check out my PHD blog here:
+You can check my PHD blog here
+
 https://rubenlucas93.github.io/2020-phd-ruben-lucas/
