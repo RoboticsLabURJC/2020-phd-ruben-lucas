@@ -1,6 +1,6 @@
 ---
 title: "Introduction (months 1 and 2)"
-excerpt: "Work done the first two months"
+excerpt: "Landing on vision recognition basics"
 
 sidebar:
   nav: "docs"
@@ -22,7 +22,7 @@ author: Tony Stark
 pinned: false
 ---
 
-Simple text to see the appearance and result of the documentation in a post.
+The goal this two first months is to land into machine learning and vision recognition world reading some previous master theses and its references to clarify some artificial intelligence basic concepts.
 
 ## Lectures
 
@@ -45,10 +45,10 @@ Simple text to see the appearance and result of the documentation in a post.
 
 ## Lab work
 
-- Objects Detector
+- Objects Detector installation
 
-- Detection Studio
+- Detection Studio installation
 
-- Atom
+- Atom installation
 
-- Jekyll+GitPages
+- Jekyll+GitPages installation and blog creation
