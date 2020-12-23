@@ -1,4 +1,33 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2020-12-17T03:53:31-08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Robotics Lab URJC</title><subtitle>Programming Robot Intelligence</subtitle><author><name>Rubén Lucas</name></author><entry><title type="html">Introduction (months 1 and 2)</title><link href="http://localhost:4000/your%20category/previous-work/" rel="alternate" type="text/html" title="Introduction (months 1 and 2)" /><published>2020-11-29T00:00:00-08:00</published><updated>2020-11-29T00:00:00-08:00</updated><id>http://localhost:4000/your%20category/previous-work</id><content type="html" xml:base="http://localhost:4000/your%20category/previous-work/">&lt;p&gt;Simple text to see the appearance and result of the documentation in a post.&lt;/p&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2020-12-23T08:11:20-08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Robotics Lab URJC</title><subtitle>Programming Robot Intelligence</subtitle><author><name>Rubén Lucas</name></author><entry><title type="html">Digging in (month 3)</title><link href="http://localhost:4000/your%20category/current-work/" rel="alternate" type="text/html" title="Digging in (month 3)" /><published>2020-12-23T00:00:00-08:00</published><updated>2020-12-23T00:00:00-08:00</updated><id>http://localhost:4000/your%20category/current-work</id><content type="html" xml:base="http://localhost:4000/your%20category/current-work/">&lt;p&gt;The goal for this month was to set the whole environment to work and start playing with reinforcement learning so the lectures can be consolidated with some exercises.&lt;/p&gt;
+
+&lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;&amp;quot;https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf&amp;quot;&quot;&gt;Thesis of a DQN neural network able to beat an human gamer playing ATARI games&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;&amp;quot;https://dialnet.unirioja.es/descarga/articulo/4902816.pdf&amp;quot;&quot;&gt;Study of the effect of convolutional masks making use of the Fourier Transform&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;&amp;quot;https://medium.com/ai%C2%B3-theory-practice-business/reinforcement-learning-part-5-monte-carlo-and-temporal-difference-learning-889053aba07d&amp;quot;&quot;&gt;Reinforcement learning introduction&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;&amp;quot;https://pemami4911.github.io/blog/2016/08/21/ddpg-rl.html&amp;quot;&quot;&gt;DDPG introduction&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;&amp;quot;https://www.youtube.com/watch?v=t3fbETsIBCY&amp;quot;&quot;&gt;DQN introduction and implementation explanation video&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;&amp;quot;https://adgefficiency.com/dqn-tuning/&amp;quot;&quot;&gt;DQN hyperparameters tunning using openAI cartpole exercise&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;lab-work&quot;&gt;Lab work&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;OpenAi gym installation and the acomplishment of the exercises explained in &lt;a href=&quot;&amp;quot;https://towardsdatascience.com/solving-reinforcement-learning-classic-control-problems-openaigym-1b50413265dd&amp;quot;&quot;&gt;Shiva Verma’s blog&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Rubén Lucas</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">start playing with reinforcement learning</summary></entry><entry><title type="html">Introduction (months 1 and 2)</title><link href="http://localhost:4000/your%20category/previous-work/" rel="alternate" type="text/html" title="Introduction (months 1 and 2)" /><published>2020-11-29T00:00:00-08:00</published><updated>2020-11-29T00:00:00-08:00</updated><id>http://localhost:4000/your%20category/previous-work</id><content type="html" xml:base="http://localhost:4000/your%20category/previous-work/">&lt;p&gt;The goal this two first months is to land into machine learning and vision recognition world reading some previous master theses and its references to clarify some artificial intelligence basic concepts.&lt;/p&gt;
 
 &lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
 
@@ -44,4 +73,4 @@
   &lt;li&gt;
     &lt;p&gt;Jekyll+GitPages&lt;/p&gt;
   &lt;/li&gt;
-&lt;/ul&gt;</content><author><name>Tony Stark</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Work done the first two months</summary></entry></feed>
+&lt;/ul&gt;</content><author><name>Tony Stark</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Landing in vision recognition basics</summary></entry></feed>

@@ -9,16 +9,19 @@
   <head>
     <meta charset="utf-8">
 
-<!-- begin _includes/seo.html --><title>Logbook - Robotics Lab URJC</title>
-<meta name="description" content="Programming Robot Intelligence">
+<!-- begin _includes/seo.html --><title>Digging in (month 3) - Robotics Lab URJC</title>
+<meta name="description" content="start playing with reinforcement learning">
 
 
 
-<meta property="og:type" content="website">
+<meta property="og:type" content="article">
 <meta property="og:locale" content="en_US">
 <meta property="og:site_name" content="Robotics Lab URJC">
-<meta property="og:title" content="Logbook">
-<meta property="og:url" content="http://localhost:4000/logbook/">
+<meta property="og:title" content="Digging in (month 3)">
+<meta property="og:url" content="http://localhost:4000/your%20category/current-work/">
+
+
+  <meta property="og:description" content="start playing with reinforcement learning">
 
 
 
@@ -26,6 +29,7 @@
 
 
 
+  <meta property="article:published_time" content="2020-12-23T00:00:00-08:00">
 
 
 
@@ -36,7 +40,7 @@
   
 
 
-<link rel="canonical" href="http://localhost:4000/logbook/">
+<link rel="canonical" href="http://localhost:4000/your%20category/current-work/">
 
 
 
@@ -100,7 +104,7 @@
 
   </head>
 
-  <body class="layout--posts wide">
+  <body class="layout--single">
     <nav class="skip-links">
   <h2 class="screen-reader-text">Skip links</h2>
   <ul>
@@ -160,24 +164,11 @@
 <div itemscope itemtype="https://schema.org/Person">
 
   
-    <div class="author__avatar">
-      
-
-      
-        <img src="/assets/images/profile.jpg" alt="Rubén Lucas" itemprop="image">
-      
-    </div>
-  
 
   <div class="author__content">
     
-      <h3 class="author__name" itemprop="name">Rubén Lucas</h3>
+      <h3 class="author__name" itemprop="name"></h3>
     
-    
-      <div class="author__bio" itemprop="description">
-        <p>Site for my documentation</p>
-
-      </div>
     
   </div>
 
@@ -185,29 +176,7 @@
     <button class="btn btn--inverse">Follow</button>
     <ul class="author__urls social-icons">
       
-        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
-          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">Location</span>
-        </li>
-      
 
-      
-        
-          
-            <li><a href="yourmail@domain.com" rel="nofollow noopener noreferrer"><i class="fas fa-fw fa-envelope-square" aria-hidden="true"></i> Email</a></li>
-          
-        
-          
-            <li><a href="yoursite.com" rel="nofollow noopener noreferrer"><i class="fas fa-fw fa-link" aria-hidden="true"></i> About Me</a></li>
-          
-        
-          
-            <li><a href="https://twitter.com/" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-twitter-square" aria-hidden="true"></i> Twitter</a></li>
-          
-        
-          
-            <li><a href="https://github.com/RoboticsLabURJC" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
-          
-        
       
 
       
@@ -299,7 +268,7 @@
             
             
 
-            <li><a href="/logbook/" class="active">Check it out</a></li>
+            <li><a href="/logbook/" class="">Check it out</a></li>
           
         </ul>
         
@@ -352,63 +321,173 @@
   </div>
 
 
-  <div class="archive">
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Digging in (month 3)">
+    <meta itemprop="description" content="start playing with reinforcement learning">
+    <meta itemprop="datePublished" content="December 23, 2020">
     
-      <h1 id="page-title" class="page__title">Logbook</h1>
-    
-    
 
-
-<ul class="taxonomy__index">
-  
-  
-    <li>
-      <a href="#2020">
-        <strong>2020</strong> <span class="taxonomy__count">2</span>
-      </a>
-    </li>
-  
-</ul>
-
-
-
-  <section id="2020" class="taxonomy__section">
-    <h2 class="archive__subtitle">2020</h2>
-    <div class="entries-list">
+    <div class="page__inner-wrap">
       
-        
-
-
-
-<div class="list__item">
-  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
-    
-    <h2 class="archive__item-title" itemprop="headline">
-      
-        <a href="/your%20category/current-work/" rel="permalink">Digging in (month 3)
-</a>
-      
-    </h2>
-    
-      <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">Digging in (month 3)
+</h1>
+          
+            <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
 
 
 
 
   less than 1 minute read
 </p>
+          
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right ">
+            <nav class="toc">
+              <header><h4 class="nav__title"><i class="fas fa-cog"></i> TOC installation</h4></header>
+              <ul class="toc__menu">
+  <li><a href="#lectures">Lectures</a></li>
+  <li><a href="#lab-work">Lab work</a></li>
+</ul>
+            </nav>
+          </aside>
+        
+        <p>The goal for this month was to set the whole environment to work and start playing with reinforcement learning so the lectures can be consolidated with some exercises.</p>
+
+<h2 id="lectures">Lectures</h2>
+
+<ul>
+  <li>
+    <p><a href="&quot;https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf&quot;">Thesis of a DQN neural network able to beat an human gamer playing ATARI games</a></p>
+  </li>
+  <li>
+    <p><a href="&quot;https://dialnet.unirioja.es/descarga/articulo/4902816.pdf&quot;">Study of the effect of convolutional masks making use of the Fourier Transform</a></p>
+  </li>
+  <li>
+    <p><a href="&quot;https://medium.com/ai%C2%B3-theory-practice-business/reinforcement-learning-part-5-monte-carlo-and-temporal-difference-learning-889053aba07d&quot;">Reinforcement learning introduction</a></p>
+  </li>
+  <li>
+    <p><a href="&quot;https://pemami4911.github.io/blog/2016/08/21/ddpg-rl.html&quot;">DDPG introduction</a></p>
+  </li>
+  <li>
+    <p><a href="&quot;https://www.youtube.com/watch?v=t3fbETsIBCY&quot;">DQN introduction and implementation explanation video</a></p>
+  </li>
+  <li>
+    <p><a href="&quot;https://adgefficiency.com/dqn-tuning/&quot;">DQN hyperparameters tunning using openAI cartpole exercise</a></p>
+  </li>
+</ul>
+
+<h2 id="lab-work">Lab work</h2>
+
+<ul>
+  <li>OpenAi gym installation and the acomplishment of the exercises explained in <a href="&quot;https://towardsdatascience.com/solving-reinforcement-learning-classic-control-problems-openaigym-1b50413265dd&quot;">Shiva Verma’s blog</a></li>
+</ul>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
     
-    <p class="archive__item-excerpt" itemprop="description">start playing with reinforcement learning
-</p>
-  </article>
-</div>
+      
+      
+      <a href="/tags/#tag-1" class="page__taxonomy-item" rel="tag">tag 1</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#tag-2" class="page__taxonomy-item" rel="tag">tag 2</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#tag-3" class="page__taxonomy-item" rel="tag">tag 3</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#tag-4" class="page__taxonomy-item" rel="tag">tag 4</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#your-category" class="page__taxonomy-item" rel="tag">your category</a>
+    
+    </span>
+  </p>
+
+
+        
+          <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2020-12-23T00:00:00-08:00">December 23, 2020</time></p>
+        
+      </footer>
+
+      <section class="page__share">
+  
+
+  <a href="https://twitter.com/intent/tweet?text=Digging+in+%28month+3%29%20http%3A%2F%2Flocalhost%3A4000%2Fyour%2520category%2Fcurrent-work%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <!--<a href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Flocalhost%3A4000%2Fyour%2520category%2Fcurrent-work%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>-->
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=http%3A%2F%2Flocalhost%3A4000%2Fyour%2520category%2Fcurrent-work%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
 
       
+  <nav class="pagination">
+    
+      <a href="/your%20category/previous-work/" class="pagination--pager" title="Introduction (months 1 and 2)
+">Previous</a>
+    
+    
+      <a href="#" class="pagination--pager disabled">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+  </article>
+
+  
+  
+    <div class="page__related">
+      <h4 class="page__related-title">You May Also Enjoy</h4>
+      <div class="grid__wrapper">
         
+          
 
 
 
-<div class="list__item">
+<div class="grid__item">
   <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
     
     <h2 class="archive__item-title" itemprop="headline">
@@ -431,14 +510,13 @@
   </article>
 </div>
 
-      
+        
+      </div>
     </div>
-    <a href="#page-title" class="back-to-top">Back to Top &uarr;</a>
-  </section>
-
-
-  </div>
+  
+  
 </div>
+
     </div>
 
     

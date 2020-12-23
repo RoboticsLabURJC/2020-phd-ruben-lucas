@@ -1,0 +1,31 @@
+I"<p>The goal for this month was to set the whole environment to work and start playing with reinforcement learning so the lectures can be consolidated with some exercises.</p>
+
+<h2 id="lectures">Lectures</h2>
+
+<ul>
+  <li>
+    <p><a href="&quot;https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf&quot;">Thesis of a DQN neural network able to beat an human gamer playing ATARI games</a></p>
+  </li>
+  <li>
+    <p>[Study of the effect of convolutional masks making use of the Fourier Transform](“https://dialnet.unirioja.es/descarga/articulo/4902816.pdf “)</p>
+  </li>
+  <li>
+    <p><a href="&quot;https://medium.com/ai%C2%B3-theory-practice-business/reinforcement-learning-part-5-monte-carlo-and-temporal-difference-learning-889053aba07d&quot;">Reinforcement learning introduction</a></p>
+  </li>
+  <li>
+    <p><a href="&quot;https://pemami4911.github.io/blog/2016/08/21/ddpg-rl.html&quot;">DDPG introduction</a></p>
+  </li>
+  <li>
+    <p><a href="&quot;https://www.youtube.com/watch?v=t3fbETsIBCY&quot;">DQN introduction and implementation explanation video</a></p>
+  </li>
+  <li>
+    <p><a href="&quot;https://adgefficiency.com/dqn-tuning/&quot;">DQN hyperparameters tunning using openAI cartpole exercise</a></p>
+  </li>
+</ul>
+
+<h2 id="lab-work">Lab work</h2>
+
+<ul>
+  <li>OpenAi gym installation and the acomplishment of the exercises explained in <a href="&quot;https://towardsdatascience.com/solving-reinforcement-learning-classic-control-problems-openaigym-1b50413265dd&quot;">Shiva Verma’s blog</a></li>
+</ul>
+:ET
