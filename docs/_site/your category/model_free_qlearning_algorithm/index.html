@@ -9,16 +9,19 @@
   <head>
     <meta charset="utf-8">
 
-<!-- begin _includes/seo.html --><title>References used in this project - Robotics Lab URJC</title>
-<meta name="description" content="Programming Robot Intelligence">
+<!-- begin _includes/seo.html --><title>QLearning (month 4) - Robotics Lab URJC</title>
+<meta name="description" content="Start playing with reinforcement learning">
 
 
 
-<meta property="og:type" content="website">
+<meta property="og:type" content="article">
 <meta property="og:locale" content="en_US">
 <meta property="og:site_name" content="Robotics Lab URJC">
-<meta property="og:title" content="References used in this project">
-<meta property="og:url" content="http://localhost:4000/about/">
+<meta property="og:title" content="QLearning (month 4)">
+<meta property="og:url" content="http://localhost:4000/your%20category/model_free_qlearning_algorithm/">
+
+
+  <meta property="og:description" content="Start playing with reinforcement learning">
 
 
 
@@ -26,6 +29,7 @@
 
 
 
+  <meta property="article:published_time" content="2021-01-08T00:00:00-08:00">
 
 
 
@@ -36,7 +40,7 @@
   
 
 
-<link rel="canonical" href="http://localhost:4000/about/">
+<link rel="canonical" href="http://localhost:4000/your%20category/model_free_qlearning_algorithm/">
 
 
 
@@ -160,24 +164,11 @@
 <div itemscope itemtype="https://schema.org/Person">
 
   
-    <div class="author__avatar">
-      
-
-      
-        <img src="/assets/images/profile.jpg" alt="Rubén Lucas" itemprop="image">
-      
-    </div>
-  
 
   <div class="author__content">
     
-      <h3 class="author__name" itemprop="name">Rubén Lucas</h3>
+      <h3 class="author__name" itemprop="name"></h3>
     
-    
-      <div class="author__bio" itemprop="description">
-        <p>Site for my documentation</p>
-
-      </div>
     
   </div>
 
@@ -185,29 +176,7 @@
     <button class="btn btn--inverse">Follow</button>
     <ul class="author__urls social-icons">
       
-        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
-          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">Location</span>
-        </li>
-      
 
-      
-        
-          
-            <li><a href="yourmail@domain.com" rel="nofollow noopener noreferrer"><i class="fas fa-fw fa-envelope-square" aria-hidden="true"></i> Email</a></li>
-          
-        
-          
-            <li><a href="yoursite.com" rel="nofollow noopener noreferrer"><i class="fas fa-fw fa-link" aria-hidden="true"></i> About Me</a></li>
-          
-        
-          
-            <li><a href="https://twitter.com/" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-twitter-square" aria-hidden="true"></i> Twitter</a></li>
-          
-        
-          
-            <li><a href="https://github.com/RoboticsLabURJC" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
-          
-        
       
 
       
@@ -353,35 +322,61 @@
 
 
   <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
-    <meta itemprop="headline" content="References used in this project">
-    
-    
+    <meta itemprop="headline" content="QLearning (month 4)">
+    <meta itemprop="description" content="Start playing with reinforcement learning">
+    <meta itemprop="datePublished" content="January 08, 2021">
     
 
     <div class="page__inner-wrap">
       
         <header>
-          <h1 id="page-title" class="page__title" itemprop="headline">References used in this project
+          <h1 id="page-title" class="page__title" itemprop="headline">QLearning (month 4)
 </h1>
+          
+            <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+
+
+
+
+  less than 1 minute read
+</p>
           
         </header>
       
 
       <section class="page__content" itemprop="text">
         
-        <p>You can add here references to:</p>
+          <aside class="sidebar__right ">
+            <nav class="toc">
+              <header><h4 class="nav__title"><i class="fas fa-cog"></i> TOC installation</h4></header>
+              <ul class="toc__menu">
+  <li><a href="#lectures">Lectures</a></li>
+  <li><a href="#lab-work">Lab work</a></li>
+</ul>
+            </nav>
+          </aside>
+        
+        <p>The goal of this month is defining from scratch a model-free reinforcement learning algorithm and an environment to solve a typical path learning from source to goal problem. Additionally, some lectures have been useful to accomplish the month objectives.</p>
+
+<h2 id="lectures">Lectures</h2>
 
 <ul>
-  <li>Articles</li>
-  <li>Programs</li>
-  <li>Examples</li>
-  <li>Web sites</li>
+  <li>
+    <p><a href="&quot;https://medium.com/@SmartLabAI/reinforcement-learning-algorithms-an-intuitive-overview-904e2dff5bbc&quot;">Reinforcement learning algorithms overview</a></p>
+  </li>
+  <li>
+    <p><a href="&quot;https://stats.stackexchange.com/questions/326788/when-to-choose-sarsa-vs-q-learning#:~:text=In%20Q%20learning%2C%20you%20update,and%20take%20the%20same%20action.&quot;">When to choose sarsa vs qlearning</a></p>
+  </li>
+  <li>
+    <p><a href="&quot;https://medium.com/@violante.andre/simple-reinforcement-learning-temporal-difference-learning-e883ea0d65b0&quot;">Temporal difference learning</a></p>
+  </li>
 </ul>
 
-<p>With the following sintax:</p>
+<h2 id="lab-work">Lab work</h2>
 
-<div class="language-markdown highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="nv">Text to display</span><span class="p">](</span><span class="sx">link_to_the_website</span><span class="p">)</span>.
-</code></pre></div></div>
+<ul>
+  <li><a href="&quot;https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/robot_mesh&quot;">path learning to reach a goal using qlearning</a></li>
+</ul>
 
         
       </section>
@@ -389,19 +384,154 @@
       <footer class="page__meta">
         
         
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/tags/#tag-1" class="page__taxonomy-item" rel="tag">tag 1</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#tag-2" class="page__taxonomy-item" rel="tag">tag 2</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#tag-3" class="page__taxonomy-item" rel="tag">tag 3</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#tag-4" class="page__taxonomy-item" rel="tag">tag 4</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#your-category" class="page__taxonomy-item" rel="tag">your category</a>
+    
+    </span>
+  </p>
 
 
         
+          <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2021-01-08T00:00:00-08:00">January 08, 2021</time></p>
+        
       </footer>
 
-      
+      <section class="page__share">
+  
+
+  <a href="https://twitter.com/intent/tweet?text=QLearning+%28month+4%29%20http%3A%2F%2Flocalhost%3A4000%2Fyour%2520category%2Fmodel_free_qlearning_algorithm%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <!--<a href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Flocalhost%3A4000%2Fyour%2520category%2Fmodel_free_qlearning_algorithm%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>-->
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=http%3A%2F%2Flocalhost%3A4000%2Fyour%2520category%2Fmodel_free_qlearning_algorithm%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
 
       
+  <nav class="pagination">
+    
+      <a href="/your%20category/current-work/" class="pagination--pager" title="Digging in (month 3)
+">Previous</a>
+    
+    
+      <a href="#" class="pagination--pager disabled">Next</a>
+    
+  </nav>
+
     </div>
 
     
   </article>
 
+  
+  
+    <div class="page__related">
+      <h4 class="page__related-title">You May Also Enjoy</h4>
+      <div class="grid__wrapper">
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title" itemprop="headline">
+      
+        <a href="/your%20category/current-work/" rel="permalink">Digging in (month 3)
+</a>
+      
+    </h2>
+    
+      <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+
+
+
+
+  less than 1 minute read
+</p>
+    
+    <p class="archive__item-excerpt" itemprop="description">Start playing with reinforcement learning
+</p>
+  </article>
+</div>
+
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title" itemprop="headline">
+      
+        <a href="/your%20category/previous-work/" rel="permalink">Introduction (months 1 and 2)
+</a>
+      
+    </h2>
+    
+      <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+
+
+
+
+  less than 1 minute read
+</p>
+    
+    <p class="archive__item-excerpt" itemprop="description">Landing on vision recognition basics
+</p>
+  </article>
+</div>
+
+        
+      </div>
+    </div>
   
   
 </div>
