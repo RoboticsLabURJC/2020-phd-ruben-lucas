@@ -1,0 +1,22 @@
+I"m<p>The goal of this month is defining from scratch a model-free reinforcement learning algorithm and an environment to solve a typical path learning from source to goal problem. Additionally, some lectures have been useful to accomplish the month objective.</p>
+
+<h2 id="lectures">Lectures</h2>
+
+<ul>
+  <li>
+    <p><a href="&quot;https://medium.com/@SmartLabAI/reinforcement-learning-algorithms-an-intuitive-overview-904e2dff5bbc&quot;">Reinforcement learning algorithms overview</a></p>
+  </li>
+  <li>
+    <p><a href="&quot;https://stats.stackexchange.com/questions/326788/when-to-choose-sarsa-vs-q-learning#:~:text=In%20Q%20learning%2C%20you%20update,and%20take%20the%20same%20action.&quot;">When to choose sarsa vs qlearning</a></p>
+  </li>
+  <li>
+    <p><a href="&quot;https://medium.com/@violante.andre/simple-reinforcement-learning-temporal-difference-learning-e883ea0d65b0&quot;">Temporal difference learning</a></p>
+  </li>
+</ul>
+
+<h2 id="lab-work">Lab work</h2>
+
+<ul>
+  <li><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/robot_mesh">Path learning to reach a goal using qlearning</a></li>
+</ul>
+:ET

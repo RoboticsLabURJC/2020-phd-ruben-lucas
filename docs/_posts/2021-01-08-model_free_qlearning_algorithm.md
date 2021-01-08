@@ -26,13 +26,13 @@ The goal of this month is defining from scratch a model-free reinforcement learn
 
 ## Lectures
 
-- [Reinforcement learning algorithms overview]("https://medium.com/@SmartLabAI/reinforcement-learning-algorithms-an-intuitive-overview-904e2dff5bbc")
+- [Reinforcement learning algorithms overview](https://medium.com/@SmartLabAI/reinforcement-learning-algorithms-an-intuitive-overview-904e2dff5bbc)
 
-- [When to choose sarsa vs qlearning]("https://stats.stackexchange.com/questions/326788/when-to-choose-sarsa-vs-q-learning#:~:text=In%20Q%20learning%2C%20you%20update,and%20take%20the%20same%20action.")
+- [When to choose sarsa vs qlearning](https://stats.stackexchange.com/questions/326788/when-to-choose-sarsa-vs-q-learning#:~:text=In%20Q%20learning%2C%20you%20update,and%20take%20the%20same%20action.)
 
-- [Temporal difference learning]("https://medium.com/@violante.andre/simple-reinforcement-learning-temporal-difference-learning-e883ea0d65b0")
+- [Temporal difference learning](https://medium.com/@violante.andre/simple-reinforcement-learning-temporal-difference-learning-e883ea0d65b0)
 
 
 ## Lab work
 
-- [Path learning to reach a goal using qlearning]("https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/robot_mesh")
+- [Path learning to reach a goal using qlearning](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/robot_mesh)
