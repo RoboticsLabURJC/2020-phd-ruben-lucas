@@ -40,7 +40,7 @@ The goal this two first months is to land into machine learning and vision recog
 
 - [TFM Nuria Oyaga](https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning-prediccion_fotogramas-nuria_oyaga-2020.pdf)
 
-- [Detection Studio review](https://gsyc.urjc.es/jmplaza/draft-detectionstudio.pdf")
+- [Detection Studio review](https://gsyc.urjc.es/jmplaza/draft-detectionstudio.pdf)
 
 
 ## Lab work
