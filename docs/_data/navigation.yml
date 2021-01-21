@@ -4,10 +4,10 @@ main:
   - title: LogBook
     url: /logbook/
 
-  - title: Installation
+  - title: Projects
     url: /install/
 
-  - title: About
+  - title: Resources
     url: /about/
 
 # left side bar
@@ -17,13 +17,13 @@ docs:
       - title: Check it out
         url: /logbook/
 
-  - title: Installation
+  - title: Projects
     children: 
-    - title: How to install
+    - title: AI Exercises
       url: /install/
 
-  - title: About
+  - title: Resources
     children:
-    - title: References
+    - title: Usefull resources
       url: /references/
   
