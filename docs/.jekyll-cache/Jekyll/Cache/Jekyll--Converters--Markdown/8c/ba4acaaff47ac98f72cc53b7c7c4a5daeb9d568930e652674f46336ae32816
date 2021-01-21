@@ -1,4 +1,4 @@
-I"4	
+I"A	
 <div class="feature__wrapper">
 
   
@@ -40,14 +40,14 @@
       <div class="archive__item">
         
           <div class="archive__item-teaser">
-            <img src="/assets/images/cover/install.png" alt="Install" />
+            <img src="/assets/images/cover/install.png" alt="Projects" />
             
           </div>
         
 
         <div class="archive__item-body">
           
-            <h2 class="archive__item-title">Install</h2>
+            <h2 class="archive__item-title">Projects</h2>
           
 
           
@@ -71,14 +71,14 @@
       <div class="archive__item">
         
           <div class="archive__item-teaser">
-            <img src="/assets/images/cover/about.jpg" alt="About" />
+            <img src="/assets/images/cover/about.jpg" alt="Resources" />
             
           </div>
         
 
         <div class="archive__item-body">
           
-            <h2 class="archive__item-title">About</h2>
+            <h2 class="archive__item-title">Resources</h2>
           
 
           
@@ -102,6 +102,6 @@
 
 <p>You can find my PHD work in this repository:</p>
 
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>https://github.com/rubenlucas93/2020-phd-ruben-lucas
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas
 </code></pre></div></div>
 :ET

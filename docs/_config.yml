@@ -125,24 +125,23 @@ author:
   name             : "Rubén Lucas"
   avatar           : "/assets/images/profile.jpg"
   bio              : "Site for my documentation"
-  location         : "Location"
+  location         : "Alcázar de San Juan"
   email            :
   links:
-    - label: "Email"
+    - label: "ruben.lucas.zaragoza@gmail.com"
       icon: "fas fa-fw fa-envelope-square"
-      url: yourmail@domain.com
     - label: "About Me"
       icon: "fas fa-fw fa-link"
-      url: "yoursite.com"
-    - label: "Twitter"
-      icon: "fab fa-fw fa-twitter-square"
-      url: "https://twitter.com/"
+      url: "https://rubenlucaszaragoza.webnode.es/"
+    - label: "Linkedn"
+      icon: "fab fa-fw fa-linkedin-in"
+      url: "https://www.linkedin.com/in/ruben-lucas-zaragoza/"
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
-      url: "https://github.com/RoboticsLabURJC"
-    #- label: "Youtube"
-    #  icon: "fab fa-fw fa-youtube"
-    #  url: "https://www.youtube.com/channel/UCgmUgpircYAv_QhLQziHJOQ"
+      url: "https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas"
+    - label: "Youtube"
+      icon: "fab fa-fw fa-youtube"
+      url: "https://www.youtube.com/channel/UC8Kl0ECm4gjhxSozBqghQLQ"
 
 
 #################################################################################
@@ -161,18 +160,18 @@ author:
 # Site Footer
 footer:
   links:
-    - label: "Twitter"
-      icon: "fab fa-fw fa-twitter-square"
-      url: "https://twitter.com/roboticslaburjc"
+    - label: "Linkedn"
+      icon: "fab fa-fw fa-linkedin-in"
+      url: "https://www.linkedin.com/in/ruben-lucas-zaragoza/"
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
-      url: "https://github.com/RoboticsLabURJC"
+      url: "https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas"
     #- label: "GitLab"
     #  icon: "fab fa-fw fa-gitlab"
     #  url:
     - label: "Youtube"
       icon: "fab fa-fw fa-youtube"
-      url: "https://www.youtube.com/channel/UCgmUgpircYAv_QhLQziHJOQ"
+      url: "https://www.youtube.com/channel/UC8Kl0ECm4gjhxSozBqghQLQ"
 
 
 # Reading Files
