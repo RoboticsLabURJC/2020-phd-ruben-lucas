@@ -253,6 +253,7 @@ plugins:
   - jemoji
   - jekyll-include-cache
 
+
 # mimic GitHub Pages with --safe
 whitelist:
   - jekyll-paginate
@@ -306,6 +307,9 @@ collections:
     output: true
     permalink: /:collection/:path/
 
+  projects:
+    output: true
+    permalink: /projects/:path/
 
 # Defaults
 defaults:
@@ -327,6 +331,19 @@ defaults:
       author_profile: false
       share: true
 
+
+  # _projects
+  - scope:
+      path: ""
+      type: projects
+    values:
+      layout: single
+      author_profile: true
+      read_time: true
+      comments: true
+      share: true
+      related: true
+  
   # _posts
   - scope:
       path: ""

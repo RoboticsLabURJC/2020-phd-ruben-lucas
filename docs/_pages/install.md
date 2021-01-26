@@ -1,20 +1,18 @@
 ---
+title: "Projects"
+layout: projects
 permalink: /install/
 
-title: "Installation and use"
+collection: projects
+entries_layout: grid
+
+classes: wide
 
 sidebar:
   nav: "docs"
 ---
 
-# Requisites
 
-Libraries and necessary packages
+<span style="color:grey">Note that all the projects below have been developed and executed in linux 20.04</span>
 
-# Install
 
-Steps to install your software.
-
-# Usage
-
-Orders to launch the program
