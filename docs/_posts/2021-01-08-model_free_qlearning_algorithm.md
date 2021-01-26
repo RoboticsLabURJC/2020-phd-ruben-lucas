@@ -1,5 +1,5 @@
 ---
-title: "QLearning (month 4)"
+title: "QLearning and Sarsa (month 4)"
 excerpt: "Start playing with reinforcement learning"
 
 sidebar:

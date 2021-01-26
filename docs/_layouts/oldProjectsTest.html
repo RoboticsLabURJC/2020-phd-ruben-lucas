@@ -1,0 +1,10 @@
+---
+layout: archive
+---
+
+{{ content }}
+
+
+{% for project in site.projects %}
+  <h2>{{ project.name }} - {{ project.position }}</h2>
+{% endfor %}

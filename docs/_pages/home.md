@@ -21,7 +21,7 @@ feature_row:
   - image_path: /assets/images/cover/install.png
     alt: "Projects"
     title: "Projects"
-    excerpt: "Use of the software. Instructions for replicating project content."
+    excerpt: "Different projects accomplished, its instructions for replicating, demo and conclussions"
     url: "/install/"
     btn_class: "btn--primary"
     btn_label: "Learn more"
@@ -29,7 +29,7 @@ feature_row:
   - image_path: /assets/images/cover/about.jpg
     alt: "Resources"
     title: "Resources"
-    excerpt: "More information about the project. References used, guides, articles, etc."
+    excerpt: "More information about the project. References used, guides, articles, etc"
     url: "/about/"
     btn_class: "btn--primary"
     btn_label: "Learn more"   
@@ -38,10 +38,3 @@ youTube_id: ID7qaEcIu4k
 
 {% include feature_row %}
 
-Hello, everybody.
-
-You can find my PHD work in this repository:
-
-```
-https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas
-```

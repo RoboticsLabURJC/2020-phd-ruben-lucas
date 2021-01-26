@@ -6,15 +6,16 @@ sidebar:
   nav: "docs"
 ---
 
-You can add here references to:
+In here you will find interesting references used to learn how to accomplish the exercises explained in section [projects](projects)
 
-- Articles
-- Programs
-- Examples
-- Web sites
+## Articles
 
-With the following sintax:
 
-```markdown
-[Text to display](link_to_the_website).
-```
+
+
+
+## Recommended books
+
+- [Reinforcement Learning: An Introduction](https://www.amazon.es/Reinforcement-Learning-Introduction-Richard-Sutton/dp/0262039249)
+
+

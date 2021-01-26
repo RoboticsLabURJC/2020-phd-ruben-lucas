@@ -1,0 +1,21 @@
+---
+layout: archive
+---
+
+{{ content }}
+
+
+{% assign projectsByYear = site.projects | group_by_exp: 'project', 'project.date | date: "%Y"' %}
+{% for year in projectsByYear %}
+  <section id="{{ year.name }}" class="taxonomy__section">
+    <div class="entries-{{ page.entries_layout | default: 'list' }}">
+      {% for issue in year.items %}
+         <a href="{{ issue.url }}">
+	 <h2>{{ issue.title }}</h2>
+	 </a>
+	 <h3 style="color:grey"><i>{{issue.excerpt}}</i></h3>
+      {% endfor %}
+    </div>
+    <a href="#page-title" class="back-to-top">{{ site.data.ui-text[site.locale].back_to_top | default: 'Back to Top' }} &uarr;</a>
+  </section>
+{% endfor %}

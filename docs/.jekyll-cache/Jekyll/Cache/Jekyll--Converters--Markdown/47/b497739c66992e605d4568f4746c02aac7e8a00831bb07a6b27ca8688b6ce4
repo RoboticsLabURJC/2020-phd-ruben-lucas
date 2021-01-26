@@ -1,0 +1,101 @@
+I"O
+<div class="feature__wrapper">
+
+  
+
+    
+
+    <div class="feature__item">
+      <div class="archive__item">
+        
+          <div class="archive__item-teaser">
+            <img src="/assets/images/cover/logbook.jpg" alt="Logbook" />
+            
+          </div>
+        
+
+        <div class="archive__item-body">
+          
+            <h2 class="archive__item-title">Logbook</h2>
+          
+
+          
+            <div class="archive__item-excerpt">
+              <p>Goals, progress, problems and solutions achieved during development</p>
+
+            </div>
+          
+
+          
+            <p><a href="/logbook/" class="btn btn--primary">Learn more</a></p>
+          
+        </div>
+      </div>
+    </div>
+  
+
+    
+
+    <div class="feature__item">
+      <div class="archive__item">
+        
+          <div class="archive__item-teaser">
+            <img src="/assets/images/cover/install.png" alt="Projects" />
+            
+          </div>
+        
+
+        <div class="archive__item-body">
+          
+            <h2 class="archive__item-title">Projects</h2>
+          
+
+          
+            <div class="archive__item-excerpt">
+              <p>Different projects accomplished, its instructions for replicating, demo and conclussions</p>
+
+            </div>
+          
+
+          
+            <p><a href="/install/" class="btn btn--primary">Learn more</a></p>
+          
+        </div>
+      </div>
+    </div>
+  
+
+    
+
+    <div class="feature__item">
+      <div class="archive__item">
+        
+          <div class="archive__item-teaser">
+            <img src="/assets/images/cover/about.jpg" alt="Resources" />
+            
+          </div>
+        
+
+        <div class="archive__item-body">
+          
+            <h2 class="archive__item-title">Resources</h2>
+          
+
+          
+            <div class="archive__item-excerpt">
+              <p>More information about the project. References used, guides, articles, etc</p>
+
+            </div>
+          
+
+          
+            <p><a href="/about/" class="btn btn--primary">Learn more</a></p>
+          
+        </div>
+      </div>
+    </div>
+  
+
+</div>
+
+:ET
