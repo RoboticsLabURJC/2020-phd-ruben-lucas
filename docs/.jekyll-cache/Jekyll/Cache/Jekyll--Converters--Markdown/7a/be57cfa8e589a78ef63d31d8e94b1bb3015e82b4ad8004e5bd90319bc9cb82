@@ -1,4 +1,4 @@
-I" <h2 id="reqs">Reqs</h2>
+I"A<h2 id="reqs">Reqs</h2>
 
 <p>To execute this program you just need to install the following libraries:</p>
 <ul>
@@ -39,13 +39,13 @@ To accomplish that we have two graphs in the upper part of a window that will be
 
 <iframe width="560" height="420" src="http://www.youtube.com/embed/5pHcHyNFSP4?color=white&amp;theme=light"></iframe>
 
+<p><br /></p>
+
 <iframe width="560" height="420" src="http://www.youtube.com/embed/HHlRMhiZWCM?color=white&amp;theme=light"></iframe>
 
 <h2 id="code">Code</h2>
 
-<ul>
-  <li><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/robot_mesh">Path learning to reach a goal using qlearning</a></li>
-</ul>
+<p><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/robot_mesh">Path learning to reach a goal using qlearning</a></p>
 
 <h2 id="results">Results</h2>
 
@@ -55,6 +55,6 @@ To accomplish that we have two graphs in the upper part of a window that will be
 Note that Sarsa tries to convergence with as less risk as possible, avoiding paths close to a low reward. For that reason, the map shown in the q learning example never converged using Sarsa. Once the map was a little more clear with wider paths to the goal, Sarsa got to learn a path to the goal even not being the optimal one.
 You can find the explanation of this in the best answer to <a href="https://stats.stackexchange.com/questions/326788/when-to-choose-sarsa-vs-q-learning">this question</a>.</p>
 
-<p><em>Feel free to share a better implementation or discrepancies with our conclussions!! We are humbly open to learn more from more experts!!</em></p>
+<p><span style="color:green"><em>Feel free to share a better implementation or discrepancies with our conclussions!! We are humbly open to learn more from more experts!!</em></span></p>
 
 :ET
