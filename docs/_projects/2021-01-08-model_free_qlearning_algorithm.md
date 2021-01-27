@@ -1,6 +1,6 @@
 ---
 title: "Robot following path to goal with q learning and sarsa"
-excerpt: "using q learning and sarsa to learn a path from origin to destination through a mesh board"
+excerpt: "Using q learning and sarsa to learn a path from origin to destination through a mesh board"
 
 sidebar:
   nav: "docs"
