@@ -55,12 +55,19 @@ Instead of not being really configurable, the code is easily modifiable to try d
 
 ## Videos
 
+Unfortunately github-pages does not allow plugins, so check the videos in the following links:
 
-{% youtube 5pHcHyNFSP4 %}
+[q learning](https://www.youtube.com/watch?v=5pHcHyNFSP4)
 
 <br/>
 
-{% youtube HHlRMhiZWCM %}
+[sarsa](https://www.youtube.com/watch?v=HHlRMhiZWCM)
+
+[//]: # {% youtube 5pHcHyNFSP4 %}
+
+[//]: # <br/>
+
+[//]: # {% youtube HHlRMhiZWCM %}
 
 
 ## Code
