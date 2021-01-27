@@ -1,4 +1,4 @@
-I"ÿ<h2 id="reqs">Reqs</h2>
+I":<h2 id="reqs">Reqs</h2>
 
 <p>To execute this program you just need to install the following libraries:</p>
 <ul>
@@ -88,7 +88,10 @@ To accomplish that we have three graphs in the upper part of a window that will 
 
 <h2 id="video">Video</h2>
 
-<iframe width="560" height="420" src="http://www.youtube.com/embed/OifHupQe3KQ?color=white&amp;theme=light"></iframe>
+<p>Unfortunately github-pages does not allow plugins, so check the video in the fo
+llowing link:</p>
+
+<p><a href="youtube.com/watch?v=OifHupQe3KQ">mountainCar qlearning</a></p>
 
 <h2 id="code">Code</h2>
 
