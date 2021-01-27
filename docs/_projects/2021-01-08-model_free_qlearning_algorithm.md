@@ -63,12 +63,6 @@ Unfortunately github-pages does not allow plugins, so check the videos in the fo
 
 [sarsa](https://www.youtube.com/watch?v=HHlRMhiZWCM)
 
-[//]: # ({% youtube 5pHcHyNFSP4 %})
-
-[//]: # (<br/>)
-
-[//]: # ({% youtube HHlRMhiZWCM %})
-
 
 ## Code
 
