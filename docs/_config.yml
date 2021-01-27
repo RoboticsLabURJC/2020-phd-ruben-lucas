@@ -309,7 +309,7 @@ collections:
 
   projects:
     output: true
-    permalink: /projects/:path/
+    permalink: /:collection/:path/
 
 # Defaults
 defaults:
