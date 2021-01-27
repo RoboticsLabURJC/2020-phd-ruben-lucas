@@ -21,8 +21,8 @@ title_separator          : "-"
 subtitle                 : Programming Robot Intelligence
 name                     : "JdeRobot"
 description              : "Programming Robot Intelligence"
-url                      : "https://roboticslaburjc.github.io/" # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
-baseurl                  : "/2020-phd-ruben-lucas" # the subpath of your site, e.g. "/blog"
+url                      : "https://roboticslaburjc.github.io/2020-phd-ruben-lucas" # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
+#baseurl                  : "/2020-phd-ruben-lucas" # the subpath of your site, e.g. "/blog"
 repository               : "RoboticsLabURJC/2020-phd-ruben-lucas"
 teaser                   : # path of fallback teaser image, e.g. "/assets/images/500x300.png"
 logo                     : /assets/images/peloto.png
@@ -309,7 +309,7 @@ collections:
 
   projects:
     output: true
-    permalink: /:collection/:path/
+    permalink: :collection/:path/ 
 
 # Defaults
 defaults:
@@ -331,7 +331,7 @@ defaults:
       author_profile: false
       share: true
 
-
+      
   # _projects
   - scope:
       path: ""
@@ -343,7 +343,7 @@ defaults:
       comments: true
       share: true
       related: true
-  
+
   # _posts
   - scope:
       path: ""
