@@ -55,12 +55,11 @@ Instead of not being really configurable, the code is easily modifiable to try d
 
 ## Videos
 
-Unfortunately github-pages does not allow plugins and videos could not be embebbed in the blog, so check the videos in the following links:
+<iframe width="560" height="315" src="https://www.youtube.com/embed/5pHcHyNFSP4" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-[q learning](https://www.youtube.com/watch?v=5pHcHyNFSP4)
+<br/>
 
-[sarsa](https://www.youtube.com/watch?v=HHlRMhiZWCM)
-
+<iframe width="560" height="315" src="https://www.youtube.com/embed/HHlRMhiZWCM" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ## Code
 

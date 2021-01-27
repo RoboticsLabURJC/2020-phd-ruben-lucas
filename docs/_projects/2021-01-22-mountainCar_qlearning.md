@@ -90,10 +90,7 @@ In case of doubt and for seeking inspiration, you can check the "results documen
 
 ## Video
 
-Unfortunately github-pages does not allow plugins and videos could not be embebbed in the blog, so check the videos in the following links:
-
-[mountainCar qlearning](youtube.com/watch?v=OifHupQe3KQ)
-
+<iframe width="560" height="315" src="https://www.youtube.com/embed/OifHupQe3KQ" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ## Code
 
