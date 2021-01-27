@@ -95,9 +95,6 @@ llowing link:
 
 [mountainCar qlearning](youtube.com/watch?v=OifHupQe3KQ)
 
-[//]: # ({% youtube OifHupQe3KQ %})
-
-
 
 ## Code
 
