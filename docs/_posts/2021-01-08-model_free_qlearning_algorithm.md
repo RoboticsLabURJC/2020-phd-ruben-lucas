@@ -32,7 +32,7 @@ The goal of this month is defining from scratch a model-free reinforcement learn
 
 - [Temporal difference learning](https://medium.com/@violante.andre/simple-reinforcement-learning-temporal-difference-learning-e883ea0d65b0)
 
-- [model ffree vs model based reiforcement learning algorithms (Pytennis case example)](https://neptune.ai/blog/model-based-and-model-free-reinforcement-learning-pytennis-case-study)
+- [Model ffree vs model based reiforcement learning algorithms (Pytennis case example)](https://neptune.ai/blog/model-based-and-model-free-reinforcement-learning-pytennis-case-study)
 
 - [Off-policy vs on-policy reinforcement algorithm](https://towardsdatascience.com/on-policy-v-s-off-policy-learning-75089916bc2f)
 
