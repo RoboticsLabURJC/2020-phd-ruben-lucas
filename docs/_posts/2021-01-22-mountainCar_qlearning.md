@@ -25,6 +25,13 @@ pinned: false
 The goal of this two weeks is to solve the mountainCar problem using a reinforced learning algorithm with no neural network. 
 Besides that, this blog will be refined to better show the work progress and learnings.
 
+## Lectures
+
+- [KL Divergence for Machine Learning](https://dibyaghosh.com/blog/probability/kldivergence.html)
+
+- [Cross entropy loss explanation](https://datascience.stackexchange.com/questions/20296/cross-entropy-loss-explanation)
+
+- [Unlearning phenomenom in machine learning](https://insights.daffodilsw.com/blog/machine-unlearning-what-it-is-all-about)
 
 ## Lab work
 
