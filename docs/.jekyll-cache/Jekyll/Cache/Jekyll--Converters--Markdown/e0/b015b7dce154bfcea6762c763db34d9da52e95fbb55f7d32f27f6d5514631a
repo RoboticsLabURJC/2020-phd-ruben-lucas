@@ -1,4 +1,4 @@
-I"O
+I"Í
 <div class="feature__wrapper">
 
   
@@ -9,7 +9,7 @@
       <div class="archive__item">
         
           <div class="archive__item-teaser">
-            <img src="/assets/images/cover/logbook.jpg" alt="Logbook" />
+            <img src="/2020-phd-ruben-lucas/assets/images/cover/logbook.jpg" alt="Logbook" />
             
           </div>
         
@@ -27,7 +27,7 @@
           
 
           
-            <p><a href="/logbook/" class="btn btn--primary">Learn more</a></p>
+            <p><a href="/2020-phd-ruben-lucas/logbook/" class="btn btn--primary">Learn more</a></p>
           
         </div>
       </div>
@@ -40,7 +40,7 @@
       <div class="archive__item">
         
           <div class="archive__item-teaser">
-            <img src="/assets/images/cover/install.png" alt="Projects" />
+            <img src="/2020-phd-ruben-lucas/assets/images/cover/install.png" alt="Projects" />
             
           </div>
         
@@ -58,7 +58,7 @@
           
 
           
-            <p><a href="/install/" class="btn btn--primary">Learn more</a></p>
+            <p><a href="/2020-phd-ruben-lucas/install/" class="btn btn--primary">Learn more</a></p>
           
         </div>
       </div>
@@ -71,7 +71,7 @@
       <div class="archive__item">
         
           <div class="archive__item-teaser">
-            <img src="/assets/images/cover/about.jpg" alt="Resources" />
+            <img src="/2020-phd-ruben-lucas/assets/images/cover/about.jpg" alt="Resources" />
             
           </div>
         
@@ -89,7 +89,7 @@
           
 
           
-            <p><a href="/about/" class="btn btn--primary">Learn more</a></p>
+            <p><a href="/2020-phd-ruben-lucas/about/" class="btn btn--primary">Learn more</a></p>
           
         </div>
       </div>
