@@ -309,7 +309,7 @@ collections:
 
   projects:
     output: true
-    permalink: /:collection/:path/
+    permalink: /2020-phd-ruben-lucas/:collection/:path/
 
 # Defaults
 defaults:

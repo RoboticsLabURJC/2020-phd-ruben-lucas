@@ -55,11 +55,9 @@ Instead of not being really configurable, the code is easily modifiable to try d
 
 ## Videos
 
-Unfortunately github-pages does not allow plugins, so check the videos in the following links:
+Unfortunately github-pages does not allow plugins and videos could not be embebbed in the blog, so check the videos in the following links:
 
 [q learning](https://www.youtube.com/watch?v=5pHcHyNFSP4)
-
-<br/>
 
 [sarsa](https://www.youtube.com/watch?v=HHlRMhiZWCM)
 
