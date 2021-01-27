@@ -57,7 +57,7 @@ Instead of not being really configurable, the code is easily modifiable to try d
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/5pHcHyNFSP4" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-<br/>
+
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/HHlRMhiZWCM" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
