@@ -22,10 +22,10 @@ var store = [{
         "title": "Robot following path to goal with q learning and sarsa",
         "excerpt":"Reqs To execute this program you just need to install the following libraries: Python3 PyQt5 numpy Pandas matplotlib Manual The main goal of this kind of exercises is to learn how to develop a simple reinforced learning algorithm to make an agent learn the optimal path to the goal as...","categories": ["your category"],
         "tags": ["tag 1","tag 2","tag 3","tag 4"],
-        "url": "http://localhost:4000/projects/2021-01-08-model_free_qlearning_algorithm/",
+        "url": "http://localhost:4000/2020-phd-ruben-lucas/projects/2021-01-08-model_free_qlearning_algorithm/",
         "teaser":null},{
         "title": "MountainCar openAI Gym exercise solved using q learning",
         "excerpt":"Reqs To execute this program you just need to install the following libraries: Python3 PyQt5 numpy Pandas matplotlib Manual The main goal of this exercise is similar to the last proposed. To dig into the reinforcement learning basics. In this case, the exercise is not that simple, since some times...","categories": ["your category"],
         "tags": ["tag 1","tag 2","tag 3","tag 4"],
-        "url": "http://localhost:4000/projects/2021-01-22-mountainCar_qlearning/",
+        "url": "http://localhost:4000/2020-phd-ruben-lucas/projects/2021-01-22-mountainCar_qlearning/",
         "teaser":null}]
