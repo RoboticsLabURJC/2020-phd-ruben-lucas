@@ -10,7 +10,7 @@ layout: archive
   <section id="{{ year.name }}" class="taxonomy__section">
     <div class="entries-{{ page.entries_layout | default: 'list' }}">
       {% for issue in year.items %}
-         <a href="{{ issue.url }}">
+         <a href="{{ issue.url | relative_url }}">
 	 <h2>{{ issue.title }}</h2>
 	 </a>
 	 <h3 style="color:grey"><i>{{issue.excerpt}}</i></h3>
