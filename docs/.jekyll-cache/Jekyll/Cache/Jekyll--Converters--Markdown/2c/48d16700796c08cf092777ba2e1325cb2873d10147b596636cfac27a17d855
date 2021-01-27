@@ -1,4 +1,4 @@
-I"O<h2 id="reqs">Reqs</h2>
+I"m<h2 id="reqs">Reqs</h2>
 
 <p>To execute this program you just need to install the following libraries:</p>
 <ul>
@@ -37,11 +37,9 @@ To accomplish that we have two graphs in the upper part of a window that will be
 
 <h2 id="videos">Videos</h2>
 
-<p>Unfortunately github-pages does not allow plugins, so check the videos in the following links:</p>
+<p>Unfortunately github-pages does not allow plugins and videos could not be embebbed in the blog, so check the videos in the following links:</p>
 
 <p><a href="https://www.youtube.com/watch?v=5pHcHyNFSP4">q learning</a></p>
-
-<p><br /></p>
 
 <p><a href="https://www.youtube.com/watch?v=HHlRMhiZWCM">sarsa</a></p>
 
