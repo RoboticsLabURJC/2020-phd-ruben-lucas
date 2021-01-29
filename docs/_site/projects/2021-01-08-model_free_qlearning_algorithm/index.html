@@ -10,7 +10,7 @@
     <meta charset="utf-8">
 
 <!-- begin _includes/seo.html --><title>Robot following path to goal with q learning and sarsa - Robotics Lab URJC</title>
-<meta name="description" content="using q learning and sarsa to learn a path from origin to destination through a mesh board">
+<meta name="description" content="Using q learning and sarsa to learn a path from origin to destination through a mesh board">
 
 
 
@@ -21,7 +21,7 @@
 <meta property="og:url" content="http://localhost:4000/2020-phd-ruben-lucas/projects/2021-01-08-model_free_qlearning_algorithm/">
 
 
-  <meta property="og:description" content="using q learning and sarsa to learn a path from origin to destination through a mesh board">
+  <meta property="og:description" content="Using q learning and sarsa to learn a path from origin to destination through a mesh board">
 
 
 
@@ -323,7 +323,7 @@
 
   <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
     <meta itemprop="headline" content="Robot following path to goal with q learning and sarsa">
-    <meta itemprop="description" content="using q learning and sarsa to learn a path from origin to destination through a mesh board">
+    <meta itemprop="description" content="Using q learning and sarsa to learn a path from origin to destination through a mesh board">
     <meta itemprop="datePublished" content="January 08, 2021">
     
 
@@ -398,13 +398,11 @@ To accomplish that we have two graphs in the upper part of a window that will be
 
 <h2 id="videos">Videos</h2>
 
-<p>Unfortunately github-pages does not allow plugins and videos could not be embebbed in the blog, so check the videos in the following links:</p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/5pHcHyNFSP4" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/OifHupQe3KQ" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+<p><br /></p>
 
-<p><a href="https://www.youtube.com/watch?v=5pHcHyNFSP4">q learning</a></p>
-
-<p><a href="https://www.youtube.com/watch?v=HHlRMhiZWCM">sarsa</a></p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/HHlRMhiZWCM" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
 
 <h2 id="code">Code</h2>
 
@@ -412,11 +410,46 @@ To accomplish that we have two graphs in the upper part of a window that will be
 
 <h2 id="results">Results</h2>
 
-<p>To be honest, the first prototype I developed was aimed to be q learning but it wasnt. Afterwards, a real q learning was developed and the convergence last much more than in the previous example. It was because in the previous example the q tables were directly filled with the best learn option instead of adjusting little by little the q values until the q tables convergence to the optimal path.</p>
+<p>The easiest and fastest way to solve this problem was proved to be q learning. After some hyperparameters tunnings to improve the performance and some differents maps tested, the chosen map to exemplify the problem results is the following:</p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/robotmesh/mapqlearning.png" alt="map" class="img-responsive" /></p>
+
+<p>Being the green cells the start and end points, the black cells the bombs the “robot” must avoid and the blue cells the optimal path to achieve the goal.
+The hyperparameters winners are the following:</p>
+
+<ul>
+  <li>GAMMA = 0.95</li>
+  <li>LEARNING RATE = 0.9</li>
+  <li>EXPLORATION_MIN = 0.000001</li>
+  <li>EXPLORATION_DECAY = 0.999</li>
+</ul>
+
+<p>And the results, as shown in the video are indicated within the following graphics:</p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/robotmesh/resultsqlearning.png" alt="results" class="img-responsive" /></p>
+
+<p>As you can see, the algorithm converges around the simulation 450, from which all the paths followed were the optimal.</p>
 
 <p>After this experiment I felt it was not enough and Sarsa was implemented to solve the same problem.
-Note that Sarsa tries to convergence with as less risk as possible, avoiding paths close to a low reward. For that reason, the map shown in the q learning example never converged using Sarsa. Once the map was a little more clear with wider paths to the goal, Sarsa got to learn a path to the goal even not being the optimal one.
+Note that Sarsa tries to converge with as less risk as possible, avoiding paths close to a low reward. For that reason, the map shown in the q learning example never converged using Sarsa. Once the map was a little more clear with wider paths to the goal, Sarsa got to learn a path to the goal even not being the optimal one.
 You can find the explanation of this in the best answer to <a href="https://stats.stackexchange.com/questions/326788/when-to-choose-sarsa-vs-q-learning">this question</a>.</p>
+
+<p>that said, having this map:</p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/robotmesh/mapsarsa.png" alt="map" class="img-responsive" /></p>
+
+<p>And the following chosen hyperparameters:</p>
+
+<ul>
+  <li>GAMMA = 0.9</li>
+  <li>LEARNING RATE = 0.9</li>
+  <li>EXPLORATION_MIN = 0.001</li>
+  <li>EXPLORATION_DECAY = 0.9995</li>
+</ul>
+
+<p>Those are the (obvously worse) results:</p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/robotmesh/resultssarsa.png" alt="results" class="img-responsive" /></p>
 
 <p><span style="color:green"><em>Feel free to share a better implementation or discrepancies with our conclussions!! We are humbly open to learn more from more experts!!</em></span></p>
 

@@ -1,5 +1,19 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/2020-phd-ruben-lucas/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/2020-phd-ruben-lucas/" rel="alternate" type="text/html" /><updated>2021-01-27T10:56:36-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/feed.xml</id><title type="html">Robotics Lab URJC</title><subtitle>Programming Robot Intelligence</subtitle><author><name>Rubén Lucas</name></author><entry><title type="html">QLearning (month 5 · Weeks 1 and 2)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning/" rel="alternate" type="text/html" title="QLearning (month 5 · Weeks 1 and 2)" /><published>2021-01-22T00:00:00-08:00</published><updated>2021-01-22T00:00:00-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning/">&lt;p&gt;The goal of this two weeks is to solve the mountainCar problem using a reinforced learning algorithm with no neural network. 
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/2020-phd-ruben-lucas/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/2020-phd-ruben-lucas/" rel="alternate" type="text/html" /><updated>2021-01-29T10:08:07-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/feed.xml</id><title type="html">Robotics Lab URJC</title><subtitle>Programming Robot Intelligence</subtitle><author><name>Rubén Lucas</name></author><entry><title type="html">QLearning (month 5 · Weeks 1 and 2)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning/" rel="alternate" type="text/html" title="QLearning (month 5 · Weeks 1 and 2)" /><published>2021-01-22T00:00:00-08:00</published><updated>2021-01-22T00:00:00-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning/">&lt;p&gt;The goal of this two weeks is to solve the mountainCar problem using a reinforced learning algorithm with no neural network. 
 Besides that, this blog will be refined to better show the work progress and learnings.&lt;/p&gt;
+
+&lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://dibyaghosh.com/blog/probability/kldivergence.html&quot;&gt;KL Divergence for Machine Learning&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://datascience.stackexchange.com/questions/20296/cross-entropy-loss-explanation&quot;&gt;Cross entropy loss explanation&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://insights.daffodilsw.com/blog/machine-unlearning-what-it-is-all-about&quot;&gt;Unlearning phenomenom in machine learning&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;h2 id=&quot;lab-work&quot;&gt;Lab work&lt;/h2&gt;
 
@@ -18,6 +32,12 @@ Besides that, this blog will be refined to better show the work progress and lea
   &lt;/li&gt;
   &lt;li&gt;
     &lt;p&gt;&lt;a href=&quot;https://medium.com/@violante.andre/simple-reinforcement-learning-temporal-difference-learning-e883ea0d65b0&quot;&gt;Temporal difference learning&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://neptune.ai/blog/model-based-and-model-free-reinforcement-learning-pytennis-case-study&quot;&gt;Model ffree vs model based reiforcement learning algorithms (Pytennis case example)&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://towardsdatascience.com/on-policy-v-s-off-policy-learning-75089916bc2f&quot;&gt;Off-policy vs on-policy reinforcement algorithm&lt;/a&gt;&lt;/p&gt;
   &lt;/li&gt;
 &lt;/ul&gt;
 
