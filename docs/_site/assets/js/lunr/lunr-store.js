@@ -15,7 +15,7 @@ var store = [{
         "url": "http://localhost:4000/2020-phd-ruben-lucas/your%20category/model_free_qlearning_algorithm/",
         "teaser":null},{
         "title": "QLearning (month 5 · Weeks 1 and 2)",
-        "excerpt":"The goal of this two weeks is to solve the mountainCar problem using a reinforced learning algorithm with no neural network.  Besides that, this blog will be refined to better show the work progress and learnings.   Lab work      mountainCar openAIGym exercise with qlearning  ","categories": ["your category"],
+        "excerpt":"The goal of this two weeks is to solve the mountainCar problem using a reinforced learning algorithm with no neural network. Besides that, this blog will be refined to better show the work progress and learnings. Lectures KL Divergence for Machine Learning Cross entropy loss explanation Unlearning phenomenom in machine...","categories": ["your category"],
         "tags": ["tag 1","tag 2","tag 3","tag 4"],
         "url": "http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning/",
         "teaser":null},{

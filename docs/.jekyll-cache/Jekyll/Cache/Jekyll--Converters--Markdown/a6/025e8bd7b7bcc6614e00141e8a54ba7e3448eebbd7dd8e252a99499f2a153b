@@ -1,0 +1,23 @@
+I"©<p>The goal of this two weeks is to solve the mountainCar problem using a reinforced learning algorithm with no neural network. 
+Besides that, this blog will be refined to better show the work progress and learnings.</p>
+
+<h2 id="lectures">Lectures</h2>
+
+<ul>
+  <li>
+    <p><a href="https://dibyaghosh.com/blog/probability/kldivergence.html">KL Divergence for Machine Learning</a></p>
+  </li>
+  <li>
+    <p><a href="https://datascience.stackexchange.com/questions/20296/cross-entropy-loss-explanation">Cross entropy loss explanation</a></p>
+  </li>
+  <li>
+    <p><a href="https://insights.daffodilsw.com/blog/machine-unlearning-what-it-is-all-about">Unlearning phenomenom in machine learning</a></p>
+  </li>
+</ul>
+
+<h2 id="lab-work">Lab work</h2>
+
+<ul>
+  <li><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/openAI_exercises/mountainCar/qlearning">mountainCar openAIGym exercise with qlearning</a></li>
+</ul>
+:ET

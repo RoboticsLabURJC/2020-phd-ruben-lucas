@@ -67,11 +67,43 @@ Instead of not being really configurable, the code is easily modifiable to try d
 
 ## Results
 
-To be honest, the first prototype I developed was aimed to be q learning but it wasnt. Afterwards, a real q learning was developed and the convergence last much more than in the previous example. It was because in the previous example the q tables were directly filled with the best learn option instead of adjusting little by little the q values until the q tables convergence to the optimal path.
+The easiest and fastest way to solve this problem was proved to be q learning. After some hyperparameters tunnings to improve the performance and some differents maps tested, the chosen map to exemplify the problem results is the following:
+
+![map]({{site.baseurl}}/assets/images/results_images/robotmesh/mapqlearning.png){:class="img-responsive"}
+
+Being the green cells the start and end points, the black cells the bombs the "robot" must avoid and the blue cells the optimal path to achieve the goal.
+The hyperparameters winners are the following:
+
+- GAMMA = 0.95
+- LEARNING RATE = 0.9
+- EXPLORATION_MIN = 0.000001
+- EXPLORATION_DECAY = 0.999 
+
+
+And the results, as shown in the video are indicated within the following graphics:
+
+![results]({{site.baseurl}}/assets/images/results_images/robotmesh/resultsqlearning.png){:class="img-responsive"}
+
+As you can see, the algorithm converges around the simulation 450, from which all the paths followed were the optimal.
 
 After this experiment I felt it was not enough and Sarsa was implemented to solve the same problem.
-Note that Sarsa tries to convergence with as less risk as possible, avoiding paths close to a low reward. For that reason, the map shown in the q learning example never converged using Sarsa. Once the map was a little more clear with wider paths to the goal, Sarsa got to learn a path to the goal even not being the optimal one.
+Note that Sarsa tries to converge with as less risk as possible, avoiding paths close to a low reward. For that reason, the map shown in the q learning example never converged using Sarsa. Once the map was a little more clear with wider paths to the goal, Sarsa got to learn a path to the goal even not being the optimal one.
 You can find the explanation of this in the best answer to [this question](https://stats.stackexchange.com/questions/326788/when-to-choose-sarsa-vs-q-learning).
+
+that said, having this map:
+
+![map]({{site.baseurl}}/assets/images/results_images/robotmesh/mapsarsa.png){:class="img-responsive"}
+
+And the following chosen hyperparameters:
+
+- GAMMA = 0.9
+- LEARNING RATE = 0.9
+- EXPLORATION_MIN = 0.001
+- EXPLORATION_DECAY = 0.9995
+
+Those are the (obvously worse) results:
+
+![results]({{site.baseurl}}/assets/images/results_images/robotmesh/resultssarsa.png){:class="img-responsive"}
 
 
 

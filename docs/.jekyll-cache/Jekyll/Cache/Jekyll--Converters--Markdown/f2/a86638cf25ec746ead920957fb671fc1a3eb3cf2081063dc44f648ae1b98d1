@@ -1,4 +1,4 @@
-I"I<p>The goal of this month is defining from scratch a model-free reinforcement learning algorithm and an environment to solve a typical path learning from source to goal problem. Additionally, some lectures have been useful to accomplish the month objective.</p>
+I"É<p>The goal of this month is defining from scratch a model-free reinforcement learning algorithm and an environment to solve a typical path learning from source to goal problem. Additionally, some lectures have been useful to accomplish the month objective.</p>
 
 <h2 id="lectures">Lectures</h2>
 
@@ -11,6 +11,12 @@
   </li>
   <li>
     <p><a href="https://medium.com/@violante.andre/simple-reinforcement-learning-temporal-difference-learning-e883ea0d65b0">Temporal difference learning</a></p>
+  </li>
+  <li>
+    <p><a href="https://neptune.ai/blog/model-based-and-model-free-reinforcement-learning-pytennis-case-study">Model ffree vs model based reiforcement learning algorithms (Pytennis case example)</a></p>
+  </li>
+  <li>
+    <p><a href="https://towardsdatascience.com/on-policy-v-s-off-policy-learning-75089916bc2f">Off-policy vs on-policy reinforcement algorithm</a></p>
   </li>
 </ul>
 
