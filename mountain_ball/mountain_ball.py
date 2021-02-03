@@ -94,8 +94,8 @@ class QSolver:
             self.exploration_rate = max(EXPLORATION_MIN, self.exploration_rate)
 
 
-def get_reward(state, step):
-    if state[0] >= 0.5:
+def get_reward(state, step, done):
+    if done:
         print("Car has reached the goal")
         return 500
     elif state[0]<-0.7:
@@ -236,7 +236,7 @@ def mountain():
             state_next= state_next[0]
             states.append(state_next)
             #print (state_next)
-            updated_reward=get_reward(state_next, step)
+            updated_reward=get_reward(state_next, step, done)
 
             # Discretize state2
             state2_adj = (state_next - env.observation_space.low)*np.array([DISCRETIZATION_POS, DISCRETIZATION_SPEED])

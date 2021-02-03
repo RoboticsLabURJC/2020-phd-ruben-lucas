@@ -4,6 +4,7 @@ permalink: https://perma.cc/6Z2N-PFWC
 """
 import math
 
+from time import sleep
 import numpy as np
 
 import gym
@@ -12,6 +13,7 @@ from gym.utils import seeding
 
 from sympy import *
 
+MILLISECONDS_IN_SECOND=1000
 
 class MountainBallEnv(gym.Env):
     """
@@ -55,7 +57,9 @@ class MountainBallEnv(gym.Env):
     #heigh_function=0.3*x +2
     #weird courves mountain
     heigh_function=4*sin(0.3*x)**3+ 4.5
-    STEPS_PER_SECOND=100
+    #floor
+    #heigh_function=0.00000000000000000001*x + 2
+    MILLISECONDS_PER_STEP=50
 
     metadata = {
         'render.modes': ['human', 'rgb_array'],
@@ -64,13 +68,15 @@ class MountainBallEnv(gym.Env):
 
     def __init__(self, goal_velocity=0):
         self.world_function= lambdify(self.x, self.heigh_function)
+        #Consider position is in metters
         self.min_position = -11
         self.max_position = 11
+        #Consider that speed is metters per millisecond
         self.max_speed = 2
         self.goal_position = 10
         self.goal_velocity = goal_velocity
 
-        self.force = 0.1
+        self.force = 10/self.car_mass
         self.gravity = 9.8
 
         self.low = np.array(
@@ -100,21 +106,27 @@ class MountainBallEnv(gym.Env):
 
         position, velocity = self.state
         #accelaration per second
-        acceleration=self.car_mass*self.gravity*math.sin(f_prime(position))
-        #acceleration per step
-        acceleration_step=acceleration/self.STEPS_PER_SECOND
+        acceleration=self.gravity*math.sin(-f_prime(position)) + ((2 - 1) * self.force)
+        #sleep(1)
 
-        #velocity per second
-        velocity+= ((action - 1) * self.force) - acceleration_step
-        #velocity per step
-        velocity_step=velocity/self.STEPS_PER_SECOND
+        print("acceleration")
+        print(acceleration)
+        print("prev")
+        print(position)
+        print(velocity)
+        print("action" + str(action))
 
-        position+=velocity_step
+        position+=(velocity*self.MILLISECONDS_PER_STEP/MILLISECONDS_IN_SECOND)+(0.5*(acceleration*((self.MILLISECONDS_PER_STEP/MILLISECONDS_IN_SECOND)**2)))
+        velocity+=acceleration*self.MILLISECONDS_PER_STEP/MILLISECONDS_IN_SECOND
 
         #velocity += (action - 1) * self.force + math.cos(3 * position) * (-self.gravity)
         velocity = np.clip(velocity, -self.max_speed, self.max_speed)
         #position += velocity
         position = np.clip(position, self.min_position, self.max_position)
+
+        print("pos")
+        print(position)
+        print(velocity)
 
         if (position == self.min_position and velocity < 0):
             velocity = 0
