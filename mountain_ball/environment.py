@@ -59,6 +59,8 @@ class MountainBallEnv(gym.Env):
     heigh_function=4*sin(0.3*x)**3+ 4.5
     #floor
     #heigh_function=0.00000000000000000001*x + 2
+    #mountainCar environment
+    #heigh_function=sin(0.3*x-0.8)*4 + 4
     MILLISECONDS_PER_STEP=50
 
     metadata = {
@@ -72,7 +74,7 @@ class MountainBallEnv(gym.Env):
         self.min_position = -11
         self.max_position = 11
         #Consider that speed is metters per millisecond
-        self.max_speed = 2
+        #self.max_speed = 2
         self.goal_position = 10
         self.goal_velocity = goal_velocity
 
@@ -106,15 +108,15 @@ class MountainBallEnv(gym.Env):
 
         position, velocity = self.state
         #accelaration per second
-        acceleration=self.gravity*math.sin(-f_prime(position)) + ((2 - 1) * self.force)
-        #sleep(1)
+        acceleration=self.gravity*math.sin(-f_prime(position)) + ((action - 1) * self.force)
+        #sleep(0.5)
 
-        print("acceleration")
-        print(acceleration)
-        print("prev")
-        print(position)
-        print(velocity)
-        print("action" + str(action))
+        #print("acceleration")
+        #print(acceleration)
+        #print("prev")
+        #print(position)
+        #print(velocity)
+        #print("action" + str(action))
 
         position+=(velocity*self.MILLISECONDS_PER_STEP/MILLISECONDS_IN_SECOND)+(0.5*(acceleration*((self.MILLISECONDS_PER_STEP/MILLISECONDS_IN_SECOND)**2)))
         velocity+=acceleration*self.MILLISECONDS_PER_STEP/MILLISECONDS_IN_SECOND
@@ -124,9 +126,9 @@ class MountainBallEnv(gym.Env):
         #position += velocity
         position = np.clip(position, self.min_position, self.max_position)
 
-        print("pos")
-        print(position)
-        print(velocity)
+        #print("pos")
+        #print(position)
+        #print(velocity)
 
         if (position == self.min_position and velocity < 0):
             velocity = 0
@@ -144,7 +146,7 @@ class MountainBallEnv(gym.Env):
         #TODO la posición inicial debe depender del rango de posiciones mostradas
         #en la ventana y se debe configurar como constante
         #self.state = np.array([self.np_random.uniform(low=-0.6, high=-0.4), 0])
-        self.state=[0.3,0]
+        self.state = np.array([self.np_random.uniform(low=-0.6, high=-0.4), 0])
         return np.array(self.state)
 
     def _height(self, xs):

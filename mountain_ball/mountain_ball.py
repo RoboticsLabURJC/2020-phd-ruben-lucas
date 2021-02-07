@@ -26,7 +26,7 @@ from environment import MountainBallEnv
 
 
 #It should be multiple of 10
-MAX_RUNS=500
+MAX_RUNS=1000
 MAXIMUM_STEPS=500
 EXPLORATION_STEPS_PER_STATE=100
 
@@ -98,12 +98,12 @@ def get_reward(state, step, done):
     if done:
         print("Car has reached the goal")
         return 500
-    elif state[0]<-0.7:
-        return ((state[0]+0.7))
-    elif state[0]>-0.7 and state[0]<-0.2:
-        return 9*(state[0]+0.3)
-    elif state[0]>=-0.2:
-        return (9*(state[0]+0.3))**2
+    elif state[0]<-2.5:
+        return (abs(state[0]))
+    elif state[0]>=-2.5 and state[0]<0.5:
+        return 0
+    elif state[0]>=0.5:
+        return (3*(state[0]))**2
 
 
 
