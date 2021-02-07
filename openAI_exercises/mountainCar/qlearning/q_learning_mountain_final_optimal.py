@@ -21,8 +21,9 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
 #It should be multiple of 10
-MAX_RUNS=500
+MAX_RUNS=3000
 MAXIMUM_STEPS=500
+EXPLORATION_STEPS_PER_STATE=100
 
 INTERPOLATION=MAX_RUNS/10
 
@@ -33,13 +34,13 @@ LEARNING_RATE = 0.25
 
 EXPLORATION_MAX = 1.0
 EXPLORATION_MIN = 0.05
-EXPLORATION_DECAY = 0.75
+EXPLORATION_DECAY = 0.99995
 
 
 class QSolver:
 
     def __init__(self, env):
-        #self.exploration_rate = EXPLORATION_MAX
+        self.exploration_rate = EXPLORATION_MAX
         self.action_space = env.action_space.n
         print(env.observation_space.low)
         print(env.observation_space.high)
@@ -49,20 +50,18 @@ class QSolver:
         self.num_states = np.round(self.num_states, 0).astype(int) + 1
         print(self.num_states)
 
-        self.exploration_rate=[[EXPLORATION_MAX for x in range(int(self.num_states[0]))] for y in range(int(self.num_states[1]))]
-
         # Initialize Q table
         self.q_values = np.random.uniform(low = -1, high = 1,
                               size = (self.num_states[0], self.num_states[1],
                                       env.action_space.n))
 
-    def act(self, state):
-        if np.random.rand() < self.exploration_rate[state[1]][state[0]]:
+    def act(self, state, occurrences):
+        if np.random.rand() < self.exploration_rate:
             return random.randrange(self.action_space)
         action = np.argmax(self.q_values[state[0], state[1]])
         return action
 
-    def experience_replay(self, done, state_adj, action, reward, state2_adj, state_next, run):
+    def experience_replay(self, done, state_adj, action, reward, state2_adj, state_next, run, occurrences):
 
         #Allow for terminal states
         if done and state_next[0] >= 0.5:
@@ -84,27 +83,18 @@ class QSolver:
         #print(self.q_values[state_adj[0], state_adj[1]])
         #print ("state_next " + str(state_next[0]) + " " + str(state_next[1]))
         #print ("reward " + str(reward))
-        self.exploration_rate[state_adj[1]][state_adj[0]] *= EXPLORATION_DECAY
-        self.exploration_rate[state_adj[1]][state_adj[0]] = max(EXPLORATION_MIN, self.exploration_rate[state_adj[1]][state_adj[0]])
+        if run>50:
+            self.exploration_rate *= EXPLORATION_DECAY
+            self.exploration_rate = max(EXPLORATION_MIN, self.exploration_rate)
 
 
 def get_reward(state, step):
     if state[0] >= 0.5:
         print("Car has reached the goal")
         return 500
-    elif state[0]<=-0.7:
-        return ((state[0]+2))
-    elif state[0]>-0.7 and state[0]<=-0.3:
-        return 9*(state[0]+0.3)
-    elif state[0]>-0.1:
-        return (9*(state[0]+0.3))**2
-    else:
-        return 0
-
-
-
-
-
+    elif state[0]>=0.1:
+        return 3**(4*(abs((state[0]*10))))
+    return 0
 
 
 def plot_rewards_per_run(axes, dataSet):
@@ -208,6 +198,8 @@ def mountain():
     steps=[]
     max_states=[]
     q_values_matrix=[[[0 for x in range(int(q_solver.num_states[0]))] for y in range(int(q_solver.num_states[1]))] for j in range(int(MAX_RUNS/INTERPOLATION)) ]
+    state_occurrences=[[0 for x in range(int(q_solver.num_states[0]))] for y in range(int(q_solver.num_states[1]))]
+
     while True:
         run += 1
         if run>MAX_RUNS:
@@ -228,7 +220,8 @@ def mountain():
         while True:
             step += 1
             env.render()
-            action = q_solver.act(state_adj)
+            state_occurrences[state_adj[1]][state_adj[0]]+=1
+            action = q_solver.act(state_adj, state_occurrences[state_adj[1]][state_adj[0]])
             #time.sleep(1)
             state_next, reward, done, info = env.step(action)
             states.append(state_next)
@@ -241,7 +234,9 @@ def mountain():
 
 
             tot_reward+=updated_reward
-            q_solver.experience_replay(done, state_adj, action, updated_reward, state2_adj, state_next, run)
+            #print("state " + str(state_adj[1]) + " " +  str(state_adj[0])  + " occurrences " +str(state_occurrences[state_adj[1]][state_adj[0]]))
+
+            q_solver.experience_replay(done, state_adj, action, updated_reward, state2_adj, state_next, run, state_occurrences[state_adj[1]][state_adj[0]])
             state_adj = state2_adj
             if state_next[0]>=0.5:
                 print ("GOAL!!!!!")

@@ -19,6 +19,11 @@ var store = [{
         "tags": ["tag 1","tag 2","tag 3","tag 4"],
         "url": "http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning/",
         "teaser":null},{
+        "title": "QLearning (month 5 · Weeks 3 and 4)",
+        "excerpt":"The goal of this two weeks is to create owr own environment with its own physics so we can lately modify the mountain heigh, the car mass, the maximum velocity, the number of mountains, the goal to be reached, etc. Lectures Physics basics in terms of movemetnt forces Lab work...","categories": ["your category"],
+        "tags": ["tag 1","tag 2","tag 3","tag 4"],
+        "url": "http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainBall_qlearning/",
+        "teaser":null},{
         "title": "Robot following path to goal with q learning and sarsa",
         "excerpt":"Reqs To execute this program you just need to install the following libraries: Python3 PyQt5 numpy Pandas matplotlib Manual The main goal of this kind of exercises is to learn how to develop a simple reinforced learning algorithm to make an agent learn the optimal path to the goal as...","categories": ["your category"],
         "tags": ["tag 1","tag 2","tag 3","tag 4"],
@@ -28,4 +33,9 @@ var store = [{
         "excerpt":"Reqs To execute this program you just need to install the following libraries: Python3 PyQt5 numpy Pandas matplotlib Manual The main goal of this exercise is similar to the last proposed. To dig into the reinforcement learning basics. In this case, the exercise is not that simple, since some times...","categories": ["your category"],
         "tags": ["tag 1","tag 2","tag 3","tag 4"],
         "url": "http://localhost:4000/2020-phd-ruben-lucas/projects/2021-01-22-mountainCar_qlearning/",
+        "teaser":null},{
+        "title": "MountainBall own environment using OpenAI Gym",
+        "excerpt":"Reqs To execute this program you just need to install the following libraries: Python3.7 PyQt5 numpy 1.16.5 Pandas matplotlib tensorflow 1.14.0 gym sympy Manual The main goal of this exercise is being able to configure owr own environment with its own physics. The biggest challenge here was to make it...","categories": ["your category"],
+        "tags": ["tag 1","tag 2","tag 3","tag 4"],
+        "url": "http://localhost:4000/2020-phd-ruben-lucas/projects/2021-02-07-mountainBall/",
         "teaser":null}]

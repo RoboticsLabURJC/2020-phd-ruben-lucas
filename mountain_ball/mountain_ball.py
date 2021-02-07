@@ -25,9 +25,9 @@ from stable_baselines.common.vec_env import DummyVecEnv
 from environment import MountainBallEnv
 
 
-#It should be multiple of 10
-MAX_RUNS=1000
-MAXIMUM_STEPS=500
+#It must be multiple of 10
+MAX_RUNS=500
+MAXIMUM_STEPS=1000
 EXPLORATION_STEPS_PER_STATE=100
 
 INTERPOLATION=MAX_RUNS/10
@@ -38,10 +38,10 @@ LEARNING_RATE = 0.2
 EXPLORATION_MAX = 1.0
 EXPLORATION_MIN = 0.05
 EXPLORATION_DECAY = 0.9995
-EXPLORATION_RUNS=50
+EXPLORATION_RUNS=10
 
-DISCRETIZATION_POS=10
-DISCRETIZATION_SPEED=50
+DISCRETIZATION_POS=1/100
+DISCRETIZATION_SPEED=1/100
 
 class QSolver:
 
@@ -50,10 +50,11 @@ class QSolver:
         self.action_space = env.action_space.n
         print(env.observation_space.low)
         print(env.observation_space.high)
-        # Determine size of discretized state space
+        # Determine size of discretized state space INTERPOLATION
         self.num_states = (env.observation_space.high - env.observation_space.low)*\
                         np.array([DISCRETIZATION_POS, DISCRETIZATION_SPEED])
         self.num_states = np.round(self.num_states, 0).astype(int) + 1
+
         print(self.num_states)
 
         # Initialize Q table
@@ -98,11 +99,11 @@ def get_reward(state, step, done):
     if done:
         print("Car has reached the goal")
         return 500
-    elif state[0]<-2.5:
+    elif state[0]<7500:
         return (abs(state[0]))
-    elif state[0]>=-2.5 and state[0]<0.5:
+    elif state[0]>=7500 and state[0]<9500:
         return 0
-    elif state[0]>=0.5:
+    elif state[0]>=9500:
         return (3*(state[0]))**2
 
 
@@ -234,14 +235,14 @@ def mountain():
             #time.sleep(1)
             state_next, reward, done, info = env.step([action])
             state_next= state_next[0]
-            states.append(state_next)
+            states.append(state_next[0])
             #print (state_next)
             updated_reward=get_reward(state_next, step, done)
 
             # Discretize state2
             state2_adj = (state_next - env.observation_space.low)*np.array([DISCRETIZATION_POS, DISCRETIZATION_SPEED])
             state2_adj = np.round(state2_adj, 0).astype(int)
-
+            print(state2_adj)
 
             tot_reward+=updated_reward
             #print("state " + str(state_adj[1]) + " " +  str(state_adj[0])  + " occurrences " +str(state_occurrences[state_adj[1]][state_adj[0]]))

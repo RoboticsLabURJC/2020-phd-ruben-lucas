@@ -13,8 +13,6 @@ from gym.utils import seeding
 
 from sympy import *
 
-MILLISECONDS_IN_SECOND=1000
-
 class MountainBallEnv(gym.Env):
     """
     Description:
@@ -50,36 +48,50 @@ class MountainBallEnv(gym.Env):
     """
 
     car_mass=4
+    seconds_per_step=5
+    force = 4
+    initial_position_low=8000
+    initial_position_high=9100
+    initial_speed=0
+
+    lower_position=-11000
+    higher_position=11000
+    max_speed = 10000
+
+    goal_position=10000
+
+    DISCRETIZATION_LEVEL=0
 
     # We have to create a "symbol" called x
     x = Symbol('x')
     #ramp
     #heigh_function=0.3*x +2
     #weird courves mountain
-    heigh_function=4*sin(0.3*x)**3+ 4.5
+    #heigh_function=4*sin(0.3*x)**3+ 4.5
     #floor
     #heigh_function=0.00000000000000000001*x + 2
     #mountainCar environment
-    #heigh_function=sin(0.3*x-0.8)*4 + 4
-    MILLISECONDS_PER_STEP=50
+    heigh_function=sin(0.0003*x-10.5)*4000 + 4000
+
+    gravity=9.8
 
     metadata = {
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second': 30
     }
 
+    prev_angle=0
+    sum_acc=0
+
     def __init__(self, goal_velocity=0):
+        self.force=self.force/self.car_mass
         self.world_function= lambdify(self.x, self.heigh_function)
         #Consider position is in metters
-        self.min_position = -11
-        self.max_position = 11
-        #Consider that speed is metters per millisecond
-        #self.max_speed = 2
-        self.goal_position = 10
-        self.goal_velocity = goal_velocity
+        self.min_position = self.lower_position
+        self.max_position = self.higher_position
 
-        self.force = 10/self.car_mass
-        self.gravity = 9.8
+        #Consider that speed is metters per millisecond
+        self.goal_velocity = goal_velocity
 
         self.low = np.array(
             [self.min_position, -self.max_speed], dtype=np.float32
@@ -95,6 +107,19 @@ class MountainBallEnv(gym.Env):
             self.low, self.high, dtype=np.float32
         )
 
+
+        self.goal_position = (self.goal_position - self.observation_space.low[0])
+        self.goal_position = np.round(self.goal_position, self.DISCRETIZATION_LEVEL)
+
+        self.min_pos = (self.min_position - self.observation_space.low[0])
+        self.min_pos = np.round(self.min_pos, self.DISCRETIZATION_LEVEL).astype(int)
+
+        self.max_pos = (self.max_position - self.observation_space.low[0])
+        self.max_pos = np.round(self.max_pos, self.DISCRETIZATION_LEVEL).astype(int)
+
+        self.observation_space.low[0]=self.min_pos
+        self.observation_space.high[0]=self.max_pos
+
         self.seed()
 
     def seed(self, seed=None):
@@ -107,30 +132,80 @@ class MountainBallEnv(gym.Env):
         f_prime = lambdify(self.x, self.heigh_function.diff(self.x))
 
         position, velocity = self.state
+
+        angle=math.atan(f_prime(position))
+#        print("angle in radians")
+#        print(angle)
+
         #accelaration per second
-        acceleration=self.gravity*math.sin(-f_prime(position)) + ((action - 1) * self.force)
-        #sleep(0.5)
+        self.acceleration=-self.gravity*math.sin(angle) + ((action - 1) * self.force)
+        self.sum_acc=self.sum_acc+self.acceleration
+#        print("sum = " + str(self.sum_acc))
+#        new_acceleration=-self.gravity*math.sin(angle)
 
-        #print("acceleration")
-        #print(acceleration)
-        #print("prev")
-        #print(position)
-        #print(velocity)
-        #print("action" + str(action))
 
-        position+=(velocity*self.MILLISECONDS_PER_STEP/MILLISECONDS_IN_SECOND)+(0.5*(acceleration*((self.MILLISECONDS_PER_STEP/MILLISECONDS_IN_SECOND)**2)))
-        velocity+=acceleration*self.MILLISECONDS_PER_STEP/MILLISECONDS_IN_SECOND
+#        sleep(0.3)
+        #print("diff acceleration")
+        #print(new_acceleration-self.acceleration)
+
+#        if (velocity>0 and new_acceleration>0) or (velocity<0 and new_acceleration<0):
+#            self.acceleration = new_acceleration
+#            print("previo")
+#        else:
+#            print("actual")
+
+#        print("acceleration")
+#        print(self.acceleration)
+#        print("prev")
+        velocity_prev=velocity
+        position_prev= position
+        print(position_prev)
+        print(velocity_prev)
+#        print("action" + str(action))
+
+        espacio_recorrido=(velocity*self.seconds_per_step)+((1/2)*self.acceleration*(self.seconds_per_step**2))
+        position+=espacio_recorrido*math.cos(angle)
+
+        velocity+=self.acceleration*self.seconds_per_step
+
+        position = np.round(position, self.DISCRETIZATION_LEVEL).astype(int)
 
         #velocity += (action - 1) * self.force + math.cos(3 * position) * (-self.gravity)
         velocity = np.clip(velocity, -self.max_speed, self.max_speed)
         #position += velocity
-        position = np.clip(position, self.min_position, self.max_position)
+        position = np.clip(position, self.min_pos, self.max_pos)
 
-        #print("pos")
-        #print(position)
-        #print(velocity)
+#        print("post pos and vel preliminar")
+#        print(position)
+#        print(velocity)
 
-        if (position == self.min_position and velocity < 0):
+#        print("adjusted velocity")
+        #TODO ñapa para cuando la velocidad inicial es 0
+        t=0.1
+        inner_velocity=velocity_prev
+        for x in range(int(abs(position-position_prev))):
+            #print(x)
+            #print(inner_velocity)
+            if(inner_velocity>1.0 or inner_velocity<-1.0):
+                t=abs(1/inner_velocity)
+
+            #print(t)
+            inner_velocity+=self.acceleration*t
+
+            if(position>position_prev):
+                inner_angle=math.atan(f_prime(position_prev+x))
+            else:
+                inner_angle=math.atan(f_prime(position_prev-x))
+
+            #accelaration per second
+            self.acceleration=-self.gravity*math.sin(inner_angle) + ((action - 1) * self.force)
+            #print("inner acceleration = " + str(self.acceleration))
+            self.sum_acc=self.sum_acc+self.acceleration
+            velocity=inner_velocity
+
+#        print("adjusted " + str(velocity))
+
+        if (position == self.min_pos and velocity < 0):
             velocity = 0
 
         done = bool(
@@ -140,13 +215,29 @@ class MountainBallEnv(gym.Env):
         reward = -1.0
 
         self.state = (position, velocity)
+
+#        self.acceleration = new_acceleration
+#        print("------------------------------------")
+        if((velocity_prev<0 and velocity>0) or (velocity_prev>0 and velocity<0)):
+#            print("total sum = " + str(self.sum_acc))
+            self.sum_acc=0
+#        if(velocity_prev<0 and velocity>0):
+#            print("CHANGE FROM LEFT TO RIGHT")
+#        if(velocity_prev>0 and velocity<0):
+#            print("CHANGE FROM RIGHT TO LEFT")
+
+#        if((angle<0 and self.prev_angle>0) or (angle>0 and self.prev_angle<0)):
+#            print("total sum = " + str(self.sum_acc))
+#            print("CHANGE VALLEY PASSED!!!")
+#            self.sum_acc=0
+        self.prev_angle=angle
         return np.array(self.state), reward, done, {}
 
     def reset(self):
         #TODO la posición inicial debe depender del rango de posiciones mostradas
         #en la ventana y se debe configurar como constante
-        #self.state = np.array([self.np_random.uniform(low=-0.6, high=-0.4), 0])
-        self.state = np.array([self.np_random.uniform(low=-0.6, high=-0.4), 0])
+        self.state = np.array([self.np_random.uniform(low=self.initial_position_low, high=self.initial_position_high), self.initial_speed])
+        #self.state = np.array([(self.max_pos-self.min_pos)/2, 0])
         return np.array(self.state)
 
     def _height(self, xs):
@@ -164,9 +255,13 @@ class MountainBallEnv(gym.Env):
         if self.viewer is None:
             from gym.envs.classic_control import rendering
             self.viewer = rendering.Viewer(screen_width, screen_height)
-            xs = np.linspace(self.min_position, self.max_position, 100)
+
+            print("min pos " + str(self.min_pos))
+            print("max pos " + str(self.max_pos))
+
+            xs = np.linspace(self.min_pos, self.max_pos, 100)
             ys = self._height(xs)
-            xys = list(zip((xs - self.min_position) * scale, ys * scale))
+            xys = list(zip((xs - self.min_pos) * scale, ys * scale))
 
             self.track = rendering.make_polyline(xys)
             self.track.set_linewidth(4)
@@ -194,7 +289,7 @@ class MountainBallEnv(gym.Env):
             backwheel.add_attr(self.cartrans)
             backwheel.set_color(.5, .5, .5)
             self.viewer.add_geom(backwheel)
-            flagx = (self.goal_position-self.min_position) * scale
+            flagx = (self.goal_position-self.min_pos) * scale
             flagy1 = self._height(self.goal_position) * scale
             flagy2 = flagy1 + 50
             flagpole = rendering.Line((flagx, flagy1), (flagx, flagy2))
@@ -206,8 +301,9 @@ class MountainBallEnv(gym.Env):
             self.viewer.add_geom(flag)
 
         pos = self.state[0]
+        print("pooos " +str(pos))
         self.cartrans.set_translation(
-            (pos-self.min_position) * scale, self._height(pos) * scale
+            (pos-self.min_pos) * scale, self._height(pos) * scale
         )
 
         f_prime = lambdify(self.x, self.heigh_function.diff(self.x))
