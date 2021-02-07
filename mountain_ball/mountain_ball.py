@@ -40,8 +40,8 @@ EXPLORATION_MIN = 0.05
 EXPLORATION_DECAY = 0.9995
 EXPLORATION_RUNS=10
 
-DISCRETIZATION_POS=1/100
-DISCRETIZATION_SPEED=1/100
+DISCRETIZATION_POS=1/200
+DISCRETIZATION_SPEED=1/200
 
 class QSolver:
 
@@ -98,13 +98,13 @@ class QSolver:
 def get_reward(state, step, done):
     if done:
         print("Car has reached the goal")
-        return 500
-    elif state[0]<7500:
+        return 5000
+    elif state[0]<8100:
         return (abs(state[0]))
-    elif state[0]>=7500 and state[0]<9500:
+    elif state[0]>=8100 and state[0]<9000:
         return 0
-    elif state[0]>=9500:
-        return (3*(state[0]))**2
+    elif state[0]>=9000:
+        return ((state[0]))**3
 
 
 
@@ -242,7 +242,6 @@ def mountain():
             # Discretize state2
             state2_adj = (state_next - env.observation_space.low)*np.array([DISCRETIZATION_POS, DISCRETIZATION_SPEED])
             state2_adj = np.round(state2_adj, 0).astype(int)
-            print(state2_adj)
 
             tot_reward+=updated_reward
             #print("state " + str(state_adj[1]) + " " +  str(state_adj[0])  + " occurrences " +str(state_occurrences[state_adj[1]][state_adj[0]]))

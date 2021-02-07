@@ -1,4 +1,4 @@
-I"h<h2 id="reqs">Reqs</h2>
+I"�<h2 id="reqs">Reqs</h2>
 
 <p>To execute this program you just need to install the following libraries:</p>
 <ul>
@@ -103,6 +103,48 @@ Finally, the best approximation was surprisingly found based on an error designi
 
 <p>Additionally, we discover that the agent needs time and exploration to find a sequence of steps since the possibilities are really high and most of them drive to a failure simulation.</p>
 
-<p><span style="color:green"><em>Feel free to share a better implementation or discrepancies with our conclussions!! We are humbly open to learn more from more experts!!</em></span></p>
+<p>To sum up, after trying practically everything, the following configuration has achieved the best results:</p>
 
+<p>…
+MAX_RUNS=3000
+MAXIMUM_STEPS=500</p>
+
+<p>GAMMA = 0.95
+LEARNING_RATE = 0.2</p>
+
+<p>EXPLORATION_MAX = 1.0
+EXPLORATION_MIN = 0.05
+EXPLORATION_DECAY = 0.9995</p>
+
+<p>def get_reward(state, step):
+    if state[0] &gt;= 0.5:
+        print(“Car has reached the goal”)
+        return 500
+    elif state[0]&lt;-0.7:
+        return ((state[0]+0.7))
+    elif state[0]&gt;-0.7 and state[0]&lt;-0.2:
+        return 9<em>(state[0]+0.3)
+    elif state[0]&gt;=-0.2:
+        return (9</em>(state[0]+0.3))**2
+…</p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/mountainCar/results.png" alt="results" class="img-responsive" /></p>
+
+<p>And so, our conclussions are the following:</p>
+
+<ul>
+  <li>It is important to propperly learn the actions that are going to be executed more often, so you should control your exploration simulations to make sure it is happening</li>
+  <li>In this case it is important to give high importance to the future rewards so it is propagated to previous less rewarded states importants also to reach the goal</li>
+  <li>It is important to give time to the agent to learn the optimal path (in this case) increasing the maximum number of steps per simulation</li>
+  <li>In cases where the randomly selection of actions is unlikely to guide your agent to the goal, it is important to give it clues so it approach more and more the goal. In this case we just got reasonably good results building a reward functions with several levels so the agent learn that:
+    <ul>
+      <li>Valley positions is something to avoid (no reward)</li>
+      <li>Climbing to the left is not bad but it is not that good as climbing to the right (closer to the goal)</li>
+      <li>Goal is the best state possible</li>
+    </ul>
+  </li>
+  <li>And last (and probably least important) it is a good idea to keep a minimum exploration rate so you encourage your agent to not to give things as given even when it is in a later stage. In this way, in spite of doing it at a much lower speed, the agent will always keep learning.</li>
+</ul>
+
+<p><span style="color:green"><em>Feel free to share a better implementation or discrepancies with our conclussions!! We are humbly open to learn more from more experts!!</em></span></p>
 :ET
