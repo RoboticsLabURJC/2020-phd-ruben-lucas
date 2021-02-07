@@ -48,8 +48,8 @@ class MountainBallEnv(gym.Env):
     """
 
     car_mass=4
-    seconds_per_step=5
-    force = 4
+    seconds_per_step=3
+    force = 5
     initial_position_low=8000
     initial_position_high=9100
     initial_speed=0
@@ -60,7 +60,7 @@ class MountainBallEnv(gym.Env):
 
     goal_position=10000
 
-    DISCRETIZATION_LEVEL=0
+    discretization_level=0
 
     # We have to create a "symbol" called x
     x = Symbol('x')
@@ -79,9 +79,6 @@ class MountainBallEnv(gym.Env):
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second': 30
     }
-
-    prev_angle=0
-    sum_acc=0
 
     def __init__(self, goal_velocity=0):
         self.force=self.force/self.car_mass
@@ -109,13 +106,13 @@ class MountainBallEnv(gym.Env):
 
 
         self.goal_position = (self.goal_position - self.observation_space.low[0])
-        self.goal_position = np.round(self.goal_position, self.DISCRETIZATION_LEVEL)
+        self.goal_position = np.round(self.goal_position, self.discretization_level)
 
         self.min_pos = (self.min_position - self.observation_space.low[0])
-        self.min_pos = np.round(self.min_pos, self.DISCRETIZATION_LEVEL).astype(int)
+        self.min_pos = np.round(self.min_pos, self.discretization_level).astype(int)
 
         self.max_pos = (self.max_position - self.observation_space.low[0])
-        self.max_pos = np.round(self.max_pos, self.DISCRETIZATION_LEVEL).astype(int)
+        self.max_pos = np.round(self.max_pos, self.discretization_level).astype(int)
 
         self.observation_space.low[0]=self.min_pos
         self.observation_space.high[0]=self.max_pos
@@ -127,110 +124,111 @@ class MountainBallEnv(gym.Env):
         return [seed]
 
     def step(self, action):
-        #TODO hacerla genérica en función de la pendiente en la posición del mundo creado
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
+
+        #derivative function in point to get the function slope
         f_prime = lambdify(self.x, self.heigh_function.diff(self.x))
-
         position, velocity = self.state
-
+        #and so, its angle in radians
         angle=math.atan(f_prime(position))
-#        print("angle in radians")
-#        print(angle)
 
         #accelaration per second
         self.acceleration=-self.gravity*math.sin(angle) + ((action - 1) * self.force)
-        self.sum_acc=self.sum_acc+self.acceleration
-#        print("sum = " + str(self.sum_acc))
-#        new_acceleration=-self.gravity*math.sin(angle)
+
+        #if(sum_acc is not None):
+        #    sum_acc=sum_acc+self.acceleration
+        #else:
+        #    sum_acc=0
 
 
-#        sleep(0.3)
-        #print("diff acceleration")
-        #print(new_acceleration-self.acceleration)
-
-#        if (velocity>0 and new_acceleration>0) or (velocity<0 and new_acceleration<0):
-#            self.acceleration = new_acceleration
-#            print("previo")
-#        else:
-#            print("actual")
-
-#        print("acceleration")
-#        print(self.acceleration)
-#        print("prev")
+        #just variables to store in memory the previous locaation, which will be used later to adjust the real velocities (physics)
         velocity_prev=velocity
         position_prev= position
-        print(position_prev)
-        print(velocity_prev)
-#        print("action" + str(action))
+        prev_angle=angle
 
-        espacio_recorrido=(velocity*self.seconds_per_step)+((1/2)*self.acceleration*(self.seconds_per_step**2))
-        position+=espacio_recorrido*math.cos(angle)
+
+        space_run=(velocity*self.seconds_per_step)+((1/2)*self.acceleration*(self.seconds_per_step**2))
+        position+=space_run*math.cos(angle)
 
         velocity+=self.acceleration*self.seconds_per_step
+        position = np.round(int(position), self.discretization_level).astype(int)
 
-        position = np.round(position, self.DISCRETIZATION_LEVEL).astype(int)
+        #Velocity adjustment to make physics behaviour more precise.
+        #We calculate the real velocity the car will have at the previous final point reached estimation applying the forces in each step between initial and final positions
 
-        #velocity += (action - 1) * self.force + math.cos(3 * position) * (-self.gravity)
-        velocity = np.clip(velocity, -self.max_speed, self.max_speed)
-        #position += velocity
-        position = np.clip(position, self.min_pos, self.max_pos)
-
-#        print("post pos and vel preliminar")
-#        print(position)
-#        print(velocity)
-
-#        print("adjusted velocity")
-        #TODO ñapa para cuando la velocidad inicial es 0
+        #TODO This is a gap fix to enable the usage of a simpler and faster physics equation (we consider no aceleration for this inner velocities adjustment)
         t=0.1
+        #_______________
+
+        #Note that discretization_level is used to enable the usage of decimes or centesimes instead of seconds
         inner_velocity=velocity_prev
-        for x in range(int(abs(position-position_prev))):
+        for x in range(int(abs(position-position_prev)*(10**self.discretization_level))):
             #print(x)
             #print(inner_velocity)
             if(inner_velocity>1.0 or inner_velocity<-1.0):
-                t=abs(1/inner_velocity)
+                t=abs(1/(inner_velocity*(10**self.discretization_level)))
 
-            #print(t)
+#MORE SOPHISTICATED (but much slower performance) PHYSICS!!! However, if needed, the abs values in last elif must be reviewed and fixed
+#        inner_velocity=velocity_prev
+#        for x in range(int(abs(position-position_prev)*(10**self.discretization_level))):
+            #print(x)
+            #print(inner_velocity)
+#            if(self.acceleration==0 and inner_velocity!=0.0):
+#                t=abs(1/(inner_velocity*(10**self.discretization_level)))
+#            elif(self.acceleration==0 and inner_velocity==0.0):
+#                break
+#            elif(self.acceleration!=0):
+#                t=(sqrt(2*abs(self.acceleration)+(abs(inner_velocity)*(10**self.discretization_level))**2)-(abs(inner_velocity)*(10**self.discretization_level)))/abs(self.acceleration)
+#______________________________!!!
+
             inner_velocity+=self.acceleration*t
 
+            #if else needed to calculate the angle due to the abs method used in for conditions with the x position
             if(position>position_prev):
                 inner_angle=math.atan(f_prime(position_prev+x))
             else:
                 inner_angle=math.atan(f_prime(position_prev-x))
 
-            #accelaration per second
             self.acceleration=-self.gravity*math.sin(inner_angle) + ((action - 1) * self.force)
-            #print("inner acceleration = " + str(self.acceleration))
-            self.sum_acc=self.sum_acc+self.acceleration
-            velocity=inner_velocity
+            #sum_acc useful to debug the physics precission
+            #sum_acc=sum_acc+self.acceleration
 
-#        print("adjusted " + str(velocity))
+        #final velocity adjustment
+        velocity=inner_velocity
+
+
+        #Once the vlelocity and position is calculated, we truncate them to be within the configured boundaries
+        velocity = np.clip(velocity, -self.max_speed, self.max_speed)
+        position = np.clip(position, self.min_pos, self.max_pos)
 
         if (position == self.min_pos and velocity < 0):
             velocity = 0
 
         done = bool(
             position >= self.goal_position
+            #if we consider the velocity which I did not, the sentence below must be applied
             #position >= self.goal_position and velocity >= self.goal_velocity
         )
-        reward = -1.0
 
+        reward = -1.0
         self.state = (position, velocity)
 
-#        self.acceleration = new_acceleration
-#        print("------------------------------------")
-        if((velocity_prev<0 and velocity>0) or (velocity_prev>0 and velocity<0)):
-#            print("total sum = " + str(self.sum_acc))
-            self.sum_acc=0
-#        if(velocity_prev<0 and velocity>0):
-#            print("CHANGE FROM LEFT TO RIGHT")
-#        if(velocity_prev>0 and velocity<0):
-#            print("CHANGE FROM RIGHT TO LEFT")
+        #sum_acc and traces below useful to debug the physics precission:
 
-#        if((angle<0 and self.prev_angle>0) or (angle>0 and self.prev_angle<0)):
-#            print("total sum = " + str(self.sum_acc))
-#            print("CHANGE VALLEY PASSED!!!")
-#            self.sum_acc=0
-        self.prev_angle=angle
+        #if((velocity_prev<0 and velocity>0) or (velocity_prev>0 and velocity<0)):
+        #    sum_acc=0
+        #if(velocity_prev<0 and velocity>0):
+        #    print("CHANGE FROM LEFT TO RIGHT")
+        #if(velocity_prev>0 and velocity<0):
+        #    print("CHANGE FROM RIGHT TO LEFT")
+
+        #if((angle<0 and self.prev_angle>0) or (angle>0 and self.prev_angle<0)):
+        #    print("total sum = " + str(sum_acc))
+        #    print("CHANGE VALLEY PASSED!!!")
+        #    sum_acc=0
+
+        #_________________________________
+
         return np.array(self.state), reward, done, {}
 
     def reset(self):
@@ -301,7 +299,6 @@ class MountainBallEnv(gym.Env):
             self.viewer.add_geom(flag)
 
         pos = self.state[0]
-        print("pooos " +str(pos))
         self.cartrans.set_translation(
             (pos-self.min_pos) * scale, self._height(pos) * scale
         )
