@@ -1,0 +1,747 @@
+<!doctype html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.16.5 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+-->
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>MountainBall own environment using OpenAI Gym - Robotics Lab URJC</title>
+<meta name="description" content="Feel free to review physics and remove libraries dependencies">
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="Robotics Lab URJC">
+<meta property="og:title" content="MountainBall own environment using OpenAI Gym">
+<meta property="og:url" content="http://localhost:4000/2020-phd-ruben-lucas/projects/2021-02-07-mountainBall/">
+
+
+  <meta property="og:description" content="Feel free to review physics and remove libraries dependencies">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2021-02-07T00:00:00-08:00">
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="http://localhost:4000/2020-phd-ruben-lucas/projects/2021-02-07-mountainBall/">
+
+
+
+
+
+
+
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "JdeRobot",
+      "url": "http://localhost:4000/2020-phd-ruben-lucas",
+      "sameAs": null
+    }
+  </script>
+
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/2020-phd-ruben-lucas/feed.xml" type="application/atom+xml" rel="alternate" title="Robotics Lab URJC Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/2020-phd-ruben-lucas/assets/css/main.css">
+
+<!--[if IE ]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+<link rel="icon" type="image/png" href="/assets/images/logo.png" sizes="16x16">
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+          <a class="site-logo" href="/2020-phd-ruben-lucas/"><img src="/2020-phd-ruben-lucas/assets/images/peloto.png" alt=""></a>
+        
+        <a class="site-title" href="/2020-phd-ruben-lucas/">
+          Robotics Lab URJC
+          <span class="site-subtitle">Programming Robot Intelligence</span>
+        </a>
+        <ul class="visible-links"><li class="masthead__menu-item">
+              <a href="/2020-phd-ruben-lucas/logbook/" >LogBook</a>
+            </li><li class="masthead__menu-item">
+              <a href="/2020-phd-ruben-lucas/install/" >Projects</a>
+            </li><li class="masthead__menu-item">
+              <a href="/2020-phd-ruben-lucas/about/" >Resources</a>
+            </li></ul>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name"></h3>
+    
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+    
+      
+      
+      
+      
+    
+    
+      
+
+<nav class="nav__list">
+  
+  <input id="ac-toc" name="accordion-toc" type="checkbox" />
+  <label for="ac-toc">Toggle Menu</label>
+  <ul class="nav__items">
+    
+      <li>
+        
+          <span class="nav__sub-title">LogBook</span>
+        
+
+        
+        <ul>
+          
+            
+            
+
+            
+            
+
+            <li><a href="/2020-phd-ruben-lucas/logbook/" class="">Check it out</a></li>
+          
+        </ul>
+        
+      </li>
+    
+      <li>
+        
+          <span class="nav__sub-title">Projects</span>
+        
+
+        
+        <ul>
+          
+            
+            
+
+            
+            
+
+            <li><a href="/2020-phd-ruben-lucas/install/" class="">AI Exercises</a></li>
+          
+        </ul>
+        
+      </li>
+    
+      <li>
+        
+          <span class="nav__sub-title">Resources</span>
+        
+
+        
+        <ul>
+          
+            
+            
+
+            
+            
+
+            <li><a href="/2020-phd-ruben-lucas/references/" class="">Usefull resources</a></li>
+          
+        </ul>
+        
+      </li>
+    
+  </ul>
+</nav>
+    
+  
+  </div>
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="MountainBall own environment using OpenAI Gym">
+    <meta itemprop="description" content="Feel free to review physics and remove libraries dependencies">
+    <meta itemprop="datePublished" content="February 07, 2021">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">MountainBall own environment using OpenAI Gym
+</h1>
+          
+            <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+
+
+
+
+  3 minute read
+</p>
+          
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right ">
+            <nav class="toc">
+              <header><h4 class="nav__title"><i class="fas fa-cog"></i> TOC installation</h4></header>
+              <ul class="toc__menu">
+  <li><a href="#reqs">Reqs</a></li>
+  <li><a href="#manual">Manual</a></li>
+  <li><a href="#video">Video</a></li>
+  <li><a href="#code">Code</a></li>
+</ul>
+            </nav>
+          </aside>
+        
+        <h2 id="reqs">Reqs</h2>
+
+<p>To execute this program you just need to install the following libraries:</p>
+<ul>
+  <li>Python3.7</li>
+  <li>PyQt5</li>
+  <li>numpy 1.16.5</li>
+  <li>Pandas</li>
+  <li>matplotlib</li>
+  <li>tensorflow 1.14.0</li>
+  <li>gym</li>
+  <li>sympy</li>
+</ul>
+
+<h2 id="manual">Manual</h2>
+
+<p>The main goal of this exercise is being able to configure owr own environment with its own physics.</p>
+
+<p>The biggest challenge here was to make it easily configurable without the need of adjusting the environment physics.</p>
+
+<p>In the following sections you will find the explanation of the “simulator” and how to play with it to build your own challenges.</p>
+
+<p><strong>INTRODUCTION:</strong></p>
+
+<p>With the purpose of easing the building of your own environment, a file called environment.py is provided.
+To do so, the following three milestones were achieved:</p>
+
+<ul>
+  <li>
+    <p>Enable the shaping of the world (mountain heigh, floor inclination, stairs, etc.)</p>
+  </li>
+  <li>
+    <p>Create a real physics applicable to any environment using the acceleration force over an inclined plane (note that it is an approximation to the reality but not exact. E.g frictional force is not considered)</p>
+  </li>
+  <li>
+    <p>Reduce the number of parameters to configure to make it easy</p>
+  </li>
+  <li>
+    <p>Make also configurable the goal position, the start position, the car mass, the granularity and the speed of the simulation</p>
+  </li>
+  <li>
+    <p>Fix the rendering to work with any world configuration</p>
+  </li>
+</ul>
+
+<p><strong>CONFIGURATION</strong></p>
+
+<p>The parameters you can play with are the following</p>
+
+<ul>
+  <li>
+    <p>car_mass</p>
+  </li>
+  <li>
+    <p>heigh function -&gt; Function that shape the world. This is the heigh of each point in terms of the x axis (position)</p>
+  </li>
+  <li>
+    <p>lower_position/higher_position -&gt; world boundaries in metters</p>
+  </li>
+  <li>
+    <p>max_speed -&gt; speed limit in metters per second. It must be positive and will be translated into a [-max_speed, max_speed] speed boundaries. Considering negative speed when the car is running to the left and positive speed when the car is running to the right</p>
+  </li>
+  <li>
+    <p>seconds_per_step -&gt; Simulations speed. Note that higher this variable, less precisse the physics will be, adding some performance inneficiencies. Try to make it as low as possible without harming the training speed too much.</p>
+  </li>
+  <li>
+    <p>force -&gt; It is the force applied to the car due to the action executed at each step. Bigger the force configured, easier will be to get the car to the goal.</p>
+  </li>
+  <li>DISCRETIZATION_LEVEL -&gt; This is the granularity level of the environment positions. Higher DISCRETIZATION_POS means more precise physics but also slower simulations. It is similar to “seconds_per_step” parameter, but in this case we are indicating how many positions will be considered in our world (note that we are working with a discrete world instead of a continuous one to make the physics behave in a coherent way avoiding some randomness with the calculations)
+    <ul>
+      <li>0 means we are sampling with units</li>
+      <li>1 means we are sampling with decimes</li>
+      <li>2 means we are sampling with centesimes</li>
+      <li>3 means we are sampling with millesimes</li>
+      <li>…</li>
+    </ul>
+  </li>
+  <li>
+    <p>goal_position -&gt; Position to be reached</p>
+  </li>
+  <li>
+    <p>initial_position -&gt; Position where the car will start</p>
+  </li>
+  <li>
+    <p>initial_speed -&gt; Initial speed given to the car</p>
+  </li>
+  <li>gravity -&gt; It should not be configurable, but in the case you want to simulate a martian mountain car, you could modify this parameter</li>
+</ul>
+
+<p>Note that with any new environment configuration, the algorithm to solve it may be adjusted, considering new hyperparameters (including the reward function) and a new discretization level if the algorithm samples (or interpolates) the environment states.</p>
+
+<p>Additionally, note that the world will be rescaled so the minimum position is always 0 and the maximum position is the configured maximum position minus the configured minimal position. In this way, the displayed world will go from minimum position = 0 to the (maximum_position - lower_position). it is done to ease the debugging of physics possible deviations from the reality (physics flaws).</p>
+
+<p>You will also find some different worlds (heigh_function) commented to give you an idea of gow you can configure your own scenario.</p>
+
+<h2 id="video">Video</h2>
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/2lIvJWTqDUI" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+
+<h2 id="code">Code</h2>
+
+<p><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/mountain_ball">configurable environment to create your own mountainCar openAIGym problem worlds</a></p>
+
+<p><span style="color:green"><em>Feel free to share a better implementation or discrepancies with our conclussions!! We are humbly open to learn more from more experts!!</em></span></p>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/2020-phd-ruben-lucas/tags/#tag-1" class="page__taxonomy-item" rel="tag">tag 1</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/2020-phd-ruben-lucas/tags/#tag-2" class="page__taxonomy-item" rel="tag">tag 2</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/2020-phd-ruben-lucas/tags/#tag-3" class="page__taxonomy-item" rel="tag">tag 3</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/2020-phd-ruben-lucas/tags/#tag-4" class="page__taxonomy-item" rel="tag">tag 4</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/2020-phd-ruben-lucas/categories/#your-category" class="page__taxonomy-item" rel="tag">your category</a>
+    
+    </span>
+  </p>
+
+
+        
+          <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2021-02-07T00:00:00-08:00">February 07, 2021</time></p>
+        
+      </footer>
+
+      <section class="page__share">
+  
+
+  <a href="https://twitter.com/intent/tweet?text=MountainBall+own+environment+using+OpenAI+Gym%20http%3A%2F%2Flocalhost%3A4000%2F2020-phd-ruben-lucas%2Fprojects%2F2021-02-07-mountainBall%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <!--<a href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Flocalhost%3A4000%2F2020-phd-ruben-lucas%2Fprojects%2F2021-02-07-mountainBall%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>-->
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=http%3A%2F%2Flocalhost%3A4000%2F2020-phd-ruben-lucas%2Fprojects%2F2021-02-07-mountainBall%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/2020-phd-ruben-lucas/projects/2021-01-22-mountainCar_qlearning/" class="pagination--pager" title="MountainCar openAI Gym exercise solved using q learning
+">Previous</a>
+    
+    
+      <a href="#" class="pagination--pager disabled">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+  </article>
+
+  
+  
+    <div class="page__related">
+      <h4 class="page__related-title">You May Also Enjoy</h4>
+      <div class="grid__wrapper">
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title" itemprop="headline">
+      
+        <a href="/2020-phd-ruben-lucas/your%20category/mountainBall_qlearning/" rel="permalink">QLearning (month 5 · Weeks 3 and 4)
+</a>
+      
+    </h2>
+    
+      <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+
+
+
+
+  less than 1 minute read
+</p>
+    
+    <p class="archive__item-excerpt" itemprop="description">creating our own environment to freely configure our own problem
+</p>
+  </article>
+</div>
+
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title" itemprop="headline">
+      
+        <a href="/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning/" rel="permalink">QLearning (month 5 · Weeks 1 and 2)
+</a>
+      
+    </h2>
+    
+      <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+
+
+
+
+  less than 1 minute read
+</p>
+    
+    <p class="archive__item-excerpt" itemprop="description">Solving a more complex problem using qlearning
+</p>
+  </article>
+</div>
+
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title" itemprop="headline">
+      
+        <a href="/2020-phd-ruben-lucas/your%20category/model_free_qlearning_algorithm/" rel="permalink">QLearning and Sarsa (month 4)
+</a>
+      
+    </h2>
+    
+      <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+
+
+
+
+  less than 1 minute read
+</p>
+    
+    <p class="archive__item-excerpt" itemprop="description">Start playing with reinforcement learning
+</p>
+  </article>
+</div>
+
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title" itemprop="headline">
+      
+        <a href="/2020-phd-ruben-lucas/your%20category/current-work/" rel="permalink">Digging in (month 3)
+</a>
+      
+    </h2>
+    
+      <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+
+
+
+
+  less than 1 minute read
+</p>
+    
+    <p class="archive__item-excerpt" itemprop="description">Start playing with reinforcement learning
+</p>
+  </article>
+</div>
+
+        
+      </div>
+    </div>
+  
+  
+</div>
+
+    </div>
+
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+
+    
+      
+        
+          <li><a href="https://www.linkedin.com/in/ruben-lucas-zaragoza/" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin-in" aria-hidden="true"></i> Linkedn</a></li>
+        
+      
+        
+          <li><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+        
+          <li><a href="https://www.youtube.com/channel/UC8Kl0ECm4gjhxSozBqghQLQ" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-youtube" aria-hidden="true"></i> Youtube</a></li>
+        
+      
+    
+
+    <li><a href="/2020-phd-ruben-lucas/feed.xml"><!--<i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed--></a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">&copy; 2021 JdeRobot. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a>, <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a> &amp; modified by <a href="https://github.com/igarag">NachoAz</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/2020-phd-ruben-lucas/assets/js/main.min.js"></script>
+  <script src="https://kit.fontawesome.com/4eee35f757.js"></script>
+  <script type="text/javascript" async
+    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-MML-AM_CHTML">
+  </script>
+  <script type="text/x-mathjax-config">
+     MathJax.Hub.Config({
+       extensions: ["tex2jax.js"],
+       jax: ["input/TeX", "output/HTML-CSS"],
+       tex2jax: {
+         inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+         displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+         processEscapes: true
+       },
+       "HTML-CSS": { availableFonts: ["TeX"] }
+     });
+  </script>
+
+
+
+
+
+
+
+
+
+
+  </body>
+</html>

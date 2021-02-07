@@ -92,11 +92,11 @@ def get_reward(state, step):
     if state[0] >= 0.5:
         print("Car has reached the goal")
         return 500
-    if state[0]<-0.7:
+    elif state[0]<-0.7:
         return ((state[0]+0.7))
-    if state[0]>-0.7 and state[0]<-0.3:
+    elif state[0]>-0.7 and state[0]<-0.2:
         return 9*(state[0]+0.3)
-    if state[0]>-0.3:
+    elif state[0]>=-0.2:
         return (9*(state[0]+0.3))**2
 
 

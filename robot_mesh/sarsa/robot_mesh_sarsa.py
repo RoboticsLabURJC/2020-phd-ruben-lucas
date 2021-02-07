@@ -22,9 +22,9 @@ from PyQt5.QtWidgets import *
 
 
 
-GAMMA = 0.95
+GAMMA = 0.9
 
-LEARNING_RATE = 0.95
+LEARNING_RATE = 0.9
 
 MEMORY_SIZE = 1000000
 
