@@ -48,31 +48,43 @@ class MountainBallEnv(gym.Env):
     """
 
     car_mass=4
-    seconds_per_step=3
-    force = 5
-    initial_position_low=8000
-    initial_position_high=9100
-    initial_speed=0
 
-    lower_position=-11000
-    higher_position=11000
-    max_speed = 10000
 
-    goal_position=10000
-
-    discretization_level=0
 
     # We have to create a "symbol" called x
     x = Symbol('x')
     #ramp
     #heigh_function=0.3*x +2
     #weird courves mountain
-    #heigh_function=4*sin(0.3*x)**3+ 4.5
+    #heigh_function=400*sin(0.0028*x+2)**3+ 400
+    #seconds_per_step=1/3
+    #force = 5
+    #initial_position_low=410
+    #initial_position_high=500
+    #initial_speed=0
+    #lower_position=-1100
+    #higher_position=1100
+    #max_speed = 1000
+    #goal_position=1000
+
     #floor
     #heigh_function=0.00000000000000000001*x + 2
-    #mountainCar environment
-    heigh_function=sin(0.0003*x-10.5)*4000 + 4000
 
+    #mountainCar environment
+    heigh_function=4000*sin(0.0003*x-10.5)+ 4000
+    seconds_per_step=3
+    force = 7
+    initial_position_low=8100
+    initial_position_high=9100
+    initial_speed=0
+    lower_position=-11000
+    higher_position=11000
+    max_speed = 10000
+    goal_position=10000
+
+
+    #This parameter has not been propperly tested with a value different than 0
+    discretization_level=0
     gravity=9.8
 
     metadata = {
@@ -180,7 +192,6 @@ class MountainBallEnv(gym.Env):
 #            elif(self.acceleration!=0):
 #                t=(sqrt(2*abs(self.acceleration)+(abs(inner_velocity)*(10**self.discretization_level))**2)-(abs(inner_velocity)*(10**self.discretization_level)))/abs(self.acceleration)
 #______________________________!!!
-
             inner_velocity+=self.acceleration*t
 
             #if else needed to calculate the angle due to the abs method used in for conditions with the x position
@@ -193,8 +204,8 @@ class MountainBallEnv(gym.Env):
             #sum_acc useful to debug the physics precission
             #sum_acc=sum_acc+self.acceleration
 
-        #final velocity adjustment
-        velocity=inner_velocity
+            #final velocity adjustment
+            velocity=inner_velocity
 
 
         #Once the vlelocity and position is calculated, we truncate them to be within the configured boundaries
@@ -227,7 +238,7 @@ class MountainBallEnv(gym.Env):
         #    print("CHANGE VALLEY PASSED!!!")
         #    sum_acc=0
 
-        #_________________________________
+        #_________________________________adjusted
 
         return np.array(self.state), reward, done, {}
 

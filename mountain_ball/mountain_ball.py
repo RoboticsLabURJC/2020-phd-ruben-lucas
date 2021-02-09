@@ -26,10 +26,10 @@ from environment import MountainBallEnv
 
 
 #It must be multiple of 10
-MAX_RUNS=500
+MAX_RUNS=700
 MAXIMUM_STEPS=1000
-EXPLORATION_STEPS_PER_STATE=100
 
+#This constant is used for showing one q_values matrix each INTERPOLATION runs
 INTERPOLATION=MAX_RUNS/10
 
 GAMMA = 0.95
@@ -38,10 +38,10 @@ LEARNING_RATE = 0.2
 EXPLORATION_MAX = 1.0
 EXPLORATION_MIN = 0.05
 EXPLORATION_DECAY = 0.9995
-EXPLORATION_RUNS=10
+EXPLORATION_RUNS=1
 
-DISCRETIZATION_POS=1/200
-DISCRETIZATION_SPEED=1/200
+DISCRETIZATION_POS=1/50
+DISCRETIZATION_SPEED=1/100
 
 class QSolver:
 
@@ -98,13 +98,13 @@ class QSolver:
 def get_reward(state, step, done):
     if done:
         print("Car has reached the goal")
-        return 5000
-    elif state[0]<8100:
-        return (abs(state[0]))
-    elif state[0]>=8100 and state[0]<9000:
+        return 500
+    elif state[0]<2000:
+        return (abs(state[0]))/10000
+    elif state[0]>=2000 and state[0]<15000:
         return 0
-    elif state[0]>=9000:
-        return ((state[0]))**3
+    elif state[0]>=15000:
+        return (state[0]/10000)**3
 
 
 
