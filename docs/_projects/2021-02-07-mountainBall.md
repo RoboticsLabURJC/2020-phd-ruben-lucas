@@ -64,24 +64,33 @@ To do so, the following three milestones were achieved:
 The parameters you can play with are the following
 
 - <strong>car_mass:</strong>
+<br>
 Weight of the car in kilograms. the heavier it is, less effect will have the force applied with each action at each step
 
 - <strong>heigh function:</strong>
+<br>
 Function that shape the world. This is the heigh of each point in terms of the x axis (position)
 
 - <strong>lower_position/higher_position:</strong>
+<br>
 World boundaries in metters
 
 - <strong>max_speed:</strong>
+<br>
 Speed limit in metters per second. It must be positive and will be translated into a [-max_speed, max_speed] speed boundaries. Considering negative speed when the car is running to the left and positive speed when the car is running to the right
 
 - <strong>seconds_per_step:</strong>
+<br>
 Simulations speed. Note that higher this variable, less precisse the physics will be, adding some performance inneficiencies. Try to make it as low as possible without harming the training speed too much.
 
 - <strong>force:</strong>
+<br>
 It is the force applied to the car due to the action executed at each step. Bigger the force configured, easier will be to get the car to the goal.
 
 - <strong>discretization_level:</strong>
+<br>
+<span style="color:darkgrey">*Note that this parameter has not been propperly tested with other value than 0*</span>
+<br>
 This is the granularity level of the environment positions. Higher DISCRETIZATION_POS means more precise physics but also slower simulations. It is similar to "seconds_per_step" parameter, but in this case we are indicating how many positions will be considered in our world (note that we are working with a discrete world instead of a continuous one to make the physics behave in a coherent way avoiding some randomness with the calculations)
   -  0 means we are sampling with units
   -  1 means we are sampling with decimes
@@ -89,19 +98,25 @@ This is the granularity level of the environment positions. Higher DISCRETIZATIO
   -  3 means we are sampling with millesimes
   -  ...
 
+
 - <strong>goal_position:</strong>
+<br>
 Position to be reached
 
 - <strong>initial_position_low:</strong>
+<br>
 minimum position where the car will start
 
 - <strong>initial_position_high:</strong>
+<br>
 maximum position where the car will start
 
 - <strong>initial_speed:</strong>
+<br>
 Initial speed given to the car
 
 - <strong>gravity:</strong>
+<br>
 It should not be configurable, but in the case you want to simulate a martian mountain car, you could modify this parameter
 
 Note that with any new environment configuration, the algorithm to solve it may be adjusted, considering new hyperparameters (including the reward function) and a new discretization level if the algorithm samples (or interpolates) the environment states.
