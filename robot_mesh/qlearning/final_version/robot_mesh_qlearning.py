@@ -1,5 +1,5 @@
 #Q-LEARNING
-
+from environment import meshEnvironment
 import sys
 import logging
 import random
@@ -32,153 +32,27 @@ EXPLORATION_MAX = 1.0
 EXPLORATION_MIN = 0.000001
 EXPLORATION_DECAY = 0.999
 
-
-
-NUM_OF_X_BLOCKS=10
-NUM_OF_Y_BLOCKS=10
+environment=meshEnvironment()
 
 NUMBER_OF_LAST_OCCURRENCES_TO_PLOT=10
-last_matrix_occurrences=[[[0 for x in range(NUM_OF_X_BLOCKS)] for y in range(NUM_OF_Y_BLOCKS)] for j in range(NUMBER_OF_LAST_OCCURRENCES_TO_PLOT) ]
+last_matrix_occurrences=[[[0 for x in range(environment.NUM_OF_X_BLOCKS)] for y in range(environment.NUM_OF_Y_BLOCKS)] for j in range(NUMBER_OF_LAST_OCCURRENCES_TO_PLOT) ]
 last_occurrence=[]
-
-INIT_Y=9
-INIT_X=0
-robot_pos_y=INIT_Y
-robot_pos_x=INIT_X
-
-#NOTE THAT blocks must be numbered considering that this will be the layout:
-# For NUM_OF_X_BLOCKS=5 and  NUM_OF_Y_BLOCKS=4
-# 4| 8| 12| 16| 20|
-# 3| 7| 11| 15| 19|
-# 2| 6| 10| 14| 18|
-# 1| 5|  9| 13| 17|
-BLOCKS={
-1:"OK",
-2:"OK",
-3:"OK",
-4:"OK",
-5:"OK",
-6:"OK",
-7:"OK",
-8:"OK",
-9:"OK",
-10:"BOMB",
-11:"OK",
-12:"BOMB",
-13:"OK",
-14:"BOMB",
-15:"BOMB",
-16:"OK",
-17:"OK",
-18:"OK",
-19:"OK",
-20:"BOMB",
-21:"OK",
-22:"OK",
-23:"OK",
-24:"OK",
-25:"BOMB",
-26:"BOMB",
-27:"BOMB",
-28:"BOMB",
-29:"OK",
-30:"BOMB",
-31:"OK",
-32:"BOMB",
-33:"OK",
-34:"BOMB",
-35:"OK",
-36:"BOMB",
-37:"OK",
-38:"OK",
-39:"OK",
-40:"BOMB",
-41:"OK",
-42:"OK",
-43:"OK",
-44:"BOMB",
-45:"BOMB",
-46:"OK",
-47:"OK",
-48:"OK",
-49:"OK",
-50:"BOMB",
-51:"BOMB",
-52:"OK",
-53:"OK",
-54:"OK",
-55:"BOMB",
-56:"BOMB",
-57:"BOMB",
-58:"OK",
-59:"OK",
-60:"OK",
-61:"OK",
-62:"OK",
-63:"OK",
-64:"OK",
-65:"OK",
-66:"BOMB",
-67:"OK",
-68:"BOMB",
-69:"OK",
-70:"BOMB",
-71:"OK",
-72:"BOMB",
-73:"OK",
-74:"BOMB",
-75:"BOMB",
-76:"OK",
-77:"OK",
-78:"OK",
-79:"OK",
-80:"BOMB",
-81:"OK",
-82:"OK",
-83:"OK",
-84:"OK",
-85:"BOMB",
-86:"BOMB",
-87:"BOMB",
-88:"BOMB",
-89:"OK",
-90:"BOMB",
-91:"OK",
-92:"BOMB",
-93:"OK",
-94:"BOMB",
-95:"OK",
-96:"BOMB",
-97:"OK",
-98:"OK",
-99:"OK",
-100:"GOAL"
-}
-
-ACTIONS={0:"RIGHT", 1:"LEFT", 2:"UP", 3:"DOWN"}
 
 runs_rewards=[]
 steps_per_run=[]
 
 class QSolver:
 
-    def __init__(self, action_space):
+    def __init__(self):
         self.exploration_rate = EXPLORATION_MAX
-        self.q_values = [ [ np.random.rand() for i in range(len(ACTIONS)) ] for j in range(NUM_OF_X_BLOCKS*NUM_OF_Y_BLOCKS) ]
+        self.q_values = [ [ np.random.rand() for i in range(len(environment.ACTIONS)) ] for j in range(environment.NUM_OF_X_BLOCKS*environment.NUM_OF_Y_BLOCKS) ]
         logging.info("q_values init")
         logging.info(str(self.q_values))
-        self.action_space = action_space
         self.memory = deque(maxlen=MEMORY_SIZE)
 
-    def act(self, state):
-        if np.random.rand() < self.exploration_rate:
-            logging.warning("executed random action")
-            return random.choice(list(self.action_space.keys()))
-        logging.info(self.q_values[state-1])
-        return np.argmax(self.q_values[state-1])
 
     def calculate_quality(self, state, action, reward, state_next):
-        if state_next not in BLOCKS or BLOCKS[state_next]=="BOMB" or BLOCKS[state_next]=="GOAL":
+        if state_next not in environment.BLOCKS or environment.BLOCKS[state_next]=="BOMB" or environment.BLOCKS[state_next]=="GOAL":
             q_update = LEARNING_RATE * (reward - self.q_values[state-1][action])
         else:
             q_update = LEARNING_RATE *(reward + GAMMA * np.amax(self.q_values[state_next-1]) - self.q_values[state-1][action])
@@ -188,62 +62,11 @@ class QSolver:
         self.exploration_rate *= EXPLORATION_DECAY
         self.exploration_rate = max(EXPLORATION_MIN, self.exploration_rate)
 
-def one_action(state):
-    global robot_pos_y
-    global robot_pos_x
-
-    state_next=state+NUM_OF_Y_BLOCKS
-    robot_pos_x=robot_pos_x+1
-    return state_next
-
-
-def two_action(state):
-    global robot_pos_y
-    global robot_pos_x
-
-    state_next=state-NUM_OF_Y_BLOCKS
-    robot_pos_x=robot_pos_x-1
-    return state_next
-
-
-def three_action(state):
-    global robot_pos_y
-    global robot_pos_x
-
-    state_next = state+1
-    robot_pos_y=robot_pos_y-1
-    return state_next
-
-
-def four_action(state):
-    global robot_pos_y
-    global robot_pos_x
-
-    state_next = state-1
-    robot_pos_y=robot_pos_y+1
-    return state_next
-
-def undefined_action(state):
-    logging.info("invalid action ")
-    return 0
-
-def execute_step(state, action):
-    switcher = {
-            0: one_action, #RIGHT
-            1: two_action, #LEFT
-            2: three_action, #UP
-            3: four_action #DOWN
-    }
-    logging.info("action " + ACTIONS[action])
-    state_next=switcher.get(action, undefined_action)(state)
-    logging.info("state_next " +str(state_next))
-    return state_next
-
 
 def get_reward(state):
-    if state not in BLOCKS or robot_pos_y>=NUM_OF_Y_BLOCKS or robot_pos_x>=NUM_OF_X_BLOCKS  or robot_pos_y<0 or robot_pos_x<0  or BLOCKS[state]=="BOMB":
+    if state not in environment.BLOCKS or environment.robot_pos_y>=environment.NUM_OF_Y_BLOCKS or environment.robot_pos_x>=environment.NUM_OF_X_BLOCKS  or environment.robot_pos_y<0 or environment.robot_pos_x<0  or environment.BLOCKS[state]=="BOMB":
         reward = -1
-    elif BLOCKS[state]=="GOAL":
+    elif environment.BLOCKS[state]=="GOAL":
         reward = 10
     else:
         reward = 0
@@ -287,8 +110,8 @@ def get_path_figure_from_data(data, count):
     plt.gcf().text(0.43, 0.91, str(count) + " of last " + str(NUMBER_OF_LAST_OCCURRENCES_TO_PLOT), fontsize=14)
     # draw gridlines
     ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
-    ax.set_xticks(np.arange(-.5, NUM_OF_X_BLOCKS, 1))
-    ax.set_yticks(np.arange(-.5, NUM_OF_Y_BLOCKS, 1))
+    ax.set_xticks(np.arange(-.5, environment.NUM_OF_X_BLOCKS, 1))
+    ax.set_yticks(np.arange(-.5, environment.NUM_OF_Y_BLOCKS, 1))
     ax.grid(True)
     ax.set_xticklabels([])
     ax.set_yticklabels([])
@@ -366,15 +189,12 @@ def toggle_plot(ui, vbox, most_frequent, figures, counter):
   #plt.draw()
 
 def store_stats_and_reset(steps, run_reward, run):
-    global robot_pos_y
-    global robot_pos_x
     global last_occurrence
 
     runs_rewards.append(run_reward)
     steps_per_run.append(steps)
 
-    robot_pos_y=INIT_Y
-    robot_pos_x=INIT_X
+    environment.reset()
     store_last_occurrence_matrix(run)
     init_last_occurrence_matrix()
 
@@ -382,13 +202,13 @@ def store_stats_and_reset(steps, run_reward, run):
 def init_last_occurrence_matrix():
     global last_occurrence
 
-    last_occurrence = [[0 for x in range(NUM_OF_X_BLOCKS)] for y in range(NUM_OF_Y_BLOCKS)]
-    last_occurrence[INIT_Y][INIT_X]=100
-    for  x in range(NUM_OF_Y_BLOCKS):
-        for y in range(NUM_OF_X_BLOCKS):
-            if BLOCKS[(y*NUM_OF_Y_BLOCKS)+(NUM_OF_Y_BLOCKS-x)] == "GOAL":
+    last_occurrence = [[0 for x in range(environment.NUM_OF_X_BLOCKS)] for y in range(environment.NUM_OF_Y_BLOCKS)]
+    last_occurrence[environment.INIT_Y][environment.INIT_X]=100
+    for  x in range(environment.NUM_OF_Y_BLOCKS):
+        for y in range(environment.NUM_OF_X_BLOCKS):
+            if environment.BLOCKS[(y*environment.NUM_OF_Y_BLOCKS)+(environment.NUM_OF_Y_BLOCKS-x)] == "GOAL":
                 last_occurrence[x][y] = 100
-            elif BLOCKS[(y*NUM_OF_Y_BLOCKS)+(NUM_OF_Y_BLOCKS-x)] == "BOMB":
+            elif environment.BLOCKS[(y*environment.NUM_OF_Y_BLOCKS)+(environment.NUM_OF_Y_BLOCKS-x)] == "BOMB":
                 last_occurrence[x][y] = -1
 
 def most_frequent(List):
@@ -402,36 +222,35 @@ def get_unique_paths_and_count(List):
 
 def robot():
     init_last_occurrence_matrix()
-    action_space = ACTIONS
-    q_solver = QSolver(action_space)
+    q_solver = QSolver()
     run = 0
     while True:
         run_reward=0
         run += 1
-        state = (robot_pos_x*NUM_OF_Y_BLOCKS)+(NUM_OF_Y_BLOCKS-robot_pos_y)
+        state = environment.get_state()
         step = 0
         while True:
             step += 1
             logging.info("STEP " + str(step) + " RUN " + str(run) + " -------------------------")
-            action = q_solver.act(state)
+            action = environment.act(q_solver, state)
             logging.info("executing step")
-            state_next= execute_step(state, action)
+            state_next= environment.execute_step(state, action)
             reward = get_reward(state_next)
             logging.info("reward " + str(reward))
             run_reward+=reward
             q_solver.calculate_quality(state, action, reward, state_next)
             state = state_next
-            if state not in BLOCKS or robot_pos_y>=NUM_OF_Y_BLOCKS or robot_pos_x>=NUM_OF_X_BLOCKS  or robot_pos_y<0 or robot_pos_x<0:
+            if state not in environment.BLOCKS or environment.robot_pos_y>=environment.NUM_OF_Y_BLOCKS or environment.robot_pos_x>=environment.NUM_OF_X_BLOCKS  or environment.robot_pos_y<0 or environment.robot_pos_x<0:
                 logging.info("OUT OF LIMITS!!! run: " + str(run) + ", exploration: " + str(q_solver.exploration_rate) + ", step: " + str(step))
                 store_stats_and_reset(step, run_reward, run)
                 break
-            elif BLOCKS[state] == "GOAL" or BLOCKS[state] == "BOMB":
-                logging.info(BLOCKS[state] + "!!! run: " + str(run) + ", exploration: " + str(q_solver.exploration_rate) + ", step: " + str(step))
+            elif environment.BLOCKS[state] == "GOAL" or environment.BLOCKS[state] == "BOMB":
+                logging.info(environment.BLOCKS[state] + "!!! run: " + str(run) + ", exploration: " + str(q_solver.exploration_rate) + ", step: " + str(step))
                 store_stats_and_reset(step, run_reward, run)
                 break
             else:
-                logging.info("pos robot ->" + str(robot_pos_y) + ", " + str(robot_pos_x))
-                last_occurrence[robot_pos_y][robot_pos_x]=last_occurrence[robot_pos_y][robot_pos_x]+1
+                logging.info("pos robot ->" + str(environment.robot_pos_y) + ", " + str(environment.robot_pos_x))
+                last_occurrence[environment.robot_pos_y][environment.robot_pos_x]=last_occurrence[environment.robot_pos_y][environment.robot_pos_x]+1
 
             if q_solver.exploration_rate==EXPLORATION_MIN:
                 stats_figure=get_stats_figure()
