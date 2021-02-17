@@ -1,4 +1,4 @@
-I"É<p>The goal of this month is defining from scratch a model-free reinforcement learning algorithm and an environment to solve a typical path learning from source to goal problem. Additionally, some lectures have been useful to accomplish the month objective.</p>
+I"ÿ<p>The goal of this month is defining from scratch a model-free reinforcement learning algorithm and an environment to solve a typical path learning from source to goal problem. Additionally, some lectures have been useful to accomplish the month objective.</p>
 
 <h2 id="lectures">Lectures</h2>
 
@@ -23,6 +23,6 @@
 <h2 id="lab-work">Lab work</h2>
 
 <ul>
-  <li><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/robot_mesh">Path learning to reach a goal using qlearning</a></li>
+  <li><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/roboticsLab_exercises/robot_mesh/absolute_positions">Path learning to reach a goal using qlearning</a></li>
 </ul>
 :ET

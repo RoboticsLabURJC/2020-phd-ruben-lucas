@@ -32,4 +32,4 @@ number of mountains, the goal to be reached, etc.
 
 ## Lab work
 
-- [mountainBall configurable environment and similar to mountainCar environment with qlearning solution](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/mountain_ball)
+- [mountainBall configurable environment and similar to mountainCar environment with qlearning solution](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/roboticsLab_exercises/mountain_car)

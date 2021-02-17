@@ -85,7 +85,7 @@ However, to perform a try the suggestions are to modify the following:
 
 - Reward function
 
-In case of doubt and for seeking inspiration, you can check the "results document" uploaded in [the github repository](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/openAI_exercises/mountainCar/qlearning/results/)
+In case of doubt and for seeking inspiration, you can check the "results document" uploaded in [the github repository](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/openAI_exercises/mountainCar/qlearning/results)
 
 
 ## Video
@@ -94,11 +94,11 @@ In case of doubt and for seeking inspiration, you can check the "results documen
 
 ## Code
 
-[mountainCar openAIGym exercise solved using qlearning](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/openAI_exercises/mountainCar/qlearning)
+[mountainCar openAIGym exercise solved using qlearning](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/openAI_exercises/mountainCar/qlearning/)
 
 ## Results
 
-As referenced in CONFIGURATION section, you can check the results of each qlearning configuration implemented [here](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/openAI_exercises/mountainCar/qlearning/results/)
+As referenced in CONFIGURATION section, you can check the results of each qlearning configuration implemented [here](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/openAI_exercises/mountainCar/qlearning/results)
 
 As you will see, plenty of different hyperparameters configurations and reward functions were tried based on the interpretation of the ongoing results.
 Finally, the best approximation was surprisingly found based on an error designing the reward function which consist of a gap between two levels of the reward function which make the agent learn faster that the optimal reward will be at the top of the mountain.

@@ -338,7 +338,7 @@
 
 
 
-  2 minute read
+  3 minute read
 </p>
           
         </header>
@@ -372,7 +372,8 @@
 
 <h2 id="manual">Manual</h2>
 
-<p>The main goal of this kind of exercises is to learn how to develop a simple reinforced learning algorithm to make an agent learn the optimal path to the goal as soon as possible.</p>
+<p>The main goal of this kind of exercises is to learn how to develop a simple reinforced learning algorithm to make an agent learn the optimal path to the goal as soon as possible.
+The provided environment gives the possibility to perform one of four actions (“go up”, “go down”, “go left” and “go right”) each simulation step to try getting closer to the location/state in the board which was configured as goal.</p>
 
 <p><strong>GRAPHS:</strong></p>
 
@@ -394,7 +395,29 @@ To accomplish that we have two graphs in the upper part of a window that will be
 
 <p><strong>CONFIGURATION</strong></p>
 
-<p>Instead of not being really configurable, the code is easily modifiable to try different scenarios and to visualize more or less number of occurrences. In order to do so, comments and constants with descriptive name are added at the beginning of the program.</p>
+<p>Instead of not being really configurable, the code is easily modifiable to try different scenarios and to visualize more or less number of occurrences. In order to do so, comments and constants with descriptive names have been added at the beginning of the code.
+Nevertheless, the main constants that take part in this configuration are described below:</p>
+
+<p>To configure the environment open the environment.py file and adjust the following parameters according to your needs:</p>
+
+<ul>
+  <li><b>NUM_OF_X_BLOCKS</b>: Number of the board blocks in x axis</li>
+  <li><b>NUM_OF_Y_BLOCKS</b>: Number of the board blocks in y axis</li>
+  <li><b>INIT_Y</b>: Initial position that the robot will occupy in the board y axis</li>
+  <li><b>INIT_X</b>: Initial position that the robot will occupy in the board x axis</li>
+  <li><b>BLOCKS</b>: list containing the meaning of each cell in the board (“GOAL”, “BOMB”, “OK”)</li>
+</ul>
+
+<p>To configure the algorithm that will be used to solve the problem adjust the following hyperparameters in robot_mesh.py file:</p>
+
+<ul>
+  <li><b>GAMMA</b></li>
+  <li><b>LEARNING RATE</b></li>
+  <li><b>EXPLORATION_MIN</b></li>
+  <li><b>EXPLORATION_DECAY</b></li>
+</ul>
+
+<p>And finally, to visualize the desired number of last occurrences, configure the constant “NUMBER_OF_LAST_OCCURRENCES_TO_PLOT” in robot_mesh.py (E.g If configured to 10, then the last 10 occurrences will be shown in the “results window” displayed at the end of the program execution)</p>
 
 <h2 id="videos">Videos</h2>
 
@@ -406,7 +429,7 @@ To accomplish that we have two graphs in the upper part of a window that will be
 
 <h2 id="code">Code</h2>
 
-<p><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/robot_mesh">Path learning to reach a goal using qlearning</a></p>
+<p><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/roboticsLab_exercises/robot_mesh/absolute_positions/">Path learning to reach a goal using qlearning</a></p>
 
 <h2 id="results">Results</h2>
 
@@ -414,8 +437,8 @@ To accomplish that we have two graphs in the upper part of a window that will be
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/robotmesh/mapqlearning.png" alt="map" class="img-responsive" /></p>
 
-<p>Being the green cells the start and end points, the black cells the bombs the “robot” must avoid and the blue cells the optimal path to achieve the goal.
-The hyperparameters winners are the following:</p>
+<p>Being the green cells the start and end points, the black cells the bombs that the “robot” must avoid and the blue cells the optimal path to achieve the goal.
+The winners hyperparameters have been the following:</p>
 
 <ul>
   <li>GAMMA = 0.95</li>
@@ -452,7 +475,6 @@ You can find the explanation of this in the best answer to <a href="https://stat
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/robotmesh/resultssarsa.png" alt="results" class="img-responsive" /></p>
 
 <p><span style="color:green"><em>Feel free to share a better implementation or discrepancies with our conclussions!! We are humbly open to learn more from more experts!!</em></span></p>
-
 
         
       </section>

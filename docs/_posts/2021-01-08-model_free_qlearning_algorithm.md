@@ -39,4 +39,4 @@ The goal of this month is defining from scratch a model-free reinforcement learn
 
 ## Lab work
 
-- [Path learning to reach a goal using qlearning](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/robot_mesh)
+- [Path learning to reach a goal using qlearning](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/roboticsLab_exercises/robot_mesh/absolute_positions)

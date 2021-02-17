@@ -1,4 +1,4 @@
-I"©<p>The goal of this two weeks is to solve the mountainCar problem using a reinforced learning algorithm with no neural network. 
+I"¶<p>The goal of this two weeks is to solve the mountainCar problem using a reinforced learning algorithm with no neural network. 
 Besides that, this blog will be refined to better show the work progress and learnings.</p>
 
 <h2 id="lectures">Lectures</h2>
@@ -18,6 +18,6 @@ Besides that, this blog will be refined to better show the work progress and lea
 <h2 id="lab-work">Lab work</h2>
 
 <ul>
-  <li><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/openAI_exercises/mountainCar/qlearning">mountainCar openAIGym exercise with qlearning</a></li>
+  <li><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/openAI_exercises/mountainCar/qlearning">mountainCar openAIGym exercise with qlearning</a></li>
 </ul>
 :ET
