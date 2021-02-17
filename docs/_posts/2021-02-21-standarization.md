@@ -24,11 +24,11 @@ pinned: false
 
 The goal of this two weeks is to have an homogeneus project structure and an easy to follow projects
 coding plan (unwritten guidelines) so all of the exercises are organized in the same way.
-Additionally, an algorithms review will be performed making use of the sutton book.
+Additionally, an algorithms review will be performed making use of the sutton book included in "lectures" section.
 
 ## Lectures
 
-- [Physics basics in terms of movemetnt forces](http://www.sc.ehu.es/sbweb/fisica/dinamica/con_mlineal/cuna/cuna.htm)
+- [Reinforcement Learning: An Introduction](https://www.amazon.es/Reinforcement-Learning-Introduction-Richard-Sutton/dp/0262039249)
 
 ## Lab work
 
