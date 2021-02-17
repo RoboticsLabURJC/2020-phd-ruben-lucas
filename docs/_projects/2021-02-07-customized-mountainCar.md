@@ -1,5 +1,5 @@
 ---
-title: "MountainBall own environment using OpenAI Gym"
+title: "MountainCar customized environment making use of OpenAI Gym libraries"
 excerpt: "Feel free to review physics and remove libraries dependencies"
 
 sidebar:
@@ -131,7 +131,7 @@ You will also find some different worlds (heigh_function) commented to give you 
 
 ## Code
 
-[configurable environment to create your own mountainCar openAIGym problem worlds](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/mountain_ball)
+[configurable environment to create your own mountainCar openAIGym problem worlds](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/roboticsLab_exercises/mountain_car)
 
 
 <span style="color:green">*Feel free to share a better implementation or discrepancies with our conclussions!! We are humbly open to learn more from more experts!!*</span>

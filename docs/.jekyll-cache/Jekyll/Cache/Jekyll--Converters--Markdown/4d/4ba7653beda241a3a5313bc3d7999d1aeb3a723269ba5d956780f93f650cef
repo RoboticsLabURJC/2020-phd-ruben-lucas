@@ -1,4 +1,4 @@
-I"’<p>The goal of this two weeks is to create owr own environment with its own physics so
+I"´<p>The goal of this two weeks is to create owr own environment with its own physics so
 we can lately modify the mountain heigh, the car mass, the maximum velocity, the
 number of mountains, the goal to be reached, etc.</p>
 
@@ -11,6 +11,6 @@ number of mountains, the goal to be reached, etc.</p>
 <h2 id="lab-work">Lab work</h2>
 
 <ul>
-  <li><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/mountain_ball">mountainBall configurable environment and similar to mountainCar environment with qlearning solution</a></li>
+  <li><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/roboticsLab_exercises/mountain_car">mountainBall configurable environment and similar to mountainCar environment with qlearning solution</a></li>
 </ul>
 :ET

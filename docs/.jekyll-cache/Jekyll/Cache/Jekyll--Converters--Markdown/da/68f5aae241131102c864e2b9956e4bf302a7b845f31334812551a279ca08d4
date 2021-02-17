@@ -1,4 +1,4 @@
-I"ê<h2 id="reqs">Reqs</h2>
+I"<h2 id="reqs">Reqs</h2>
 
 <p>To execute this program you just need to install the following libraries:</p>
 <ul>
@@ -129,7 +129,7 @@ It should not be configurable, but in the case you want to simulate a martian mo
 
 <h2 id="code">Code</h2>
 
-<p><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/mountain_ball">configurable environment to create your own mountainCar openAIGym problem worlds</a></p>
+<p><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/roboticsLab_exercises/mountain_car">configurable environment to create your own mountainCar openAIGym problem worlds</a></p>
 
 <p><span style="color:green"><em>Feel free to share a better implementation or discrepancies with our conclussions!! We are humbly open to learn more from more experts!!</em></span></p>
 :ET

@@ -34,8 +34,8 @@ var store = [{
         "tags": ["tag 1","tag 2","tag 3","tag 4"],
         "url": "http://localhost:4000/2020-phd-ruben-lucas/projects/2021-01-22-mountainCar_qlearning/",
         "teaser":null},{
-        "title": "MountainBall own environment using OpenAI Gym",
+        "title": "MountainCar customized environment making use of OpenAI Gym libraries",
         "excerpt":"Reqs To execute this program you just need to install the following libraries: Python3.7 PyQt5 numpy 1.16.5 Pandas matplotlib tensorflow 1.14.0 gym sympy stable-baselines Manual The main goal of this exercise is being able to configure owr own environment with its own physics. The biggest challenge here was to make...","categories": ["your category"],
         "tags": ["tag 1","tag 2","tag 3","tag 4"],
-        "url": "http://localhost:4000/2020-phd-ruben-lucas/projects/2021-02-07-mountainBall/",
+        "url": "http://localhost:4000/2020-phd-ruben-lucas/projects/2021-02-07-customized-mountainCar/",
         "teaser":null}]

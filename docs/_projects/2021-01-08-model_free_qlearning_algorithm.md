@@ -34,6 +34,7 @@ To execute this program you just need to install the following libraries:
 ## Manual
 
 The main goal of this kind of exercises is to learn how to develop a simple reinforced learning algorithm to make an agent learn the optimal path to the goal as soon as possible.
+The provided environment gives the possibility to perform one of four actions ("go up", "go down", "go left" and "go right") each simulation step to try getting closer to the location/state in the board which was configured as goal.
 
 <strong>GRAPHS:</strong>
 
@@ -50,8 +51,25 @@ Nevertheless, to ease the analysis of each try, it is always a good idea to repr
 
 <strong>CONFIGURATION</strong>
 
-Instead of not being really configurable, the code is easily modifiable to try different scenarios and to visualize more or less number of occurrences. In order to do so, comments and constants with descriptive name are added at the beginning of the program.
+Instead of not being really configurable, the code is easily modifiable to try different scenarios and to visualize more or less number of occurrences. In order to do so, comments and constants with descriptive names have been added at the beginning of the code.
+Nevertheless, the main constants that take part in this configuration are described below:
 
+To configure the environment open the environment.py file and adjust the following parameters according to your needs:
+
+-  <b>NUM_OF_X_BLOCKS</b>: Number of the board blocks in x axis
+-  <b>NUM_OF_Y_BLOCKS</b>: Number of the board blocks in y axis
+-  <b>INIT_Y</b>: Initial position that the robot will occupy in the board y axis
+-  <b>INIT_X</b>: Initial position that the robot will occupy in the board x axis
+-  <b>BLOCKS</b>: list containing the meaning of each cell in the board ("GOAL", "BOMB", "OK")
+
+To configure the algorithm that will be used to solve the problem adjust the following hyperparameters in robot_mesh.py file:
+
+- <b>GAMMA</b>
+- <b>LEARNING RATE</b>
+- <b>EXPLORATION_MIN</b>
+- <b>EXPLORATION_DECAY</b>
+
+And finally, to visualize the desired number of last occurrences, configure the constant "NUMBER_OF_LAST_OCCURRENCES_TO_PLOT" in robot_mesh.py (E.g If configured to 10, then the last 10 occurrences will be shown in the "results window" displayed at the end of the program execution)
 
 ## Videos
 
@@ -63,7 +81,7 @@ Instead of not being really configurable, the code is easily modifiable to try d
 
 ## Code
 
-[Path learning to reach a goal using qlearning](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/robot_mesh)
+[Path learning to reach a goal using qlearning](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/roboticsLab_exercises/robot_mesh/absolute_positions/)
 
 ## Results
 
@@ -71,13 +89,13 @@ The easiest and fastest way to solve this problem was proved to be q learning. A
 
 ![map]({{site.baseurl}}/assets/images/results_images/robotmesh/mapqlearning.png){:class="img-responsive"}
 
-Being the green cells the start and end points, the black cells the bombs the "robot" must avoid and the blue cells the optimal path to achieve the goal.
-The hyperparameters winners are the following:
+Being the green cells the start and end points, the black cells the bombs that the "robot" must avoid and the blue cells the optimal path to achieve the goal.
+The winners hyperparameters have been the following:
 
 - GAMMA = 0.95
 - LEARNING RATE = 0.9
 - EXPLORATION_MIN = 0.000001
-- EXPLORATION_DECAY = 0.999 
+- EXPLORATION_DECAY = 0.999
 
 
 And the results, as shown in the video are indicated within the following graphics:
@@ -108,4 +126,3 @@ Those are the (obvously worse) results:
 
 
 <span style="color:green">*Feel free to share a better implementation or discrepancies with our conclussions!! We are humbly open to learn more from more experts!!*</span>
-
