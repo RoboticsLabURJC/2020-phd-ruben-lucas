@@ -130,7 +130,7 @@ class meshEnvironment():
     ACTIONS={0:"RIGHT", 1:"LEFT", 2:"UP", 3:"DOWN"}
 
     def __init__(self):
-        print("Environment initialized")
+        print("initialized")
 
     def act(self, q_solver, state):
         if np.random.rand() < q_solver.exploration_rate:
