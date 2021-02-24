@@ -24,6 +24,11 @@ var store = [{
         "tags": ["tag 1","tag 2","tag 3","tag 4"],
         "url": "http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainBall_qlearning/",
         "teaser":null},{
+        "title": "projects standarization (month 6 · Weeks 1 and 2)",
+        "excerpt":"The goal of this two weeks is to have an homogeneus project structure and an easy to follow projects coding plan (unwritten guidelines) so all of the exercises are organized in the same way. Additionally, the introdction, QLearning and Sarsa sections of the sutton book have been reviewed besides the...","categories": ["your category"],
+        "tags": ["tag 1","tag 2","tag 3","tag 4"],
+        "url": "http://localhost:4000/2020-phd-ruben-lucas/your%20category/standarization/",
+        "teaser":null},{
         "title": "Robot following path to goal with q learning and sarsa",
         "excerpt":"Reqs To execute this program you just need to install the following libraries: Python3 PyQt5 numpy Pandas matplotlib Manual The main goal of this kind of exercises is to learn how to develop a simple reinforced learning algorithm to make an agent learn the optimal path to the goal as...","categories": ["your category"],
         "tags": ["tag 1","tag 2","tag 3","tag 4"],

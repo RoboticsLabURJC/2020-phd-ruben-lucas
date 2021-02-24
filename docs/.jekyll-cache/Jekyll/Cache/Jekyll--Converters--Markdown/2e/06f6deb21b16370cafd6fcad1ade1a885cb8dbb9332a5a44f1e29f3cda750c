@@ -1,0 +1,35 @@
+I"k<p>The goal of this two weeks is to have an homogeneus project structure and an easy to follow projects
+coding plan (unwritten guidelines) so all of the exercises are organized in the same way.
+Additionally, the introdction, QLearning and Sarsa sections of the sutton book have been reviewed besides the other sources included in “lectures” section.</p>
+
+<h2 id="lectures">Lectures</h2>
+
+<ul>
+  <li>
+    <p><a href="https://www.amazon.es/Reinforcement-Learning-Introduction-Richard-Sutton/dp/0262039249">Reinforcement Learning: An Introduction</a></p>
+  </li>
+  <li>
+    <p><a href="http://fumblog.um.ac.ir/gallery/839/weatherwax_sutton_solutions_manual.pdf">Solutions to sutton book proposed exercises</a></p>
+  </li>
+  <li>
+    <p><a href="https://stats.stackexchange.com/questions/189067/how-to-make-a-reward-function-in-reinforcement-learning">How to build reward function</a></p>
+  </li>
+  <li>
+    <p><a href="https://towardsdatascience.com/proximal-policy-optimization-tutorial-part-1-actor-critic-method-d53f9afffbf6">proximal policy optimization with actor critic algorithm example</a></p>
+  </li>
+  <li>
+    <p><a href="https://thegradient.pub/the-promise-of-hierarchical-reinforcement-learning/">Hierarchichal reinforcement learning</a></p>
+  </li>
+</ul>
+
+<h2 id="lab-work">Lab work</h2>
+
+<ul>
+  <li>
+    <p><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/">Project folders structure modified</a></p>
+  </li>
+  <li>
+    <p><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/roboticsLab_exercises/robot_mesh">robot_mesh project refactored</a></p>
+  </li>
+</ul>
+:ET
