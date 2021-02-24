@@ -1,4 +1,37 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/2020-phd-ruben-lucas/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/2020-phd-ruben-lucas/" rel="alternate" type="text/html" /><updated>2021-02-17T04:07:05-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/feed.xml</id><title type="html">Robotics Lab URJC</title><subtitle>Programming Robot Intelligence</subtitle><author><name>Rubén Lucas</name></author><entry><title type="html">QLearning (month 5 · Weeks 3 and 4)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainBall_qlearning/" rel="alternate" type="text/html" title="QLearning (month 5 · Weeks 3 and 4)" /><published>2021-02-07T00:00:00-08:00</published><updated>2021-02-07T00:00:00-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainBall_qlearning</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainBall_qlearning/">&lt;p&gt;The goal of this two weeks is to create owr own environment with its own physics so
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/2020-phd-ruben-lucas/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/2020-phd-ruben-lucas/" rel="alternate" type="text/html" /><updated>2021-02-24T10:21:48-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/feed.xml</id><title type="html">Robotics Lab URJC</title><subtitle>Programming Robot Intelligence</subtitle><author><name>Rubén Lucas</name></author><entry><title type="html">projects standarization (month 6 · Weeks 1 and 2)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/standarization/" rel="alternate" type="text/html" title="projects standarization (month 6 · Weeks 1 and 2)" /><published>2021-02-21T00:00:00-08:00</published><updated>2021-02-21T00:00:00-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/standarization</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/standarization/">&lt;p&gt;The goal of this two weeks is to have an homogeneus project structure and an easy to follow projects
+coding plan (unwritten guidelines) so all of the exercises are organized in the same way.
+Additionally, the introdction, QLearning and Sarsa sections of the sutton book have been reviewed besides the other sources included in “lectures” section.&lt;/p&gt;
+
+&lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://www.amazon.es/Reinforcement-Learning-Introduction-Richard-Sutton/dp/0262039249&quot;&gt;Reinforcement Learning: An Introduction&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;http://fumblog.um.ac.ir/gallery/839/weatherwax_sutton_solutions_manual.pdf&quot;&gt;Solutions to sutton book proposed exercises&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://stats.stackexchange.com/questions/189067/how-to-make-a-reward-function-in-reinforcement-learning&quot;&gt;How to build reward function&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://towardsdatascience.com/proximal-policy-optimization-tutorial-part-1-actor-critic-method-d53f9afffbf6&quot;&gt;proximal policy optimization with actor critic algorithm example&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://thegradient.pub/the-promise-of-hierarchical-reinforcement-learning/&quot;&gt;Hierarchichal reinforcement learning&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;lab-work&quot;&gt;Lab work&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/&quot;&gt;Project folders structure modified&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/roboticsLab_exercises/robot_mesh&quot;&gt;robot_mesh project refactored&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Rubén Lucas</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Standarizing the project folders and the exercises code structure</summary></entry><entry><title type="html">QLearning (month 5 · Weeks 3 and 4)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainBall_qlearning/" rel="alternate" type="text/html" title="QLearning (month 5 · Weeks 3 and 4)" /><published>2021-02-07T00:00:00-08:00</published><updated>2021-02-07T00:00:00-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainBall_qlearning</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainBall_qlearning/">&lt;p&gt;The goal of this two weeks is to create owr own environment with its own physics so
 we can lately modify the mountain heigh, the car mass, the maximum velocity, the
 number of mountains, the goal to be reached, etc.&lt;/p&gt;
 
