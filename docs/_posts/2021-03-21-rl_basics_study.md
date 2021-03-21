@@ -118,6 +118,10 @@ algorithm between monte-carlo and TD(0)).
 
 -  <strong>Subsection 8.8:</strong> Background planning vs decision-time planning.
 
+***
+
+<strong><span style="text-decoration: underline">BONUS</span></strong>  
+While reading sutton book, a [really interesting tool](https://shap.readthedocs.io/en/latest/) for understanding how a machine learning algorithm actually learned and [its application to reinforcement learning algorithms](https://www.researchgate.net/publication/349113191_Explainable_Reinforcement_Learning_for_Longitudinal_Control) was found. Check it out!
 
 
 ## Lab work
