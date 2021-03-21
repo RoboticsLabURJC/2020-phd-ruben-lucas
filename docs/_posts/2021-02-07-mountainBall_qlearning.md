@@ -1,6 +1,6 @@
 ---
 title: "QLearning (month 5 · Weeks 3 and 4)"
-excerpt: "creating our own environment to freely configure our own problem"
+excerpt: "Creating our own environment to freely configure our own problem"
 
 sidebar:
   nav: "docs"
