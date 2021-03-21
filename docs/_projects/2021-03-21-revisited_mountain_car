@@ -1,0 +1,25 @@
+---
+title: "MountainCar openAI Gym exercise revisited after reading sutton section 1"
+excerpt: "Still focusing on minimum computation possible, this exervise has been revisited to apply some lessons learned in sutton RL book"
+
+sidebar:
+  nav: "docs"
+
+toc: true
+toc_label: "TOC installation"
+toc_icon: "cog"
+
+
+categories:
+- your category
+tags:
+- tag 1
+- tag 2
+- tag 3
+- tag 4
+
+author: Rubén Lucas
+pinned: false
+---
+
+TO BE COMPLETED

@@ -1,5 +1,5 @@
 ---
-title: "projects standarization (month 6 · Weeks 1 and 2)"
+title: "Projects standarization (month 6)"
 excerpt: "Standarizing the project folders and the exercises code structure"
 
 sidebar:
@@ -22,7 +22,7 @@ author: Rubén Lucas
 pinned: false
 ---
 
-The goal of this two weeks is to have an homogeneus project structure and an easy to follow projects
+The goal of this month is to have an homogeneus project structure and an easy to follow projects
 coding plan (unwritten guidelines) so all of the exercises are organized in the same way.
 Additionally, the introdction, QLearning and Sarsa sections of the sutton book have been reviewed besides the other sources included in "lectures" section.
 

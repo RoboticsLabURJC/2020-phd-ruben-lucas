@@ -1,4 +1,130 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/2020-phd-ruben-lucas/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/2020-phd-ruben-lucas/" rel="alternate" type="text/html" /><updated>2021-02-24T10:21:48-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/feed.xml</id><title type="html">Robotics Lab URJC</title><subtitle>Programming Robot Intelligence</subtitle><author><name>Rubén Lucas</name></author><entry><title type="html">projects standarization (month 6 · Weeks 1 and 2)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/standarization/" rel="alternate" type="text/html" title="projects standarization (month 6 · Weeks 1 and 2)" /><published>2021-02-21T00:00:00-08:00</published><updated>2021-02-21T00:00:00-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/standarization</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/standarization/">&lt;p&gt;The goal of this two weeks is to have an homogeneus project structure and an easy to follow projects
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/2020-phd-ruben-lucas/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/2020-phd-ruben-lucas/" rel="alternate" type="text/html" /><updated>2021-03-21T16:28:25-07:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/feed.xml</id><title type="html">Robotics Lab URJC</title><subtitle>Programming Robot Intelligence</subtitle><author><name>Rubén Lucas</name></author><entry><title type="html">Study of first section of sutton book (month 7)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/rl_basics_study/" rel="alternate" type="text/html" title="Study of first section of sutton book (month 7)" /><published>2021-03-21T00:00:00-07:00</published><updated>2021-03-21T00:00:00-07:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/rl_basics_study</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/rl_basics_study/">&lt;p&gt;The goal of this month is to fully read the first section of sutton book (8 chapters) and to fully understand
+the basics of reincorcement learning. Once we got enough background, it will be easier to follow the good practices
+and state-of-the-art of reinforcement learning. Additionally, since more algorithms will be known, more tools will
+be at our hands so we can achieve better results for each one of the exercises and projects that will be accomplished.&lt;/p&gt;
+
+&lt;p&gt;Additionally, to prove the know-how improvement, the mountain car exercise developed in previous posts will be revisited
+and redesigned to achieve better results either modifying the current proposed algorithm or using a more suitable one.&lt;/p&gt;
+
+&lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
+
+&lt;p&gt;Since the work of this month consisted of learning from the sutton book referenced in &lt;a href=&quot;https://roboticslaburjc.github.io/2020-phd-ruben-lucas/about/&quot;&gt;resources section&lt;/a&gt;, what we are gathering in this section is a summary of headlines with the key lessons learned from this reading. (Note that there were some lessons already learned in previous iterations and note also that a summary of all the lessons learned in each chapter are provided in the book in the last item of every chapter).&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;span style=&quot;text-decoration: underline&quot;&gt;CHAPTER 1&lt;/span&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Subsection 1.5:&lt;/strong&gt; Introduction to Reinforcement learning with Tic-Tac-Toe example.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;span style=&quot;text-decoration: underline&quot;&gt;CHAPTER 2&lt;/span&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsection 2.1:&lt;/strong&gt; The importance of balancing between exploration and exploitation and some simple methods to do so.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsections 2.2, 2.3 and 2.5:&lt;/strong&gt; Introduction to stationary vs nonstationary problems.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsection 2.3:&lt;/strong&gt; The importance of e-greedy selection in a RL policy to increase the average reward taking benefit of exploration.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsection 2.6:&lt;/strong&gt; The importance of the assigned initial values to each scenario state.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsection 2.7:&lt;/strong&gt; UBC as an example of deterministically exploration policy.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;span style=&quot;text-decoration: underline&quot;&gt;CHAPTER 3&lt;/span&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsection 3.2:&lt;/strong&gt; It is not a good practice to give higher rewards to the agent when the performed action brings it closer to the goal instead of rewarding it for those actions which next state is actually the goal.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsections 3.5 and 3.6:&lt;/strong&gt; Introduction to the Bellman equation and value and quality concepts (already known but included in the summary due to its importance and the good explanation in the book).&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsection 3.7:&lt;/strong&gt; The Bellman equation is not feasible to be solved in plenty of real situations, so approximation may be needed&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;span style=&quot;text-decoration: underline&quot;&gt;CHAPTER 4&lt;/span&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Concepts of policy, value iteration and policy iteration.
+For a better understanding of the difference between value iteration and policy iteration, this &lt;a href=&quot;https://stackoverflow.com/questions/37370015/what-is-the-difference-between-value-iteration-and-policy-iteration#:~:text=As%20much%20as%20I%20understand,the%20reward%20of%20that%20policy.&quot;&gt;forum discussion&lt;/a&gt; may be useful.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;span style=&quot;text-decoration: underline&quot;&gt;CHAPTER 5&lt;/span&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsections 5.1, 5.2 and 5.3:&lt;/strong&gt; Introduction to the Monte Carlo algorihm and the importance of exploring to discover the optimal action when having an (a-priori) unknown model.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsections 5.1, 5.2 and 5.3:&lt;/strong&gt; The importance of e-greedy and e-soft policies when using the Monte Carlo method.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsection 5.5:&lt;/strong&gt; Off-policy Vs On-policy methods and introduction to importance sampling (ordinary and weighted).&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;span style=&quot;text-decoration: underline&quot;&gt;CHAPTER 6&lt;/span&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsections 6.1, 6.2, 6.3 and 6.4:&lt;/strong&gt; TD(0) vs DP and Monte Carlo methods.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsections 6.4-&amp;gt;:&lt;/strong&gt;  Sarsa (and the following takeaway: if St+1 is terminal, then Q(St+1)=0), expected sarsa, Q-learning, and double learning&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Note that in this chapter, there are some specially interesting exercises to revisit (random walk, cliff mountain, driving home, windy windworld, etc.) all of them with a suggested algorithm to be applied.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;span style=&quot;text-decoration: underline&quot;&gt;CHAPTER 7&lt;/span&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsection 7.0:&lt;/strong&gt; Introduction to the concept of n-step bootstraping.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsections 7.2 and 7.3:&lt;/strong&gt;  n-step sarsa and n-step expected sarsa (derived from the prediction of TD-n step - intermediate
+algorithm between monte-carlo and TD(0)).&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsection 7.5:&lt;/strong&gt; The n-step tree backup algorithm.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;&lt;span style=&quot;text-decoration: underline&quot;&gt;CHAPTER 8&lt;/span&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsection 8.1:&lt;/strong&gt; Consolidation of model-free Vs model-based and learning/planing paradigms + Introduction to distribution-model Vs sample-model.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsections 8.2 and 8.3:&lt;/strong&gt; Dyna-q and Dyna-q+: how to apply planning and direct RL learning simultaneously.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsection 8.4:&lt;/strong&gt; Prioritized sweeping.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsection 8.5:&lt;/strong&gt; Useful diagram to recap about some learned algorithms and its classification (Figure 8.6: Backup diagrams for all the one-step updates considered in this book).&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsections 8.6 and 8.7:&lt;/strong&gt; Introduction to trajectory sampling and RTDP as a given example.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Subsection 8.8:&lt;/strong&gt; Background planning vs decision-time planning.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;lab-work&quot;&gt;Lab work&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://roboticslaburjc.github.io/2020-phd-ruben-lucas/projects/2021-03-21-revisited_mountain_car&quot;&gt;Mountain car exercise revisited&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Rubén Lucas</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Reinforcement of RL basics to be able to perform good practices when developing</summary></entry><entry><title type="html">Projects standarization (month 6)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/standarization/" rel="alternate" type="text/html" title="Projects standarization (month 6)" /><published>2021-02-21T00:00:00-08:00</published><updated>2021-02-21T00:00:00-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/standarization</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/standarization/">&lt;p&gt;The goal of this month is to have an homogeneus project structure and an easy to follow projects
 coding plan (unwritten guidelines) so all of the exercises are organized in the same way.
 Additionally, the introdction, QLearning and Sarsa sections of the sutton book have been reviewed besides the other sources included in “lectures” section.&lt;/p&gt;
 
@@ -45,7 +171,7 @@ number of mountains, the goal to be reached, etc.&lt;/p&gt;
 
 &lt;ul&gt;
   &lt;li&gt;&lt;a href=&quot;https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/roboticsLab_exercises/mountain_car&quot;&gt;mountainBall configurable environment and similar to mountainCar environment with qlearning solution&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;</content><author><name>Rubén Lucas</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">creating our own environment to freely configure our own problem</summary></entry><entry><title type="html">QLearning (month 5 · Weeks 1 and 2)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning/" rel="alternate" type="text/html" title="QLearning (month 5 · Weeks 1 and 2)" /><published>2021-01-22T00:00:00-08:00</published><updated>2021-01-22T00:00:00-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning/">&lt;p&gt;The goal of this two weeks is to solve the mountainCar problem using a reinforced learning algorithm with no neural network. 
+&lt;/ul&gt;</content><author><name>Rubén Lucas</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Creating our own environment to freely configure our own problem</summary></entry><entry><title type="html">QLearning (month 5 · Weeks 1 and 2)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning/" rel="alternate" type="text/html" title="QLearning (month 5 · Weeks 1 and 2)" /><published>2021-01-22T00:00:00-08:00</published><updated>2021-01-22T00:00:00-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning/">&lt;p&gt;The goal of this two weeks is to solve the mountainCar problem using a reinforced learning algorithm with no neural network. 
 Besides that, this blog will be refined to better show the work progress and learnings.&lt;/p&gt;
 
 &lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
