@@ -1,4 +1,4 @@
-I"°<p>The goal of this month is to fully read the first section of sutton book (8 chapters) and to fully understand
+I"ç<p>The goal of this month is to fully read the first section of sutton book (8 chapters) and to fully understand
 the basics of reincorcement learning. Once we got enough background, it will be easier to follow the good practices
 and state-of-the-art of reinforcement learning. Additionally, since more algorithms will be known, more tools will
 be at our hands so we can achieve better results for each one of the exercises and projects that will be accomplished.</p>
@@ -80,7 +80,7 @@ For a better understanding of the difference between value iteration and policy 
   </li>
 </ul>
 
-<p>Note that in this Subsection, there are some specially interesting exercises to revisit (random walk, cliff mountain, driving home, windy windworld, etc.) all of them with a suggested algorithm to be applied.</p>
+<p>Note that in this chapter, there are some specially interesting exercises to revisit (random walk, cliff mountain, driving home, windy windworld, etc.) all of them with a suggested algorithm to be applied.</p>
 
 <p><strong><span style="text-decoration: underline">CHAPTER 7</span></strong></p>
 
@@ -120,9 +120,14 @@ algorithm between monte-carlo and TD(0)).</p>
   </li>
 </ul>
 
+<hr />
+
+<p><strong><span style="text-decoration: underline">BONUS</span></strong><br />
+While reading sutton book, a <a href="https://shap.readthedocs.io/en/latest/">really interesting tool</a> for understanding how a machine learning algorithm actually learned and <a href="https://www.researchgate.net/publication/349113191_Explainable_Reinforcement_Learning_for_Longitudinal_Control">its application to reinforcement learning algorithms</a> was found. Check it out!</p>
+
 <h2 id="lab-work">Lab work</h2>
 
 <ul>
-  <li><a href=".">Mountain car exercise revisited</a></li>
+  <li><a href="https://roboticslaburjc.github.io/2020-phd-ruben-lucas/projects/2021-03-21-revisited_mountain_car">Mountain car exercise revisited</a></li>
 </ul>
 :ET
