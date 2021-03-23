@@ -95,10 +95,10 @@ class QSolver:
 
 
 def get_reward(state, step, last_best_state):
-    if state[0] >= last_best_state + LEVEL_GRANULARITY:
+    if state[0] >= 0.5:
         return 1
     else:
-        return -1
+        return 0
     return 0
 
 
