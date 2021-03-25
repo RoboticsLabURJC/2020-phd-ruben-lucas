@@ -50,7 +50,7 @@ var store = [{
         "url": "http://localhost:4000/2020-phd-ruben-lucas/projects/2021-02-07-customized-mountainCar/",
         "teaser":null},{
         "title": "MountainCar openAI Gym exercise revisited after reading sutton section 1",
-        "excerpt":"TO BE COMPLETED ","categories": ["your category"],
+        "excerpt":"After reading the section I of sutton reinforcement learning book, the previous implementation of the proposed openAIGym exercise “mountainCar” has been reviewed. This revision consisted of: Updating the reward function so it is simpler and alligned with theoretical basics of reinforcement learning. Playing with the initialization of the q_table used...","categories": ["your category"],
         "tags": ["tag 1","tag 2","tag 3","tag 4"],
         "url": "http://localhost:4000/2020-phd-ruben-lucas/projects/2021-03-21-revisited_mountain_car/",
         "teaser":null}]

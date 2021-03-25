@@ -1,0 +1,118 @@
+I"�<p>After reading the section I of sutton reinforcement learning book, the previous implementation of the proposed openAIGym exercise “mountainCar”
+has been reviewed.</p>
+
+<p>This revision consisted of:</p>
+<ul>
+  <li>Updating the reward function so it is simpler and alligned with theoretical basics of reinforcement learning.</li>
+  <li>Playing with the initialization of the q_table used in the q_learning algorithm.</li>
+  <li>Last and least, the hyperparameters has been slightly modified to analyse their affection to the results.</li>
+</ul>
+
+<p>you can find all the iterations tested in the <a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/openAI_exercises/mountainCar/qlearning/results">results uploaded</a> in the repository.</p>
+
+<p>In there you will notice that there is not need to give plenty of information to the agent through the reward function (and indeed it could be counterproductive), but you can distribute the reward along the way to speed the learning.
+That said, to get a good result is enough to simply set the problem as a continuous task (e.g reward of -1 for every action but the one that achieves the goal which reward is 0) or as an episodic task (e.g reward of 0 for every action but the one that achieves the goal which reward is 1) both of them being discounted over the times.</p>
+
+<p>See below the configurations and the good results achieved when initialiting the q values with random values between -1 and 1 to force unties when selecting the actions:</p>
+
+<p><strong>EPISODIC TASK CONFIGURATION</strong></p>
+
+<ul>
+  <li>REWARD</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>def get_reward(state, step, last_best_state):
+    if state[0] &gt;= 0.5:
+        return 1
+    else:
+        return 0
+    return 0
+</code></pre></div></div>
+
+<ul>
+  <li>HYPERPARAMETERS</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>MAX_RUNS=3000
+MAXIMUM_STEPS=500
+EXPLORATION_STEPS_PER_STATE=100
+
+INTERPOLATION=MAX_RUNS/10
+
+ENV_NAME = "MountainCar-v0"
+
+GAMMA = 0.95
+LEARNING_RATE = 0.2
+
+EXPLORATION_MAX = 1.0
+EXPLORATION_MIN = 0.1
+EXPLORATION_DECAY = 0.99995
+
+</code></pre></div></div>
+<ul>
+  <li>Q_VALUES INITIALIZATION</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>self.q_values = np.random.uniform(low = -1, high = 1,
+                size = (self.num_states[0], self.num_states[1],
+                           env.action_space.n))
+</code></pre></div></div>
+<ul>
+  <li>RESULTS</li>
+</ul>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/mountainCar/results_revisit_episodic.png" alt="results" class="img-responsive" /></p>
+
+<p><strong>CONTINUOUS TASK CONFIGURATION</strong></p>
+
+<ul>
+  <li>REWARD</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>def get_reward(state, step, last_best_state):
+    if state[0] &gt;= 0.5
+        return 0
+    else:
+        return -1
+    return 0
+</code></pre></div></div>
+
+<ul>
+  <li>HYPERPARAMETERS</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>MAX_RUNS=3000
+MAXIMUM_STEPS=500
+EXPLORATION_STEPS_PER_STATE=100
+
+INTERPOLATION=MAX_RUNS/10
+
+ENV_NAME = "MountainCar-v0"
+
+GAMMA = 0.95
+LEARNING_RATE = 0.2
+
+EXPLORATION_MAX = 1.0
+EXPLORATION_MIN = 0.1
+EXPLORATION_DECAY = 0.99995
+
+
+</code></pre></div></div>
+<ul>
+  <li>Q_VALUES INITIALIZATION</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>self.q_values = np.random.uniform(low = -1, high = 1,
+                size = (self.num_states[0], self.num_states[1],
+                           env.action_space.n))
+</code></pre></div></div>
+
+<ul>
+  <li>RESULTS
+<img src="/2020-phd-ruben-lucas/assets/images/results_images/mountainCar/results_revisit_continuous.png" alt="results" class="img-responsive" /></li>
+</ul>
+
+<p><strong>DEMO</strong></p>
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/lTsjgQWUuLM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+:ET
