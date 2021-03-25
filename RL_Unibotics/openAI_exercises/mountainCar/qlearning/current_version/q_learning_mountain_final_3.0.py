@@ -52,7 +52,7 @@ class QSolver:
         print(self.num_states)
 
         # Initialize Q table
-        self.q_values = np.random.uniform(low = 0, high = 0,
+        self.q_values = np.random.uniform(low = -1, high = 1,
                               size = (self.num_states[0], self.num_states[1],
                                       env.action_space.n))
         # Initialize Q table
@@ -64,7 +64,8 @@ class QSolver:
     def act(self, state, occurrences):
         if np.random.rand() < self.exploration_rate:
             return random.randrange(self.action_space)
-        action = np.argmax(self.q_values[state[0], state[1]])
+        untied_matrix=np.random.choice(np.flatnonzero(self.q_values[state[0], state[1]] == self.q_values[state[0], state[1]].max()))
+        action=untied_matrix
         return action
 
     def experience_replay(self, done, state_adj, action, reward, state2_adj, state_next, run, occurrences):
@@ -190,7 +191,8 @@ def set_q_values_in_graph(q_values_matrix, index, qsolver):
     while i<qsolver.num_states[0]:
         j=0
         while j<qsolver.num_states[1]:
-            q_values_matrix[index][j][i]=np.argmax(qsolver.q_values[i][j])
+            untied_matrix=np.random.choice(np.flatnonzero(qsolver.q_values[i][j] == qsolver.q_values[i][j].max()))
+            q_values_matrix[index][j][i]=untied_matrix
             j+=1
         i+=1
     return q_values_matrix
@@ -223,6 +225,7 @@ def mountain():
         step = 0
         tot_reward=0
         states=[]
+
         while True:
             step += 1
             env.render()
