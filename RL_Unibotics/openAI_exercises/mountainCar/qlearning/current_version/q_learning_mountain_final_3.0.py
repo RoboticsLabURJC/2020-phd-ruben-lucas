@@ -90,9 +90,9 @@ class QSolver:
         #print(self.q_values[state_adj[0], state_adj[1]])
         #print ("state_next " + str(state_next[0]) + " " + str(state_next[1]))
         #print ("reward " + str(reward))
-        if run>50:
-            self.exploration_rate *= EXPLORATION_DECAY
-            self.exploration_rate = max(EXPLORATION_MIN, self.exploration_rate)
+        #if run>50:
+        self.exploration_rate *= EXPLORATION_DECAY
+        self.exploration_rate = max(EXPLORATION_MIN, self.exploration_rate)
 
 
 def get_reward(state, step, last_best_state):
