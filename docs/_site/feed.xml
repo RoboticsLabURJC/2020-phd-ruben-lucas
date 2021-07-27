@@ -1,4 +1,37 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/2020-phd-ruben-lucas/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/2020-phd-ruben-lucas/" rel="alternate" type="text/html" /><updated>2021-03-24T00:04:36-07:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/feed.xml</id><title type="html">Robotics Lab URJC</title><subtitle>Programming Robot Intelligence</subtitle><author><name>Rubén Lucas</name></author><entry><title type="html">Study of first section of sutton book (month 7)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/rl_basics_study/" rel="alternate" type="text/html" title="Study of first section of sutton book (month 7)" /><published>2021-03-21T00:00:00-07:00</published><updated>2021-03-21T00:00:00-07:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/rl_basics_study</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/rl_basics_study/">&lt;p&gt;The goal of this month is to fully read the first section of sutton book (8 chapters) and to fully understand
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/2020-phd-ruben-lucas/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/2020-phd-ruben-lucas/" rel="alternate" type="text/html" /><updated>2021-05-25T14:34:35-07:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/feed.xml</id><title type="html">Robotics Lab URJC</title><subtitle>Programming Robot Intelligence</subtitle><author><name>Rubén Lucas</name></author><entry><title type="html">Introduction to gazebo and rl-studio (months 8 and 9)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/gazebo_and_rl-studio/" rel="alternate" type="text/html" title="Introduction to gazebo and rl-studio (months 8 and 9)" /><published>2021-05-25T00:00:00-07:00</published><updated>2021-05-25T00:00:00-07:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/gazebo_and_rl-studio</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/gazebo_and_rl-studio/">&lt;p&gt;The goal of this month is to get in touch with gazebo and rl-studio in order to later work with this and develop our own artifial intelligence models making use of all the gazebo benefits.
+Since these two months have been quite chaotic (vacations + computer fault) the progress to show is basically none. Hopefully it will ramp up soon because we will be working with a new PHD mate (Pedro) from now on. 
+And last but not least. This week we got a new TOP computer with the following characteristics:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;RAM - 32GB DDR4 3200Mhz&lt;/li&gt;
+  &lt;li&gt;HARD DISK DRIVE - HDD 2TB&lt;/li&gt;
+  &lt;li&gt;SOLID STATE DRIVE - SSD m.2 NVME 500GB&lt;/li&gt;
+  &lt;li&gt;CPU - AMD Ryzen7 5800X&lt;/li&gt;
+  &lt;li&gt;GPU - RTX 6800 rx&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
+
+&lt;p&gt;The lectures of this two months have been:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://gsyc.urjc.es/jmplaza/students/tfm-reinforcementlearning-conduccion_autonoma-ignacio_arranz-2020.pdf&quot;&gt;TFM Nacho Arranz&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;http://gazebosim.org/tutorials&quot;&gt;some tutorials contained in gazebosim website&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;lab-work&quot;&gt;Lab work&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://github.com/JdeRobot/RL-Studio&quot;&gt;install rl-studio&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;http://gazebosim.org/tutorials?tut=build_robot&amp;amp;cat=build_robot&quot;&gt;create your own basic robot&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Rubén Lucas</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Learning about gazebo and rl-studio to later develop in this environment</summary></entry><entry><title type="html">Study of first section of sutton book (month 7)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/rl_basics_study/" rel="alternate" type="text/html" title="Study of first section of sutton book (month 7)" /><published>2021-03-21T00:00:00-07:00</published><updated>2021-03-21T00:00:00-07:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/rl_basics_study</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/rl_basics_study/">&lt;p&gt;The goal of this month is to fully read the first section of sutton book (8 chapters) and to fully understand
 the basics of reincorcement learning. Once we got enough background, it will be easier to follow the good practices
 and state-of-the-art of reinforcement learning. Additionally, since more algorithms will be known, more tools will
 be at our hands so we can achieve better results for each one of the exercises and projects that will be accomplished.&lt;/p&gt;

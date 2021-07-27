@@ -366,7 +366,7 @@ has been reviewed.</p>
 <p>you can find all the iterations tested in the <a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/openAI_exercises/mountainCar/qlearning/results">results uploaded</a> in the repository.</p>
 
 <p>In there you will notice that there is not need to give plenty of information to the agent through the reward function (and indeed it could be counterproductive), but you can distribute the reward along the way to speed the learning.
-That said, to get a good result is enough to simply set the problem as a continuous task (e.g reward of -1 for every action but the one that achieves the goal which reward is 0) or as an episodic task (e.g reward of 0 for every action but the one that achieves the goal which reward is 1) both of them being discounted over the times.</p>
+That said, to get a good result is enough to simply set the problem as a typical continuous task (giving a litle reward when the car achieves a new high) or as a typical episodic task (e.g reward of 0 for every action but the one that achieves the goal which reward is 1 or giving a reward of -1 for every action but the one that achieves the goal which reward is 0) both of them being discounted over the times.</p>
 
 <p>See below the configurations and the good results achieved when initialiting the q values with random values between -1 and 1 to force unties when selecting the actions:</p>
 
@@ -576,6 +576,34 @@ EXPLORATION_DECAY = 0.99995
     
     <h2 class="archive__item-title" itemprop="headline">
       
+        <a href="/2020-phd-ruben-lucas/your%20category/gazebo_and_rl-studio/" rel="permalink">Introduction to gazebo and rl-studio (months 8 and 9)
+</a>
+      
+    </h2>
+    
+      <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+
+
+
+
+  less than 1 minute read
+</p>
+    
+    <p class="archive__item-excerpt" itemprop="description">Learning about gazebo and rl-studio to later develop in this environment
+</p>
+  </article>
+</div>
+
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title" itemprop="headline">
+      
         <a href="/2020-phd-ruben-lucas/your%20category/rl_basics_study/" rel="permalink">Study of first section of sutton book (month 7)
 </a>
       
@@ -646,34 +674,6 @@ EXPLORATION_DECAY = 0.99995
 </p>
     
     <p class="archive__item-excerpt" itemprop="description">Creating our own environment to freely configure our own problem
-</p>
-  </article>
-</div>
-
-        
-          
-
-
-
-<div class="grid__item">
-  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
-    
-    <h2 class="archive__item-title" itemprop="headline">
-      
-        <a href="/2020-phd-ruben-lucas/your%20category/mountainCar_qlearning/" rel="permalink">QLearning (month 5 · Weeks 1 and 2)
-</a>
-      
-    </h2>
-    
-      <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
-
-
-
-
-  less than 1 minute read
-</p>
-    
-    <p class="archive__item-excerpt" itemprop="description">Solving a more complex problem using qlearning
 </p>
   </article>
 </div>
