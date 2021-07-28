@@ -172,12 +172,12 @@ class GazeboEnv(gym.Env):
 
         state = ModelState()
         state.model_name = "my_robot"
-        state.pose.position.x = 18
-        state.pose.position.y = -14
+        state.pose.position.x = self.reset_pos_x
+        state.pose.position.y = self.reset_pos_y
         state.pose.position.z = 0
         state.pose.orientation.x = 0
         state.pose.orientation.y = 0
-        state.pose.orientation.z = 1.5
+        state.pose.orientation.z = self.reset_pos_z
         state.pose.orientation.w = 0
 
         rospy.wait_for_service('/gazebo/set_model_state')
