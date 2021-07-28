@@ -98,7 +98,7 @@ class RobotMeshEnv(MyEnv):
         done = False
         completed=False
 
-        if x>14:
+        if x>self.goal:
             reward=0
             done=True
             completed=True

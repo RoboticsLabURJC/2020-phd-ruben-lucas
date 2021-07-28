@@ -27,7 +27,7 @@ if __name__ == '__main__':
     print(settings.description)
     print(f"\t- Start hour: {datetime.datetime.now()}")
 
-    environment = settings.envs_params["simple"]
+    environment = settings.envs_params["complex"]
     print(environment)
     env = gym.make(environment["env"], **environment)
 

@@ -43,6 +43,12 @@ AVAILABLE_ACTIONS = {
         2: (0, 0, 0, -1),
         3: (0, 0, -0.7, 0.7)
     },
+    "complex": {
+        0: (0, 0, -1, 0),
+        1: (0, 0, 0.7, 0.7),
+        2: (0, 0, 0, -1),
+        3: (0, 0, -0.7, 0.7)
+    }
 }
 
 # === GAZEBO POSITIONS === x, y, z, roll, pith, ???. yaw
@@ -52,7 +58,11 @@ GAZEBO_POSITIONS = {
                (2, 39.712, -30.741, 0.004, 0, 0, 1.56, 1.56),
                (3, -6.861, -36.481, 0.004, 0, 0.01, -0.858, 0.613),
                (4, 20.043, 37.130, 0.003, 0, 0.103, -1.4383, -1.4383)],
-
+    "complex": [(0, 53.462, -41.988, 0.004, 0, 0, 1.57, -1.57),
+               (1, 53.462, -8.734, 0.004, 0, 0, 1.57, -1.57),
+               (2, 39.712, -30.741, 0.004, 0, 0, 1.56, 1.56),
+               (3, -6.861, -36.481, 0.004, 0, 0.01, -0.858, 0.613),
+               (4, 20.043, 37.130, 0.003, 0, 0.103, -1.4383, -1.4383)]
 }
 
 # === CIRCUIT ===
@@ -62,12 +72,32 @@ envs_params = {
         "training_type": "qlearn_camera",
         "circuit_name": "simple",
         "actions": AVAILABLE_ACTIONS[actions_set],
-        "launch": "my_world.launch",
+        "launch": "my_simple_world.launch",
         "gaz_pos": GAZEBO_POSITIONS["simple"],
         "start_pose": [GAZEBO_POSITIONS["simple"][1][1], GAZEBO_POSITIONS["simple"][1][2]],
         "alternate_pose": False,
         "estimated_steps": 4000,
-        "sensor": "camera"
+        "sensor": "camera",
+        "goal": 14,
+        "pos_x": 18,
+        "pos_y": -14,
+        "pos_z": 1.5
+    },
+    "complex": {
+        "env": "mySim-v0",
+        "training_type": "qlearn_camera",
+        "circuit_name": "simple",
+        "actions": AVAILABLE_ACTIONS[actions_set],
+        "launch": "my_complex_world.launch",
+        "gaz_pos": GAZEBO_POSITIONS["simple"],
+        "start_pose": [GAZEBO_POSITIONS["simple"][1][1], GAZEBO_POSITIONS["simple"][1][2]],
+        "alternate_pose": False,
+        "estimated_steps": 4000,
+        "sensor": "camera",
+        "goal": 14,
+        "pos_x": 17,
+        "pos_y": -13,
+        "pos_z": 1.5
     }
 }
 

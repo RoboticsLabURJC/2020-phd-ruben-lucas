@@ -43,4 +43,10 @@ In the same way, there you will find the [worlds](https://github.com/RoboticsLab
 
 <strong>DEMO</strong>
 
+<strong>Basic maze</strong>
+
 <iframe width="560" height="315" src="https://www.youtube.com/embed/HxAJtyRjt4g" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+<strong>Complex maze</strong>
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/UssHBsG9Ats" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
