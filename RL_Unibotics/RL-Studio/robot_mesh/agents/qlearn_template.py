@@ -17,7 +17,7 @@ class MyEnv(gazebo_envs.GazeboEnv):
         self.goal=config.get("goal")
         self.reset_pos_x=config.get("pos_x")
         self.reset_pos_y=config.get("pos_y")
-        selg.reset_pos_z=config.get("pos_z")
+        self.reset_pos_z=config.get("pos_z")
         self.vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
         self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
         self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
