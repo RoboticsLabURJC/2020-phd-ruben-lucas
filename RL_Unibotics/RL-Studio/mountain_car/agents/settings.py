@@ -80,7 +80,7 @@ envs_params = {
         "goal": 160,
         "pos_x": 0,
         "pos_y": -1.5,
-        "pos_z": 2.5
+        "pos_z": 3
     },
     "complex": {
         "env": "mySim-v0",
