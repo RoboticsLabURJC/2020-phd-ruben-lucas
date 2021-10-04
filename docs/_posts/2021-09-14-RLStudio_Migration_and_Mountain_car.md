@@ -35,6 +35,9 @@ TFM:
   2. There is one logs folder not created which gives error when executing the train_qlearn.py script
   3. The lines 46 and 49 of train_qlearn requires a modification
 
+In spite of completing the mountain car migration to rl-studio and customized to better ilustrate the problem adding a local minimum, the agent is not learning as expected, so besides the mountain car code migration, it will need to be adaptated so it completes the problem (same problem concept but different "now in 3D" scenario)
+
+
 ## Lectures
 
 The only formal lecture done this month was for understanding the inference accomplished by Nacho in his TFM:
