@@ -66,10 +66,10 @@ The following lecture was useful to understand some concepts abut pickle files, 
 
 Additionally, find below a forum were pull requests are explained and was useful to propperly share material with the teammates
 
--  [how to create a pull request in github]https://opensource.com/article/19/7/create-pull-request-github). Note that in RL-Studio team, this procedure also includes creating an incidence in the original repository and making the pull request from a branch named with this incidence id in the forked/cloned repository.
+-  [how to create a pull request in github](https://opensource.com/article/19/7/create-pull-request-github). Note that in RL-Studio team, this procedure also includes creating an incidence in the original repository and making the pull request from a branch named with this incidence id in the forked/cloned repository.
 
 
 
 ## Lab work
 
--  This week, the laboratory work consisted of keeping implementing the adapted/migrated to Rl-Studio mountain-car problem. No consistent results yet.
+-  This week, the laboratory work consisted of keeping implementing the adapted/migrated to Rl-Studio mountain-car problem. **No consistent results yet**.
