@@ -36,46 +36,88 @@ class RobotMeshEnv(MyEnv):
 
     def step(self, action):
 
+        if action < 0:
+            return [0, 0, 0], 0, True, False
+
+        state=[]
         self._gazebo_unpause()
 
-        vel_cmd = Twist()
-        vel_cmd.linear.x = self.actions[action]
-        vel_cmd.angular.z = 0
-        self.vel_pub.publish(vel_cmd)
+        # vel_cmd = Twist()
+        # vel_cmd.linear.x = self.actions[action]
+        # vel_cmd.angular.z = 0
+        # self.vel_pub.publish(vel_cmd)
 
-        time.sleep(0.125)
+        try:
+            effort = self.actions[action]
+            start_time = rospy.Duration.from_sec(0)
+            duration = rospy.Duration.from_sec(1)
+            #Effort just applied to one wheel because otherwise the car will spin due to the difference of start time (ms)
+            self.apply_joint_effort("left_wheel_back", effort[0], start_time, duration)
+            self.apply_joint_effort("right_wheel_back", effort[1], start_time, duration)
+            self.apply_joint_effort("wheel_front_left_steer", effort[2], start_time, duration)
+            self.apply_joint_effort("wheel_front_right_steer", effort[3], start_time, duration)
+        except rospy.ServiceException as e:
+            print("Service did not process request: {}".format(str(e)))
+
+        time.sleep(2)
         # self._gazebo_pause()
 
-        # object_coordinates = self.model_coordinates("my_robot", "")
-        # x_position = object_coordinates.pose.position.x
-        # y_position = object_coordinates.pose.position.y
-        # z_position = object_coordinates.pose.position.z
-        # x_orientation = object_coordinates.pose.orientation.x
-        # y_orientation = object_coordinates.pose.orientation.y
-        # z_orientation= object_coordinates.pose.orientation.z
-        # w_orientation= object_coordinates.pose.orientation.w
+        object_coordinates = self.model_coordinates("my_robot", "")
+        x_position = object_coordinates.pose.position.x
+        y_position = object_coordinates.pose.position.y
+        z_position = object_coordinates.pose.position.z
+        x_orientation = object_coordinates.pose.orientation.x
+        y_orientation = object_coordinates.pose.orientation.y
+        z_orientation= object_coordinates.pose.orientation.z
+        w_orientation= object_coordinates.pose.orientation.w
+        x_linear_vel=object_coordinates.twist.linear.x
+        y_linear_vel=object_coordinates.twist.linear.y
 
-        y, x, ori = self.get_position()
+        # y, x, ori = self.get_position()
 
-        print("pos x -> " + str(x))
-        print("pos y -> " + str(y))
+        print("pos x -> " + str(x_position))
+        print("pos y -> " + str(y_position))
 
-        pos_y=math.floor(y*10)
-        pos_x=math.floor(x*10)
+        pos_x = round(x_position)
+        vel = round(x_linear_vel)
 
-        state=(pos_x+pos_y)
+        #assign state
+        state.append(pos_x)
+        state.append(vel)
+        if z_orientation>1.5:
+            state.append(1)
+        elif z_orientation<-1.5:
+            state.append(2)
+        else:
+            state.append(3)
+
+
         print("¡¡¡¡¡¡¡state!!!!!!!!!! -> " + str(state))
+        print("orientation!!!!!!!!!! -> " + str(x_orientation)+ ", " + str(y_orientation) + ", " + str(z_orientation))
+        print("!!!!height -> " + str(z_position))
 
-
-        reward=-1
         done = False
         completed=False
+        reward=0
 
-        if state>self.goal:
-            reward=0
+        #Give reward
+        if pos_x>self.goal:
             done=True
             completed=True
+            print("Car has reached the goal")
+            reward=1
+        # elif z_position>=3:
+        #     reward=(z_position)**2
+        # if z_orientation<-0.15 or z_orientation>0.15:
+        #     reward=reward*1.5
+        else:
+            reward=0
 
+
+        if z_orientation<-0.3 or z_orientation>0.3:
+            done=True
+        if y_position<-3.56 or y_position>-0.43:
+            done=True
 
         return state, reward, done, completed
 
@@ -108,17 +150,32 @@ class RobotMeshEnv(MyEnv):
         # ode_config.max_contacts = 20
         # set_gravity(time_step.data, max_update_rate.data, gravity, ode_config)
 
-        y, x, ori = self.get_position()
+        # x, y, ori = self.get_position()
 
-        print("pos x -> " + str(x))
-        print("pos y -> " + str(y))
+        object_coordinates = self.model_coordinates("my_robot", "")
+        x_position = object_coordinates.pose.position.x
+        y_position = object_coordinates.pose.position.y
+        z_position = object_coordinates.pose.position.z
+        x_orientation = object_coordinates.pose.orientation.x
+        y_orientation = object_coordinates.pose.orientation.y
+        z_orientation= object_coordinates.pose.orientation.z
+        w_orientation= object_coordinates.pose.orientation.w
+        x_linear_vel=object_coordinates.twist.linear.x
+        y_linear_vel=object_coordinates.twist.linear.y
 
-        pos_y=math.ceil((y+15)/5)
-        pos_x=math.floor((x+16)/5)*7
-        pos_ori=np.round((ori+4.5)/1.5)
+        print("pos x -> " + str(x_position))
+        print("pos y -> " + str(y_position))
+        pos_x = round(x_position)
+        vel = round(x_linear_vel)
 
-        state=(pos_x+pos_y)
+        state=[]
 
+        state.append(pos_x)
+        state.append(vel)
+        #Note that state[2]=3 means that orientation is between 1.5 and -1.5 which must be true in start pos
+        state.append(3)
+
+        done=False
 
         # self._gazebo_pause()
 

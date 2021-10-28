@@ -104,10 +104,10 @@
         <enable_wind>0</enable_wind>
         <kinematic>0</kinematic>
       </link>
-      <joint name='wheel_front_left_steer' type='revolute'>
+      <joint name='wheel_front_left_steer' type='universal'>
         <parent>chassis</parent>
         <child>wheel_front_left</child>
-        <!-- <axis>
+        <axis>
           <xyz>0 1 0</xyz>
           <limit>
             <lower>-0.7</lower>
@@ -117,8 +117,8 @@
             <spring_reference>0</spring_reference>
             <spring_stiffness>0</spring_stiffness>
           </dynamics>
-        </axis> -->
-        <axis>
+        </axis>
+        <axis2>
           <xyz>0 0 1</xyz>
           <limit>
             <upper>1e+16</upper>
@@ -128,7 +128,7 @@
             <spring_reference>0</spring_reference>
             <spring_stiffness>0</spring_stiffness>
           </dynamics>
-        </axis>
+        </axis2>
       </joint>
       <link name='wheel_front_right'>
         <pose>0.5 -0.298 0.15 -1.5708 -0.087266 0</pose>
@@ -183,10 +183,10 @@
         <enable_wind>0</enable_wind>
         <kinematic>0</kinematic>
       </link>
-      <joint name='wheel_front_right_steer' type='revolute'>
+      <joint name='wheel_front_right_steer' type='universal'>
         <parent>chassis</parent>
         <child>wheel_front_right</child>
-        <!-- <axis>
+        <axis>
           <xyz>0 1 0</xyz>
           <limit>
             <lower>-0.7</lower>
@@ -196,8 +196,8 @@
             <spring_reference>0</spring_reference>
             <spring_stiffness>0</spring_stiffness>
           </dynamics>
-        </axis> -->
-        <axis>
+        </axis>
+        <axis2>
           <xyz>0 0 1</xyz>
           <limit>
             <upper>1e+16</upper>
@@ -207,7 +207,7 @@
             <spring_reference>0</spring_reference>
             <spring_stiffness>0</spring_stiffness>
           </dynamics>
-        </axis>
+        </axis2>
       </joint>
       <link name='wheel_rear_left'>
         <pose>-0.5 0.298 0.15 -1.5708 0 0</pose>

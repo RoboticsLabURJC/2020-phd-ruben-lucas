@@ -1,6 +1,6 @@
 import numpy as np
 import rospy
-from gazebo_msgs.srv import GetModelState
+from gazebo_msgs.srv import GetModelState, ApplyJointEffort
 from geometry_msgs.msg import Twist
 from gym import spaces
 from std_srvs.srv import Empty
@@ -22,6 +22,7 @@ class MyEnv(gazebo_envs.GazeboEnv):
         self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
         self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
         self.reset_proxy = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
+        self.apply_joint_effort = rospy.ServiceProxy('/gazebo/apply_joint_effort', ApplyJointEffort)
         self.reward_range = (-np.inf, np.inf)
         self.model_coordinates = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
         self.position = None
