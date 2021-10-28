@@ -38,15 +38,15 @@ algorithm_params = {"alpha": 0.2, "gamma": 0.9, "epsilon": 0.05, "highest_reward
 # === ACTIONS === (lineal, angular)
 AVAILABLE_ACTIONS = {
     "simple": {
-        0: (0),
-        1: (-8),
-        2: (8)
+        0: (0, 0, 0, 0),
+        1: (0, 0, -5, -5),
+        2: (5, 5, 0, 0)
     },
     "complex": {
-        0: (0, 0, -1, 0),
-        1: (0, 0, 0.7, 0.7),
-        2: (0, 0, 0, -1),
-        3: (0, 0, -0.7, 0.7)
+        0: (-4, -4, 0, 0),
+        1: (4, 4, 0, 0),
+        2: (0, 0, -2, -2),
+        3: (0, 0, 2, 2)
     }
 }
 
@@ -77,10 +77,11 @@ envs_params = {
         "alternate_pose": False,
         "estimated_steps": 4000,
         "sensor": "camera",
-        "goal": 160,
-        "pos_x": 0,
-        "pos_y": -1.5,
-        "pos_z": 3
+        "goal": 5.9,
+        "pos_x": -4,
+        "pos_y": -2,
+        "pos_z": 3,
+        "max_steps": 20
     },
     "complex": {
         "env": "mySim-v0",
@@ -96,7 +97,8 @@ envs_params = {
         "goal": 14,
         "pos_x": 17,
         "pos_y": -13,
-        "pos_z": 1.5
+        "pos_z": 1.5,
+        "max_steps": 20
     }
 }
 
