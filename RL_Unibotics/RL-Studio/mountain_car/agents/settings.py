@@ -39,8 +39,8 @@ algorithm_params = {"alpha": 0.2, "gamma": 0.9, "epsilon": 0.05, "highest_reward
 AVAILABLE_ACTIONS = {
     "simple": {
         0: (0, 0, 0, 0),
-        1: (0, 0, -5, -5),
-        2: (5, 5, 0, 0)
+        1: (0, 0, -3, -3),
+        2: (3, 3, 0, 0)
     },
     "complex": {
         0: (-4, -4, 0, 0),
