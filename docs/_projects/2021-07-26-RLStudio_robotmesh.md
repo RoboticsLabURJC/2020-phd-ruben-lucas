@@ -1,6 +1,6 @@
 ---
 title: "Migration to RLStudio of basic robot mesh problem"
-excerpt: "based on Nacho TFM, the robot mesh exercise was migrated to RL-Studio"
+excerpt: "The robot mesh exercise was migrated to RL-Studio"
 
 sidebar:
   nav: "docs"
