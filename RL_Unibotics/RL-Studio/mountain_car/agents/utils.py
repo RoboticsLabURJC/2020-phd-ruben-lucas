@@ -7,7 +7,7 @@ import numpy
 
 def load_model(qlearn, file_name):
 
-    qlearn_file = open("./logs/qlearn_models/" + file_name, "rb")
+    qlearn_file = open("./qlearn_models/" + file_name, "rb")
     model = pickle.load(qlearn_file)
 
     qlearn.q = model
@@ -31,19 +31,19 @@ def save_model(qlearn, current_time, states, states_counter, states_rewards):
 
     # Q TABLE
     base_file_name = "_act_set_{}_epsilon_{}".format(settings.actions_set, round(qlearn.epsilon, 2))
-    file_dump = open("./logs/qlearn_models/1_" + current_time + base_file_name + '_QTABLE.pkl', 'wb')
+    file_dump = open("./qlearn_models/1_" + current_time + base_file_name + '_QTABLE.pkl', 'wb')
     pickle.dump(qlearn.q, file_dump)
     # # STATES COUNTER
     # states_counter_file_name = base_file_name + "_STATES_COUNTER.pkl"
-    # file_dump = open("./logs/qlearn_models/2_" + current_time + states_counter_file_name, 'wb')
+    # file_dump = open("./qlearn_models/2_" + current_time + states_counter_file_name, 'wb')
     # pickle.dump(states_counter, file_dump)
     # STATES CUMULATED REWARD
     states_cum_reward_file_name = base_file_name + "_STATES_CUM_REWARD.pkl"
-    file_dump = open("./logs/qlearn_models/3_" + current_time + states_cum_reward_file_name, 'wb')
+    file_dump = open("./qlearn_models/3_" + current_time + states_cum_reward_file_name, 'wb')
     pickle.dump(states_rewards, file_dump)
     # STATES
     steps = base_file_name + "_STATES_STEPS.pkl"
-    file_dump = open("./logs/qlearn_models/4_" + current_time + steps, 'wb')
+    file_dump = open("./qlearn_models/4_" + current_time + steps, 'wb')
     pickle.dump(states, file_dump)
 
 def update_line(axes, runs_rewards):

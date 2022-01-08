@@ -1,3 +1,4 @@
+
 import datetime
 import time
 
@@ -22,7 +23,7 @@ register(
     # More arguments here
 )
 
-def simulation(q):
+def simulation(queue):
 
 
     print(settings.title)
@@ -48,7 +49,6 @@ def simulation(q):
     env.done=True
     counter = 0
     estimate_step_per_lap = environment["estimated_steps"]
-    lap_completed = False
     total_episodes = 20000
     epsilon_discount = 0.999  # Default 0.9986
 
@@ -73,16 +73,13 @@ def simulation(q):
 
     previous = datetime.datetime.now()
     checkpoints = []  # "ID" - x, y - time
-    rewards_per_run=[0, 0]
-
-    q.put(rewards_per_run)
+    rewards_per_run=[]
 
     # START ############################################################################################################
     for episode in range(total_episodes):
 
         counter = 0
         done = False
-        lap_completed = False
         n_steps=0
 
         cumulated_reward = 0
@@ -106,11 +103,11 @@ def simulation(q):
             print("Selected Action!! " + str(action))
             # Execute the action and get feedback
             if n_steps >= environment["max_steps"]:
-                nextState, reward, done, lap_completed = env.step(-1)
+                nextState, reward, done, info = env.step(-1)
             else:
-                nextState, reward, done, lap_completed = env.step(action)
+                nextState, reward, done, info  = env.step(action)
             n_steps=n_steps+1
-            print("step " + str(n_steps) + "!!!!")
+            print("step " + str(n_steps) + "!!!! ----------------------------")
 
             cumulated_reward += reward
 
@@ -147,16 +144,18 @@ def simulation(q):
                 last_time_steps = np.append(last_time_steps, [int(step + 1)])
                 stats[int(episode)] = step
                 states_reward[int(episode)] = cumulated_reward
+                print("---------------------------------------------------------------------------------------------")
                 print(f"EP: {episode + 1} - epsilon: {round(qlearn.epsilon, 2)} - Reward: {cumulated_reward}"
                       f"- Time: {start_time_format} - Steps: {step}")
+                utils.save_model(qlearn, start_time_format, stats, states_counter, states_reward)
+
+                # get_stats_figure(rewards_per_run)
+                rewards_per_run.append(cumulated_reward)
+                queue.put(cumulated_reward)
+
                 break
 
-            if lap_completed:
-                # if settings.plotter_graphic:
-                #     plotter.plot_steps_vs_epoch(stats, save=True)
-                utils.save_model(qlearn, start_time_format, stats, states_counter, states_reward)
-                print(f"\n\n====> LAP COMPLETED in: {datetime.datetime.now() - start_time} - Epoch: {episode}"
-                      f" - Cum. Reward: {cumulated_reward} <====\n\n")
+
 
             if counter > 1000:
                 # if settings.plotter_graphic:
@@ -167,9 +166,6 @@ def simulation(q):
                       f"{len(qlearn.q)}\n\t- time: {datetime.datetime.now()-start_time}\n\t- steps: {step}\n")
                 counter = 0
 
-            # get_stats_figure(rewards_per_run)
-            rewards_per_run.append(cumulated_reward)
-            q.put(rewards_per_run)
 
 
             # if datetime.datetime.now() - datetime.timedelta(hours=2) > start_time:
@@ -219,28 +215,30 @@ if __name__ == '__main__':
 
 
     #Create a queue to share data between process
-    q = multiprocessing.Queue()
+    queue = multiprocessing.Queue()
 
     #Create and start the simulation process
-    simulate=multiprocessing.Process(None,simulation,args=(q,))
+    simulate=multiprocessing.Process(None,simulation,args=(queue,))
     simulate.start()
 
-    time.sleep(10)
-    result=q.get_nowait()
-
-    if result !=None:
-        #Create the base plot
-        print(*result, sep = ", ")
+    rewards = []
+    while (queue.empty()):
         time.sleep(5)
-        figure, axes=utils.get_stats_figure(result)
+    #Call a function to update the plot when there is new data
+    result=queue.get(block=True, timeout=None)
+    rewards.append(result)
+    figure, axes=utils.get_stats_figure(rewards)
 
-        while(True):
-            #Call a function to update the plot when there is new data
-            result=q.get_nowait()
-            if result !=None:
-                #Create the base plot
-                # print("plotting!!")
-                # print(*result, sep = ", ")
-                axes.cla()
-                utils.update_line(axes, result)
-                time.sleep(15)
+    while(True):
+        while (queue.empty()):
+            time.sleep(5)
+        #Call a function to update the plot when there is new data
+        result=queue.get(block=True, timeout=None)
+        if result !=None:
+            print("PLOT: Received reward to paint!!! -> REWARD PAINTED = " + str(result))
+            rewards.append(result)
+            #Create the base plot
+            # print("plotting!!")
+            # print(*result, sep = ", ")
+            axes.cla()
+            utils.update_line(axes, rewards)

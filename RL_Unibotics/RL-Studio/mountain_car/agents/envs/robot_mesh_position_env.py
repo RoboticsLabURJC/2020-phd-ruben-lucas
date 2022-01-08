@@ -35,9 +35,9 @@ class RobotMeshEnv(MyEnv):
         return [seed]
 
     def step(self, action):
-
+        lap_completed=False
         if action < 0:
-            return [0, 0, 0], 0, True, False
+            return [0, 0, 0], 0, True, lap_completed
 
         state=[]
         self._gazebo_unpause()
@@ -97,13 +97,12 @@ class RobotMeshEnv(MyEnv):
         print("!!!!height -> " + str(z_position))
 
         done = False
-        completed=False
         reward=0
 
         #Give reward
         if pos_x>self.goal:
             done=True
-            completed=True
+            lap_completed=True
             print("Car has reached the goal")
             reward=1
         # elif z_position>=3:
@@ -119,7 +118,7 @@ class RobotMeshEnv(MyEnv):
         if y_position<-3.56 or y_position>-0.43:
             done=True
 
-        return state, reward, done, completed
+        return state, reward, done, lap_completed
 
     def reset(self):
 
