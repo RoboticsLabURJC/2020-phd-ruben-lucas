@@ -1,0 +1,35 @@
+I"N<p>The goal of this month is to get in touch with gazebo and rl-studio in order to later work with this and develop our own artifial intelligence models making use of all the gazebo benefits.
+Since these two months have been quite chaotic (vacations + computer fault) the progress to show is basically none. Hopefully it will ramp up soon because we will be working with a new PHD mate (Pedro) from now on. 
+And last but not least. This week we got a new TOP computer with the following characteristics:</p>
+<ul>
+  <li>RAM - 32GB DDR4 3200Mhz</li>
+  <li>HARD DISK DRIVE - HDD 2TB</li>
+  <li>SOLID STATE DRIVE - SSD m.2 NVME 500GB</li>
+  <li>CPU - AMD Ryzen7 5800X</li>
+  <li>GPU - RTX 6800 rx</li>
+</ul>
+
+<h2 id="lectures">Lectures</h2>
+
+<p>The lectures of this two months have been:</p>
+
+<ul>
+  <li>
+    <p><a href="https://gsyc.urjc.es/jmplaza/students/tfm-reinforcementlearning-conduccion_autonoma-ignacio_arranz-2020.pdf">TFM Nacho Arranz</a></p>
+  </li>
+  <li>
+    <p><a href="http://gazebosim.org/tutorials">some tutorials contained in gazebosim website</a></p>
+  </li>
+</ul>
+
+<h2 id="lab-work">Lab work</h2>
+
+<ul>
+  <li>
+    <p><a href="https://github.com/JdeRobot/RL-Studio">install rl-studio</a></p>
+  </li>
+  <li>
+    <p><a href="http://gazebosim.org/tutorials?tut=build_robot&amp;cat=build_robot">create your own basic robot</a></p>
+  </li>
+</ul>
+:ET

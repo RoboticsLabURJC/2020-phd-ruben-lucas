@@ -1,0 +1,8 @@
+prefix=/home/rlucasz/Desktop/doctorado/RL_Unibotics/RL-Studio/robot_mesh/installation/catkin_ws/install
+
+Name: roslint
+Description: Description of roslint
+Version: 0.12.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
