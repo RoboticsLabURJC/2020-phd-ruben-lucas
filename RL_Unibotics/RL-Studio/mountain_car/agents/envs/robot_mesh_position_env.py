@@ -37,7 +37,7 @@ class RobotMeshEnv(MyEnv):
     def step(self, action):
         lap_completed=False
         if action < 0:
-            return [0, 0, 0], 0, True, lap_completed
+            return [0, 0], 0, True, lap_completed
 
         state=[]
         self._gazebo_unpause()
@@ -59,7 +59,7 @@ class RobotMeshEnv(MyEnv):
         except rospy.ServiceException as e:
             print("Service did not process request: {}".format(str(e)))
 
-        time.sleep(2)
+        time.sleep(0.2)
         # self._gazebo_pause()
 
         object_coordinates = self.model_coordinates("my_robot", "")
@@ -78,23 +78,15 @@ class RobotMeshEnv(MyEnv):
         print("pos x -> " + str(x_position))
         print("pos y -> " + str(y_position))
 
-        pos_x = round(x_position)
-        vel = round(x_linear_vel)
+        pos_x = round(x_position*2)
+        vel = round(x_linear_vel*2)
 
         #assign state
         state.append(pos_x)
         state.append(vel)
-        if z_orientation>1.5:
-            state.append(1)
-        elif z_orientation<-1.5:
-            state.append(2)
-        else:
-            state.append(3)
 
-
-        print("¡¡¡¡¡¡¡state!!!!!!!!!! -> " + str(state))
-        print("orientation!!!!!!!!!! -> " + str(x_orientation)+ ", " + str(y_orientation) + ", " + str(z_orientation))
-        print("!!!!height -> " + str(z_position))
+        print("vel!!!!!!!!!! -> " + str(vel))
+        print("pos_x!!!!!!!!!! -> " + str(pos_x))
 
         done = False
         reward=0
@@ -113,8 +105,8 @@ class RobotMeshEnv(MyEnv):
             reward=0
 
 
-        if z_orientation<-0.3 or z_orientation>0.3:
-            done=True
+        # if z_orientation<-0.3 or z_orientation>0.3:
+        #     done=True
         if y_position<-3.56 or y_position>-0.43:
             done=True
 

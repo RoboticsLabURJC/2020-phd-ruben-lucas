@@ -50,9 +50,9 @@ def simulation(queue):
     counter = 0
     estimate_step_per_lap = environment["estimated_steps"]
     total_episodes = 20000
-    epsilon_discount = 0.999  # Default 0.9986
-
-    qlearn = QLearn(actions=actions, alpha=0.9, gamma=0.95, epsilon=1)
+    epsilon_discount = 0.99995  # Default 0.9986
+    qlearn = QLearn(actions=actions, alpha=0.9, gamma=0.9, epsilon=1)
+    initial_epsilon = qlearn.epsilon
 
     if settings.load_model:
         # TODO: Folder to models. Maybe from environment variable?
@@ -63,7 +63,6 @@ def simulation(queue):
         highest_reward = max(qvalues)
     else:
         highest_reward = 0
-    initial_epsilon = qlearn.epsilon
 
     telemetry_start_time = time.time()
     start_time = datetime.datetime.now()
@@ -74,11 +73,11 @@ def simulation(queue):
     previous = datetime.datetime.now()
     checkpoints = []  # "ID" - x, y - time
     rewards_per_run=[]
+    counter = 0
 
     # START ############################################################################################################
     for episode in range(total_episodes):
 
-        counter = 0
         done = False
         n_steps=0
 
@@ -147,20 +146,18 @@ def simulation(queue):
                 print("---------------------------------------------------------------------------------------------")
                 print(f"EP: {episode + 1} - epsilon: {round(qlearn.epsilon, 2)} - Reward: {cumulated_reward}"
                       f"- Time: {start_time_format} - Steps: {step}")
-                utils.save_model(qlearn, start_time_format, stats, states_counter, states_reward)
 
                 # get_stats_figure(rewards_per_run)
                 rewards_per_run.append(cumulated_reward)
-                queue.put(cumulated_reward)
+                queue.put(n_steps)
 
                 break
 
 
 
-            if counter > 1000:
+            if counter > 500:
                 # if settings.plotter_graphic:
                 #     plotter.plot_steps_vs_epoch(stats, save=True)
-                qlearn.epsilon *= epsilon_discount
                 utils.save_model(qlearn, start_time_format, episode, states_counter, states_reward)
                 print(f"\t- epsilon: {round(qlearn.epsilon, 2)}\n\t- cum reward: {cumulated_reward}\n\t- dict_size: "
                       f"{len(qlearn.q)}\n\t- time: {datetime.datetime.now()-start_time}\n\t- steps: {step}\n")

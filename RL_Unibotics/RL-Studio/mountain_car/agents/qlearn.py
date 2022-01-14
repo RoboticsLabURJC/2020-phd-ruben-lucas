@@ -13,12 +13,12 @@ class QLearn:
         self.gamma = gamma      # discount factor
         self.actions = actions
 
-    def getQValues(self, state1, state2, state3, action):
-        return self.q.get((state1, state2, state3, action), 0.0)
+    def getQValues(self, state1, state2, action):
+        return self.q.get((state1, state2, action), 0.0)
 
     def selectAction(self, state, return_q=False):
 
-        q = [self.getQValues(state[0], state[1], state[2], a) for a in self.actions]
+        q = [self.getQValues(state[0], state[1], a) for a in self.actions]
         maxQ = max(q)
 
         if random.random() < self.epsilon:
@@ -41,14 +41,14 @@ class QLearn:
         return action
 
     def learn(self, state1, action1, reward, state2, done):
-        maxqnew = max([self.getQValues(state2[0], state2[1], state2[2], a) for a in self.actions])
+        maxqnew = max([self.getQValues(state2[0], state2[1], a) for a in self.actions])
 
         if done == True:
-            self.q[(state1[0], state1[1], state1[2], action1)]  = reward
-            q_update = self.epsilon * (reward - self.getQValues(state1[0], state1[1], state2[2], action1))
+            self.q[(state1[0], state1[1], action1)]  = reward
+            q_update = self.alpha * (reward - self.getQValues(state1[0], state1[1], action1))
         else:
-            q_update = self.epsilon *(reward + self.gamma * maxqnew - self.getQValues(state1[0], state1[1], state2[2], action1))
-            self.q[(state1[0], state1[1], state1[2], action1)] =self.getQValues(state1[0], state1[1], state1[2], action1) + q_update
+            q_update = self.alpha *(reward + self.gamma * maxqnew - self.getQValues(state1[0], state1[1], action1))
+            self.q[(state1[0], state1[1], action1)] =self.getQValues(state1[0], state1[1], action1) + q_update
 
 
     def reset(self):
