@@ -34,6 +34,11 @@ var store = [{
         "tags": ["tag 1","tag 2","tag 3","tag 4"],
         "url": "http://localhost:4000/2020-phd-ruben-lucas/your%20category/rl_basics_study/",
         "teaser":null},{
+        "title": "Introduction to gazebo and rl-studio (months 8 and 9)",
+        "excerpt":"The goal of this month is to get in touch with gazebo and rl-studio in order to later work with this and develop our own artifial intelligence models making use of all the gazebo benefits. Since these two months have been quite chaotic (vacations + computer fault) the progress to...","categories": ["your category"],
+        "tags": ["tag 1","tag 2","tag 3","tag 4"],
+        "url": "http://localhost:4000/2020-phd-ruben-lucas/your%20category/gazebo_and_rl-studio/",
+        "teaser":null},{
         "title": "Robot following path to goal with q learning and sarsa",
         "excerpt":"Reqs To execute this program you just need to install the following libraries: Python3 PyQt5 numpy Pandas matplotlib Manual The main goal of this kind of exercises is to learn how to develop a simple reinforced learning algorithm to make an agent learn the optimal path to the goal as...","categories": ["your category"],
         "tags": ["tag 1","tag 2","tag 3","tag 4"],

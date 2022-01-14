@@ -1,6 +1,6 @@
 ---
 title: "MountainCar openAI Gym exercise revisited after reading sutton section 1"
-excerpt: "Still focusing on minimum computation possible, this exervise has been revisited to apply some lessons learned in sutton RL book"
+excerpt: "Still focusing on minimum computation possible, this exercise has been revisited to apply some lessons learned in sutton RL book"
 
 sidebar:
   nav: "docs"
