@@ -39,8 +39,8 @@ algorithm_params = {"alpha": 0.2, "gamma": 0.9, "epsilon": 0.05, "highest_reward
 AVAILABLE_ACTIONS = {
     "simple": {
         0: (0, 0, 0, 0),
-        1: (0, 0, -3, -3),
-        2: (3, 3, 0, 0)
+        1: (0, 0, -0.8, -0.8),
+        2: (0.8, 0.8, 0, 0)
     },
     "complex": {
         0: (-4, -4, 0, 0),
@@ -81,7 +81,7 @@ envs_params = {
         "pos_x": -4,
         "pos_y": -2,
         "pos_z": 3,
-        "max_steps": 20
+        "max_steps": 300
     },
     "complex": {
         "env": "mySim-v0",

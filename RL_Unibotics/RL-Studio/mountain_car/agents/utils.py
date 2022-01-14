@@ -38,13 +38,13 @@ def save_model(qlearn, current_time, states, states_counter, states_rewards):
     # file_dump = open("./qlearn_models/2_" + current_time + states_counter_file_name, 'wb')
     # pickle.dump(states_counter, file_dump)
     # STATES CUMULATED REWARD
-    states_cum_reward_file_name = base_file_name + "_STATES_CUM_REWARD.pkl"
-    file_dump = open("./qlearn_models/3_" + current_time + states_cum_reward_file_name, 'wb')
-    pickle.dump(states_rewards, file_dump)
-    # STATES
-    steps = base_file_name + "_STATES_STEPS.pkl"
-    file_dump = open("./qlearn_models/4_" + current_time + steps, 'wb')
-    pickle.dump(states, file_dump)
+    # states_cum_reward_file_name = base_file_name + "_STATES_CUM_REWARD.pkl"
+    # file_dump = open("./qlearn_models/3_" + current_time + states_cum_reward_file_name, 'wb')
+    # pickle.dump(states_rewards, file_dump)
+    # # STATES
+    # steps = base_file_name + "_STATES_STEPS.pkl"
+    # file_dump = open("./qlearn_models/4_" + current_time + steps, 'wb')
+    # pickle.dump(states, file_dump)
 
 def update_line(axes, runs_rewards):
     plot_rewards_per_run(axes, runs_rewards)
@@ -61,9 +61,9 @@ def get_stats_figure(runs_rewards):
 
 def plot_rewards_per_run(axes, runs_rewards):
     rewards_graph=pd.DataFrame(runs_rewards)
-    ax=rewards_graph.plot(ax=axes, title="rewards per run");
+    ax=rewards_graph.plot(ax=axes, title="steps per run");
     ax.set_xlabel("runs")
-    ax.set_ylabel("rewards")
+    ax.set_ylabel("steps")
     ax.legend().set_visible(False)
 
 def save_times(checkpoints):
