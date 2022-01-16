@@ -77,7 +77,7 @@ envs_params = {
         "alternate_pose": False,
         "estimated_steps": 4000,
         "sensor": "camera",
-        "goal": 5.9,
+        "goal": 6.5,
         "pos_x": -4,
         "pos_y": -2,
         "pos_z": 3,
