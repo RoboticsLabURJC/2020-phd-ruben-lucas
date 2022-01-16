@@ -39,6 +39,6 @@ In there you will notice that there is not need to give plenty of information to
 The optimal reward configuration and hyperparameters can be found in the [uploaded agent code](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car/agents)
 In the same way, there you will find the [worlds](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car/world) and [models](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car/model) used.
 
-<strong>Mountain Car Demo</strong>
+<strong>DEMO</strong>
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/oAyZph4sHvc" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>

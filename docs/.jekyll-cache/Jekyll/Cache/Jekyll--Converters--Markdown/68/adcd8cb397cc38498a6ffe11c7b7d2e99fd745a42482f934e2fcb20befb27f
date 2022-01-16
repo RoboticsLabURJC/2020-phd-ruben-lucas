@@ -1,0 +1,17 @@
+I"�<p>We are about to integrate the robot mesh and mountain car into RL-Studio 1.1.0, so no new problems will be addressed.
+However, while revisitting the problems and algorithms already integrated into RL-Studio 0.1.0 (Note that the review was needed
+because I came back from a job movement and I needed to pull all the repositories and reinstall the environment again) some
+bugsfixes and improvements in “mountain_car” and minor code cleaning in “robot_mesh” were performed.</p>
+
+<h2 id="lectures">Lectures</h2>
+
+<ul>
+  <li>First week of <a href="https://www.coursera.org/learn/algorithms-part1/">coursera princeton algorithms course</a></li>
+</ul>
+
+<h2 id="lab-work">Lab work</h2>
+
+<ul>
+  <li>The modifications and more relevant adjustments of the mountain_car problem have been documented in its <a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car/results.docx">q_learning analysis report</a>.</li>
+</ul>
+:ET
