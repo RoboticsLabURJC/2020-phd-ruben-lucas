@@ -1,0 +1,25 @@
+I"I<p>This migration consisted of:</p>
+<ul>
+  <li>Creating models and world for mountain car problem.</li>
+  <li>Ensuring actions doesnt provoke and unconsistent state (robot must always be within the “mountain” platform and move just to right and left).</li>
+  <li>Ensure actions efforts make the problem reachable but considerably difficult so we can take benefit of the algorithm to solve it.</li>
+  <li>Migrating the learning algorithm to make the robot behave well in mountain car problem.</li>
+  <li>Adapt rewards as a non-stationary problem.</li>
+  <li>perform several tests to conclude that the problem was succesfully migrated and solved using qlearning.</li>
+</ul>
+
+<p>you can find all the iterations tested in the <a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car/agents/logs">results uploaded</a> in the repository.</p>
+
+<p>In there you will notice that there is not need to give plenty of information to the agent through the reward function.</p>
+<ul>
+  <li>If you give a reward of 1 when the goal is achieved and 0 otherwise, the robot finally learn the optimal path.</li>
+  <li>If you stop the episode when the robot perform 0 steps you encourage the robot to reach the goal before 20 steps are accomplished.</li>
+</ul>
+
+<p>The optimal reward configuration and hyperparameters can be found in the <a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car/agents">uploaded agent code</a>
+In the same way, there you will find the <a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car/world">worlds</a> and <a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car/model">models</a> used.</p>
+
+<p><strong>DEMO</strong></p>
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/oAyZph4sHvc" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+:ET

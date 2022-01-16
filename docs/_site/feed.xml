@@ -1,4 +1,195 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/2020-phd-ruben-lucas/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/2020-phd-ruben-lucas/" rel="alternate" type="text/html" /><updated>2021-05-25T14:34:35-07:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/feed.xml</id><title type="html">Robotics Lab URJC</title><subtitle>Programming Robot Intelligence</subtitle><author><name>Rubén Lucas</name></author><entry><title type="html">Introduction to gazebo and rl-studio (months 8 and 9)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/gazebo_and_rl-studio/" rel="alternate" type="text/html" title="Introduction to gazebo and rl-studio (months 8 and 9)" /><published>2021-05-25T00:00:00-07:00</published><updated>2021-05-25T00:00:00-07:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/gazebo_and_rl-studio</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/gazebo_and_rl-studio/">&lt;p&gt;The goal of this month is to get in touch with gazebo and rl-studio in order to later work with this and develop our own artifial intelligence models making use of all the gazebo benefits.
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/2020-phd-ruben-lucas/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/2020-phd-ruben-lucas/" rel="alternate" type="text/html" /><updated>2022-01-15T16:29:46-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/feed.xml</id><title type="html">Robotics Lab URJC</title><subtitle>Programming Robot Intelligence</subtitle><author><name>Rubén Lucas</name></author><entry><title type="html">Projects polishing pre-integration with RL-Studio 1.1.0 (month 14)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/projects-polishing/" rel="alternate" type="text/html" title="Projects polishing pre-integration with RL-Studio 1.1.0 (month 14)" /><published>2022-01-14T00:00:00-08:00</published><updated>2022-01-14T00:00:00-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/projects-polishing</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/projects-polishing/">&lt;p&gt;We are about to integrate the robot mesh and mountain car into RL-Studio 1.1.0, so no new problems will be addressed.
+However, while revisitting the problems and algorithms already integrated into RL-Studio 0.1.0 (Note that the review was needed
+because I came back from a job movement and I needed to pull all the repositories and reinstall the environment again) some
+bugsfixes and improvements in “mountain_car” and minor code cleaning in “robot_mesh” were performed.&lt;/p&gt;
+
+&lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;First week of &lt;a href=&quot;https://www.coursera.org/learn/algorithms-part1/&quot;&gt;coursera princeton algorithms course&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;lab-work&quot;&gt;Lab work&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;The modifications and more relevant adjustments of the mountain_car problem have been documented in its &lt;a href=&quot;https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car/results.docx&quot;&gt;q_learning analysis report&lt;/a&gt;.&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Tony Stark</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Projects fixes, algorithms fine tuning and algorighms course</summary></entry><entry><title type="html">Final implementation of mountain_car basic scenario (Month 13 - Second half)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountain_car_final_migration_to_RLStudio_0.1.0/" rel="alternate" type="text/html" title="Final implementation of mountain_car basic scenario (Month 13 - Second half)" /><published>2021-10-25T00:00:00-07:00</published><updated>2021-10-25T00:00:00-07:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountain_car_final_migration_to_RLStudio_0.1.0</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountain_car_final_migration_to_RLStudio_0.1.0/">&lt;p&gt;The goals of this two weeks were:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;get a productive solution for the mountain-car problem in RL-Studio 0.1.0.&lt;/li&gt;
+  &lt;li&gt;Allig whith the rest of the JDeRobot team so we cooperate to evolve RL-Studio.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;Regarding the mountain car adaptation/migration&lt;/strong&gt;, the following actions has been performed to make the simple environment built in the previous two weeks work:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Stable robot was imported an modified and the environment was refined to make the simulation controlable.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;The statistics are propperly displayed while the simulation is run (in a different thread)&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;After lot of work and tunings to make it learn, the brain is finally learning!!&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;A new mode to execute actions manually was created (pressing 0 and enter the robot goes in one direction and pressiong 2 and enter it goes in the other direction). The name of the scrip is manual_runner.py&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Note that, when the new version of RL-Studio evolved by Pedro is updated, this and the robot mesh implementations will be
+adapted and a new video to show this and the next two weeks work will be provided in “projects” section of this blog&lt;/p&gt;
+
+&lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
+
+&lt;p&gt;No new lectures were used this two (actually three) weeks&lt;/p&gt;
+
+&lt;h2 id=&quot;lab-work&quot;&gt;Lab work&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;This week, the laboratory work consisted of keeping implementing the adapted/migrated to Rl-Studio mountain-car problem. &lt;strong&gt;Finally successfully!!!!&lt;/strong&gt;.&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Rubén Lucas</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Implemented first prototype for mountain car in RL-Studio</summary></entry><entry><title type="html">Still migrating mountain car to RL-Studio and year 1 phd formalization (Month 13 - First half)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/year_summary_and_mountain_car_debugging/" rel="alternate" type="text/html" title="Still migrating mountain car to RL-Studio and year 1 phd formalization (Month 13 - First half)" /><published>2021-10-04T00:00:00-07:00</published><updated>2021-10-04T00:00:00-07:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/year_summary_and_mountain_car_debugging</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/year_summary_and_mountain_car_debugging/">&lt;p&gt;The goals of this month are:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;enroll in the doctoral program for the second year and pay the fees.&lt;/li&gt;
+  &lt;li&gt;Propperly share the robot mesh implementation and videos both in github (via pull request) and slack (via forum posting)&lt;/li&gt;
+  &lt;li&gt;write the first prototype of the investigation plan which will be followed during the following years to accomplish the final thesis.&lt;/li&gt;
+  &lt;li&gt;progress with mountain car problem migration to RL-Studio 0.1.0.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;The enrollment and fees payment was accomplished.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;The robot mesh implementation in rl-studio was shared with the teammates both in github and slack&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Regarding the investigation plan&lt;/strong&gt;, it was written and can be found in the &lt;a href=&quot;https://gestion.urjc.es/RAPI/faces/task-flow-alumno/planesInvestigacion&quot;&gt;URJC platform&lt;/a&gt;. The overall idea is the following:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Year 1: Study of the state of the art for the problem of automatic robot behavior. In-depth study of current deep learning and reinforcement learning techniques to have a clear basis on which to develop the research. Creation of an objective measurement tool to evaluate the developed solutions.  First experiments with constrained circuits and solutions based on classical reinforcement learning for a mobile terrestrial robot.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;2nd Year: Implementation in a complex simulated environment of classical reinforcement learning and deep learning algorithms to solve basic practical problems that will allow to gather a number of techniques that will provide the PhD student with the necessary tools to tackle complex problems. It will also contribute to the development of the tool to provide it with the necessary power to facilitate the implementation of these complex problems that will be addressed in the coming years.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Year 3: Development of solutions combining deep learning and reinforcement learning to provide robustness to the robot for the previously developed environments and formalization of the solved problems in order to serve as a basis for solving future problems and to clearly illustrate the work done so that it can be used for teaching purposes.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;4th Year: Application of what has been previously learned to real environments, with real physical robots and resolution of more complex problems in simulators.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Year 5: Continuation of research of complex solutions transferred to real mobile robots after extraction of knowledge in simulation and application of the lessons learned to real environments that have a utility for the end user&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;That said, this plan is likely to be modified and extended in the future.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Regarding the mountain car adaptation/migration&lt;/strong&gt;, the following actions has been performed:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Create new environment simpler and feasibler trying to make the algorithm able to solve it before analysing what has to be done to solve the more compmlex one.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Include a statistics display after the 2 hours trainig to enable the algorithm monitoring and the subsequent analysis of what is and what is not working as expected.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Some minor fixes to the qlearning implementation (still insufficient)&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
+
+&lt;p&gt;The following lecture was useful to understand some concepts abut pickle files, used in RL-Studio.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://networkx.org/documentation/stable/reference/readwrite/gpickle.html&quot;&gt;pickle documentation&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Additionally, find below a forum were pull requests are explained and was useful to propperly share material with the teammates&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://opensource.com/article/19/7/create-pull-request-github&quot;&gt;how to create a pull request in github&lt;/a&gt;. Note that in RL-Studio team, this procedure also includes creating an incidence in the original repository and making the pull request from a branch named with this incidence id in the forked/cloned repository.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;lab-work&quot;&gt;Lab work&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;This week, the laboratory work consisted of keeping implementing the adapted/migrated to Rl-Studio mountain-car problem. &lt;strong&gt;No consistent results yet&lt;/strong&gt;.&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Rubén Lucas</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Keep working on mountain car (adapted to RL-Studio version) and formalize the phd burocracy</summary></entry><entry><title type="html">Migrating to new RLStudio and migrating mountain car to RLStudio 0.1.0 (Month 12)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/RLStudio_Migration_and_Mountain_car/" rel="alternate" type="text/html" title="Migrating to new RLStudio and migrating mountain car to RLStudio 0.1.0 (Month 12)" /><published>2021-09-14T00:00:00-07:00</published><updated>2021-09-14T00:00:00-07:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/RLStudio_Migration_and_Mountain_car</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/RLStudio_Migration_and_Mountain_car/">&lt;p&gt;The goals of this month are:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Migration of the robot_mesh problem to the new RLStudio 0.1.0&lt;/li&gt;
+  &lt;li&gt;getting the mountain car problem working in RLStudio 0.1.0&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;In the meanwhile:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Some ros tutorials has been done to understand how the communication with
+the robots and the environment occurs.&lt;/li&gt;
+  &lt;li&gt;some other modifications were suggested to be included in the Nacho
+TFM:
+    &lt;ol&gt;
+      &lt;li&gt;Install manual miss some steps&lt;/li&gt;
+      &lt;li&gt;There is one logs folder not created which gives error when executing the train_qlearn.py script&lt;/li&gt;
+      &lt;li&gt;The lines 46 and 49 of train_qlearn requires a modification&lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;In spite of completing the mountain car migration to rl-studio and customized to better ilustrate the problem adding a local minimum, the agent is not learning as expected, so besides the mountain car code migration, it will need to be adaptated so it completes the problem (same problem concept but different “now in 3D” scenario)&lt;/p&gt;
+
+&lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
+
+&lt;p&gt;The only formal lecture done this month was for understanding the inference accomplished by Nacho in his TFM:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.pythonprogramming.net/q-learning-analysis-reinforcement-learning-python-tutorial&quot;&gt;qlearning inference with python tutorial&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;lab-work&quot;&gt;Lab work&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;http://wiki.ros.org/turtlesim/Tutorials&quot;&gt;basic ros tutorial&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://gazebosim.org/tutorials/?tut=ros_comm&quot;&gt;ros deeper practice in gazebo&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Rubén Lucas</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Run Nacho TFM in new RLStudio and adapt mountain car made problem to work on it</summary></entry><entry><title type="html">Learning about RLStudio with basic robot mesh problem (months 10 and 11)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/rlstudio_robotmesh/" rel="alternate" type="text/html" title="Learning about RLStudio with basic robot mesh problem (months 10 and 11)" /><published>2021-07-26T00:00:00-07:00</published><updated>2021-07-26T00:00:00-07:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/rlstudio_robotmesh</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/rlstudio_robotmesh/">&lt;p&gt;The goal of this month is to finally get a tangible work for robot_mesh problem.
+In previous weeks, a robot was trained using qlearning to learn how to run from an origin to a destination
+skiping some obstacles in the shortest path posible. Now, this problem has been migrated to not only get the statistics,
+but also visualize the training and inference of this robot.
+Additionally, the RL-Studio installation manual has been updated to skip some errors.
+By the way, the computer bought last month is not yet ready… Dealing with swindlers.&lt;/p&gt;
+
+&lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
+
+&lt;p&gt;The lectures of this two months have been:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://gsyc.urjc.es/jmplaza/students/tfm-reinforcementlearning-conduccion_autonoma-ignacio_arranz-2020.pdf&quot;&gt;TFM Nacho Arranz&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://towardsdatascience.com/reinforcement-learning-generalisation-on-continuing-tasks-ffb9a89d57d0&quot;&gt;RL generalisation&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://en.wikipedia.org/wiki/Quaternion&quot;&gt;What is a Quaternion?&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;lab-work&quot;&gt;Lab work&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://github.com/JdeRobot/RL-Studio&quot;&gt;install rl-studio&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://quaternions.online/&quot;&gt;quaternion calculator&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://www.programmersought.com/article/36746345772/&quot;&gt;Use Gazebo to build a track and control the car to complete the race&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Rubén Lucas</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Run Nacho TFM in RLStudio and adapt robot_mesh made problem to work on it</summary></entry><entry><title type="html">Introduction to gazebo and rl-studio (months 8 and 9)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/gazebo_and_rl-studio/" rel="alternate" type="text/html" title="Introduction to gazebo and rl-studio (months 8 and 9)" /><published>2021-05-25T00:00:00-07:00</published><updated>2021-05-25T00:00:00-07:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/gazebo_and_rl-studio</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/gazebo_and_rl-studio/">&lt;p&gt;The goal of this month is to get in touch with gazebo and rl-studio in order to later work with this and develop our own artifial intelligence models making use of all the gazebo benefits.
 Since these two months have been quite chaotic (vacations + computer fault) the progress to show is basically none. Hopefully it will ramp up soon because we will be working with a new PHD mate (Pedro) from now on. 
 And last but not least. This week we got a new TOP computer with the following characteristics:&lt;/p&gt;
 &lt;ul&gt;
@@ -230,105 +421,4 @@ Besides that, this blog will be refined to better show the work progress and lea
 
 &lt;ul&gt;
   &lt;li&gt;&lt;a href=&quot;https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/openAI_exercises/mountainCar/qlearning&quot;&gt;mountainCar openAIGym exercise with qlearning&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;</content><author><name>Rubén Lucas</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Solving a more complex problem using qlearning</summary></entry><entry><title type="html">QLearning and Sarsa (month 4)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/model_free_qlearning_algorithm/" rel="alternate" type="text/html" title="QLearning and Sarsa (month 4)" /><published>2021-01-08T00:00:00-08:00</published><updated>2021-01-08T00:00:00-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/model_free_qlearning_algorithm</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/model_free_qlearning_algorithm/">&lt;p&gt;The goal of this month is defining from scratch a model-free reinforcement learning algorithm and an environment to solve a typical path learning from source to goal problem. Additionally, some lectures have been useful to accomplish the month objective.&lt;/p&gt;
-
-&lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://medium.com/@SmartLabAI/reinforcement-learning-algorithms-an-intuitive-overview-904e2dff5bbc&quot;&gt;Reinforcement learning algorithms overview&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://stats.stackexchange.com/questions/326788/when-to-choose-sarsa-vs-q-learning#:~:text=In%20Q%20learning%2C%20you%20update,and%20take%20the%20same%20action.&quot;&gt;When to choose sarsa vs qlearning&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://medium.com/@violante.andre/simple-reinforcement-learning-temporal-difference-learning-e883ea0d65b0&quot;&gt;Temporal difference learning&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://neptune.ai/blog/model-based-and-model-free-reinforcement-learning-pytennis-case-study&quot;&gt;Model ffree vs model based reiforcement learning algorithms (Pytennis case example)&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://towardsdatascience.com/on-policy-v-s-off-policy-learning-75089916bc2f&quot;&gt;Off-policy vs on-policy reinforcement algorithm&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h2 id=&quot;lab-work&quot;&gt;Lab work&lt;/h2&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;&lt;a href=&quot;https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/roboticsLab_exercises/robot_mesh/absolute_positions&quot;&gt;Path learning to reach a goal using qlearning&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;</content><author><name>Rubén Lucas</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Start playing with reinforcement learning</summary></entry><entry><title type="html">Digging in (month 3)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/current-work/" rel="alternate" type="text/html" title="Digging in (month 3)" /><published>2020-12-23T00:00:00-08:00</published><updated>2020-12-23T00:00:00-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/current-work</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/current-work/">&lt;p&gt;The goal for this month was to set the whole environment to work and start playing with reinforcement learning so the lectures can be consolidated with some exercises.&lt;/p&gt;
-
-&lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf&quot;&gt;Thesis of a DQN neural network able to beat an human gamer playing ATARI games&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://dialnet.unirioja.es/descarga/articulo/4902816.pdf&quot;&gt;Study of the effect of convolutional masks making use of the Fourier Transform&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://medium.com/ai%C2%B3-theory-practice-business/reinforcement-learning-part-5-monte-carlo-and-temporal-difference-learning-889053aba07d&quot;&gt;Reinforcement learning introduction&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://pemami4911.github.io/blog/2016/08/21/ddpg-rl.html&quot;&gt;DDPG introduction&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://www.youtube.com/watch?v=t3fbETsIBCY&quot;&gt;DQN introduction and implementation explanation video&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://adgefficiency.com/dqn-tuning/&quot;&gt;DQN hyperparameters tunning using openAI cartpole exercise&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h2 id=&quot;lab-work&quot;&gt;Lab work&lt;/h2&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;OpenAi gym installation and the acomplishment of the exercises explained in &lt;a href=&quot;https://towardsdatascience.com/solving-reinforcement-learning-classic-control-problems-openaigym-1b50413265dd&quot;&gt;Shiva Verma’s blog&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;</content><author><name>Rubén Lucas</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Start playing with reinforcement learning</summary></entry><entry><title type="html">Introduction (months 1 and 2)</title><link href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/previous-work/" rel="alternate" type="text/html" title="Introduction (months 1 and 2)" /><published>2020-11-29T00:00:00-08:00</published><updated>2020-11-29T00:00:00-08:00</updated><id>http://localhost:4000/2020-phd-ruben-lucas/your%20category/previous-work</id><content type="html" xml:base="http://localhost:4000/2020-phd-ruben-lucas/your%20category/previous-work/">&lt;p&gt;The goal this two first months is to land into machine learning and vision recognition world reading some previous master theses and its references to clarify some artificial intelligence basic concepts.&lt;/p&gt;
-
-&lt;h2 id=&quot;lectures&quot;&gt;Lectures&lt;/h2&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning_autonomous_navigation-vanessa-2020.pdf&quot;&gt;TFM Vanesa Fernández&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning_traffic_sensor-jessica-2020.pdf&quot;&gt;TFM Jéssica Fernández&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning-autonomous_navigation-francisco_perez-2020.pdf&quot;&gt;TFM Francisco Pérez&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://gsyc.urjc.es/jmplaza/students/tfm-reinforcementlearning-conduccion_autonoma-ignacio_arranz-2020.pdf&quot;&gt;TFM Nacho Arranz&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning-human_pose-david_pascual-2020.pdf&quot;&gt;TFM David Pascual&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning-person_following-nacho_condes-2020.pdf&quot;&gt;TFM Nacho Condés&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://gsyc.urjc.es/jmplaza/students/tfm-deeplearning-prediccion_fotogramas-nuria_oyaga-2020.pdf&quot;&gt;TFM Nuria Oyaga&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;a href=&quot;https://gsyc.urjc.es/jmplaza/draft-detectionstudio.pdf&quot;&gt;Detection Studio review&lt;/a&gt;&lt;/p&gt;
-  &lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h2 id=&quot;lab-work&quot;&gt;Lab work&lt;/h2&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;
-    &lt;p&gt;Objects Detector installation&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Detection Studio installation&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Atom installation&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Jekyll+GitPages installation and blog creation&lt;/p&gt;
-  &lt;/li&gt;
-&lt;/ul&gt;</content><author><name>Tony Stark</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Landing on vision recognition basics</summary></entry></feed>
+&lt;/ul&gt;</content><author><name>Rubén Lucas</name></author><category term="your category" /><category term="tag 1" /><category term="tag 2" /><category term="tag 3" /><category term="tag 4" /><summary type="html">Solving a more complex problem using qlearning</summary></entry></feed>

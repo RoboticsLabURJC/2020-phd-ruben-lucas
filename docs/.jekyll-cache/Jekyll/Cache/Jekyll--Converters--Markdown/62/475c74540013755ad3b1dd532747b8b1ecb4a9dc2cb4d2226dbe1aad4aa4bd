@@ -1,0 +1,41 @@
+I"P<p>The goals of this month are:</p>
+<ul>
+  <li>Migration of the robot_mesh problem to the new RLStudio 0.1.0</li>
+  <li>getting the mountain car problem working in RLStudio 0.1.0</li>
+</ul>
+
+<p>In the meanwhile:</p>
+<ul>
+  <li>Some ros tutorials has been done to understand how the communication with
+the robots and the environment occurs.</li>
+  <li>some other modifications were suggested to be included in the Nacho
+TFM:
+    <ol>
+      <li>Install manual miss some steps</li>
+      <li>There is one logs folder not created which gives error when executing the train_qlearn.py script</li>
+      <li>The lines 46 and 49 of train_qlearn requires a modification</li>
+    </ol>
+  </li>
+</ul>
+
+<p>In spite of completing the mountain car migration to rl-studio and customized to better ilustrate the problem adding a local minimum, the agent is not learning as expected, so besides the mountain car code migration, it will need to be adaptated so it completes the problem (same problem concept but different “now in 3D” scenario)</p>
+
+<h2 id="lectures">Lectures</h2>
+
+<p>The only formal lecture done this month was for understanding the inference accomplished by Nacho in his TFM:</p>
+
+<ul>
+  <li><a href="https://www.pythonprogramming.net/q-learning-analysis-reinforcement-learning-python-tutorial">qlearning inference with python tutorial</a></li>
+</ul>
+
+<h2 id="lab-work">Lab work</h2>
+
+<ul>
+  <li>
+    <p><a href="http://wiki.ros.org/turtlesim/Tutorials">basic ros tutorial</a></p>
+  </li>
+  <li>
+    <p><a href="https://gazebosim.org/tutorials/?tut=ros_comm">ros deeper practice in gazebo</a></p>
+  </li>
+</ul>
+:ET

@@ -1,0 +1,34 @@
+I"
+<p>After running the Nacho TFM and understanding how the training and inferencing work, the previous practice “robot_mesh” has been migrated to RL-Studio.</p>
+
+<p>This migration consisted of:</p>
+<ul>
+  <li>Migrating the learning algorithm to make the robot behave well in maze problem.</li>
+  <li>Adapt robot actions to step from one maze cell to the other on each step.</li>
+  <li>Adapt rewards as a non-stationary problem.</li>
+  <li>perform several tests to conclude that the goal is achieved as soon as posible.</li>
+</ul>
+
+<p>you can find all the iterations tested in the <a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/robot_mesh/agents/logs">results uploaded</a> in the repository.</p>
+
+<p>In there you will notice that there is not need to give plenty of information to the agent through the reward function (and indeed it could be counterproductive).</p>
+<ul>
+  <li>If you give a reward of 1 when the goal is achieved and 0 otherwise, the robot finally learn the optimal path.</li>
+  <li>If you give a reward of -1 when the robot crash and reset the scenario afterwards, does not matter what reward you give when reaching the goal.
+   The robot will learn to avoid the walls and will never reach the goal.</li>
+  <li>If you stop the episode when the robot colide with a wall, the robot will probably never reach the goal and so, never learn.</li>
+</ul>
+
+<p>The optimal reward configuration and hyperparameters can be found in the <a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/robot_mesh/agents">uploaded agent code</a>
+In the same way, there you will find the <a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/robot_mesh/world">worlds</a> and <a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/robot_mesh/model">models</a> used.</p>
+
+<p><strong>DEMO</strong></p>
+
+<p><strong>Basic maze</strong></p>
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/HxAJtyRjt4g" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+
+<p><strong>Complex maze</strong></p>
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/UssHBsG9Ats" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+:ET
