@@ -71,4 +71,4 @@ Additionally, the following steps were accomplished to adapt the problem to RL-S
 
 <strong>Complex maze</strong>
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/UssHBsG9Ats" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/36Zko9hSY6k" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
