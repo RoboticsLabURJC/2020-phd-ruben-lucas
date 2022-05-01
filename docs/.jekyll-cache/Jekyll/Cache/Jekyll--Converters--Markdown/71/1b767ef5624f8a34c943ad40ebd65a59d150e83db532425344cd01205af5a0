@@ -1,0 +1,37 @@
+I".<p>The goals of this two weeks were:</p>
+
+<ul>
+  <li>get a productive solution for the mountain-car problem in RL-Studio 0.1.0.</li>
+  <li>Allig whith the rest of the JDeRobot team so we cooperate to evolve RL-Studio.</li>
+</ul>
+
+<p><strong>Regarding the mountain car adaptation/migration</strong>, the following actions has been performed to make the simple environment built in the previous two weeks work:</p>
+
+<ul>
+  <li>
+    <p>Stable robot was imported an modified and the environment was refined to make the simulation controlable.</p>
+  </li>
+  <li>
+    <p>The statistics are propperly displayed while the simulation is run (in a different thread)</p>
+  </li>
+  <li>
+    <p>After lot of work and tunings to make it learn, the brain is finally learning!!</p>
+  </li>
+  <li>
+    <p>A new mode to execute actions manually was created (pressing 0 and enter the robot goes in one direction and pressiong 2 and enter it goes in the other direction). The name of the scrip is manual_runner.py</p>
+  </li>
+</ul>
+
+<p>Note that, when the new version of RL-Studio evolved by Pedro is updated, this and the robot mesh implementations will be
+adapted and a new video to show this and the next two weeks work will be provided in “projects” section of this blog</p>
+
+<h2 id="lectures">Lectures</h2>
+
+<p>No new lectures were used this two (actually three) weeks</p>
+
+<h2 id="lab-work">Lab work</h2>
+
+<ul>
+  <li>This week, the laboratory work consisted of keeping implementing the adapted/migrated to Rl-Studio mountain-car problem. <strong>Finally successfully!!!!</strong>.</li>
+</ul>
+:ET
