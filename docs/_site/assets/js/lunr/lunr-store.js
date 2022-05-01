@@ -39,6 +39,31 @@ var store = [{
         "tags": ["tag 1","tag 2","tag 3","tag 4"],
         "url": "http://localhost:4000/2020-phd-ruben-lucas/your%20category/gazebo_and_rl-studio/",
         "teaser":null},{
+        "title": "Learning about RLStudio with basic robot mesh problem (months 10 and 11)",
+        "excerpt":"The goal of this month is to finally get a tangible work for robot_mesh problem. In previous weeks, a robot was trained using qlearning to learn how to run from an origin to a destination skiping some obstacles in the shortest path posible. Now, this problem has been migrated to...","categories": ["your category"],
+        "tags": ["tag 1","tag 2","tag 3","tag 4"],
+        "url": "http://localhost:4000/2020-phd-ruben-lucas/your%20category/rlstudio_robotmesh/",
+        "teaser":null},{
+        "title": "Migrating to new RLStudio and migrating mountain car to RLStudio 0.1.0 (Month 12)",
+        "excerpt":"The goals of this month are: Migration of the robot_mesh problem to the new RLStudio 0.1.0 getting the mountain car problem working in RLStudio 0.1.0 In the meanwhile: Some ros tutorials has been done to understand how the communication with the robots and the environment occurs. some other modifications were...","categories": ["your category"],
+        "tags": ["tag 1","tag 2","tag 3","tag 4"],
+        "url": "http://localhost:4000/2020-phd-ruben-lucas/your%20category/RLStudio_Migration_and_Mountain_car/",
+        "teaser":null},{
+        "title": "Still migrating mountain car to RL-Studio and year 1 phd formalization (Month 13 - First half)",
+        "excerpt":"The goals of this month are: enroll in the doctoral program for the second year and pay the fees. Propperly share the robot mesh implementation and videos both in github (via pull request) and slack (via forum posting) write the first prototype of the investigation plan which will be followed...","categories": ["your category"],
+        "tags": ["tag 1","tag 2","tag 3","tag 4"],
+        "url": "http://localhost:4000/2020-phd-ruben-lucas/your%20category/year_summary_and_mountain_car_debugging/",
+        "teaser":null},{
+        "title": "Final implementation of mountain_car basic scenario (Month 13 - Second half)",
+        "excerpt":"The goals of this two weeks were: get a productive solution for the mountain-car problem in RL-Studio 0.1.0. Allig whith the rest of the JDeRobot team so we cooperate to evolve RL-Studio. Regarding the mountain car adaptation/migration, the following actions has been performed to make the simple environment built in...","categories": ["your category"],
+        "tags": ["tag 1","tag 2","tag 3","tag 4"],
+        "url": "http://localhost:4000/2020-phd-ruben-lucas/your%20category/mountain_car_final_migration_to_RLStudio_0.1.0/",
+        "teaser":null},{
+        "title": "Projects polishing pre-integration with RL-Studio 1.1.0 (month 14)",
+        "excerpt":"We are about to integrate the robot mesh and mountain car into RL-Studio 1.1.0, so no new problems will be addressed. However, while revisitting the problems and algorithms already integrated into RL-Studio 0.1.0 (Note that the review was needed because I came back from a job movement and I needed...","categories": ["your category"],
+        "tags": ["tag 1","tag 2","tag 3","tag 4"],
+        "url": "http://localhost:4000/2020-phd-ruben-lucas/your%20category/projects-polishing/",
+        "teaser":null},{
         "title": "Robot following path to goal with q learning and sarsa",
         "excerpt":"Reqs To execute this program you just need to install the following libraries: Python3 PyQt5 numpy Pandas matplotlib Manual The main goal of this kind of exercises is to learn how to develop a simple reinforced learning algorithm to make an agent learn the optimal path to the goal as...","categories": ["your category"],
         "tags": ["tag 1","tag 2","tag 3","tag 4"],
@@ -58,4 +83,14 @@ var store = [{
         "excerpt":"After reading the section I of sutton reinforcement learning book, the previous implementation of the proposed openAIGym exercise “mountainCar” has been reviewed. This revision consisted of: Updating the reward function so it is simpler and alligned with theoretical basics of reinforcement learning. Playing with the initialization of the q_table used...","categories": ["your category"],
         "tags": ["tag 1","tag 2","tag 3","tag 4"],
         "url": "http://localhost:4000/2020-phd-ruben-lucas/projects/2021-03-21-revisited_mountain_car/",
+        "teaser":null},{
+        "title": "Migration to RLStudio of basic robot mesh problem",
+        "excerpt":"After running the Nacho TFM and understanding how the training and inferencing work, the previous practice “robot_mesh” has been migrated to RL-Studio. This migration consisted of: Migrating the learning algorithm to make the robot behave well in maze problem. Adapt robot actions to step from one maze cell to the...","categories": ["your category"],
+        "tags": ["tag 1","tag 2","tag 3","tag 4"],
+        "url": "http://localhost:4000/2020-phd-ruben-lucas/projects/2021-07-26-RLStudio_robotmesh/",
+        "teaser":null},{
+        "title": "Migration to RLStudio of mountain car problem proposed by openAI-gym",
+        "excerpt":"This migration consisted of: Creating models and world for mountain car problem. Ensuring actions doesnt provoke and unconsistent state (robot must always be within the “mountain” platform and move just to right and left). Ensure actions efforts make the problem reachable but considerably difficult so we can take benefit of...","categories": ["your category"],
+        "tags": ["tag 1","tag 2","tag 3","tag 4"],
+        "url": "http://localhost:4000/2020-phd-ruben-lucas/projects/2022-01-07-RLStudio_mountain_car/",
         "teaser":null}]

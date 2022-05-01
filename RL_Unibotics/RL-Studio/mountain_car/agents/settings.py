@@ -39,8 +39,8 @@ algorithm_params = {"alpha": 0.2, "gamma": 0.9, "epsilon": 0.05, "highest_reward
 AVAILABLE_ACTIONS = {
     "simple": {
         0: (0, 0, 0, 0),
-        1: (0, 0, -0.5, -0.5),
-        2: (0.5, 0.5, 0, 0)
+        1: (0, 0, -0.8, -0.8),
+        2: (0.8, 0.8, 0, 0)
     },
     "complex": {
         0: (-4, -4, 0, 0),
@@ -77,7 +77,7 @@ envs_params = {
         "alternate_pose": False,
         "estimated_steps": 4000,
         "sensor": "camera",
-        "goal": 5.9,
+        "goal": 6.5,
         "pos_x": -4,
         "pos_y": -2,
         "pos_z": 3,

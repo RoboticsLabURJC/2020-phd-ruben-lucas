@@ -1,0 +1,710 @@
+<!doctype html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.16.5 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+-->
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Still migrating mountain car to RL-Studio and year 1 phd formalization (Month 13 - First half) - Robotics Lab URJC</title>
+<meta name="description" content="Keep working on mountain car (adapted to RL-Studio version) and formalize the phd burocracy">
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="Robotics Lab URJC">
+<meta property="og:title" content="Still migrating mountain car to RL-Studio and year 1 phd formalization (Month 13 - First half)">
+<meta property="og:url" content="http://localhost:4000/2020-phd-ruben-lucas/your%20category/year_summary_and_mountain_car_debugging/">
+
+
+  <meta property="og:description" content="Keep working on mountain car (adapted to RL-Studio version) and formalize the phd burocracy">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2021-10-04T00:00:00-07:00">
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="http://localhost:4000/2020-phd-ruben-lucas/your%20category/year_summary_and_mountain_car_debugging/">
+
+
+
+
+
+
+
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "JdeRobot",
+      "url": "http://localhost:4000/2020-phd-ruben-lucas",
+      "sameAs": null
+    }
+  </script>
+
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/2020-phd-ruben-lucas/feed.xml" type="application/atom+xml" rel="alternate" title="Robotics Lab URJC Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/2020-phd-ruben-lucas/assets/css/main.css">
+
+<!--[if IE ]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+<link rel="icon" type="image/png" href="/assets/images/logo.png" sizes="16x16">
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+          <a class="site-logo" href="/2020-phd-ruben-lucas/"><img src="/2020-phd-ruben-lucas/assets/images/peloto.png" alt=""></a>
+        
+        <a class="site-title" href="/2020-phd-ruben-lucas/">
+          Robotics Lab URJC
+          <span class="site-subtitle">Programming Robot Intelligence</span>
+        </a>
+        <ul class="visible-links"><li class="masthead__menu-item">
+              <a href="/2020-phd-ruben-lucas/logbook/" >LogBook</a>
+            </li><li class="masthead__menu-item">
+              <a href="/2020-phd-ruben-lucas/install/" >Projects</a>
+            </li><li class="masthead__menu-item">
+              <a href="/2020-phd-ruben-lucas/about/" >Resources</a>
+            </li></ul>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name"></h3>
+    
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+    
+      
+      
+      
+      
+    
+    
+      
+
+<nav class="nav__list">
+  
+  <input id="ac-toc" name="accordion-toc" type="checkbox" />
+  <label for="ac-toc">Toggle Menu</label>
+  <ul class="nav__items">
+    
+      <li>
+        
+          <span class="nav__sub-title">LogBook</span>
+        
+
+        
+        <ul>
+          
+            
+            
+
+            
+            
+
+            <li><a href="/2020-phd-ruben-lucas/logbook/" class="">Check it out</a></li>
+          
+        </ul>
+        
+      </li>
+    
+      <li>
+        
+          <span class="nav__sub-title">Projects</span>
+        
+
+        
+        <ul>
+          
+            
+            
+
+            
+            
+
+            <li><a href="/2020-phd-ruben-lucas/install/" class="">AI Exercises</a></li>
+          
+        </ul>
+        
+      </li>
+    
+      <li>
+        
+          <span class="nav__sub-title">Resources</span>
+        
+
+        
+        <ul>
+          
+            
+            
+
+            
+            
+
+            <li><a href="/2020-phd-ruben-lucas/references/" class="">Usefull resources</a></li>
+          
+        </ul>
+        
+      </li>
+    
+  </ul>
+</nav>
+    
+  
+  </div>
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Still migrating mountain car to RL-Studio and year 1 phd formalization (Month 13 - First half)">
+    <meta itemprop="description" content="Keep working on mountain car (adapted to RL-Studio version) and formalize the phd burocracy">
+    <meta itemprop="datePublished" content="October 04, 2021">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">Still migrating mountain car to RL-Studio and year 1 phd formalization (Month 13 - First half)
+</h1>
+          
+            <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+
+
+
+
+  2 minute read
+</p>
+          
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right ">
+            <nav class="toc">
+              <header><h4 class="nav__title"><i class="fas fa-cog"></i> TOC installation</h4></header>
+              <ul class="toc__menu">
+  <li><a href="#lectures">Lectures</a></li>
+  <li><a href="#lab-work">Lab work</a></li>
+</ul>
+            </nav>
+          </aside>
+        
+        <p>The goals of this month are:</p>
+
+<ul>
+  <li>enroll in the doctoral program for the second year and pay the fees.</li>
+  <li>Propperly share the robot mesh implementation and videos both in github (via pull request) and slack (via forum posting)</li>
+  <li>write the first prototype of the investigation plan which will be followed during the following years to accomplish the final thesis.</li>
+  <li>progress with mountain car problem migration to RL-Studio 0.1.0.</li>
+</ul>
+
+<p><strong>The enrollment and fees payment was accomplished.</strong></p>
+
+<p><strong>The robot mesh implementation in rl-studio was shared with the teammates both in github and slack</strong></p>
+
+<p><strong>Regarding the investigation plan</strong>, it was written and can be found in the <a href="https://gestion.urjc.es/RAPI/faces/task-flow-alumno/planesInvestigacion">URJC platform</a>. The overall idea is the following:</p>
+
+<ul>
+  <li>
+    <p>Year 1: Study of the state of the art for the problem of automatic robot behavior. In-depth study of current deep learning and reinforcement learning techniques to have a clear basis on which to develop the research. Creation of an objective measurement tool to evaluate the developed solutions.  First experiments with constrained circuits and solutions based on classical reinforcement learning for a mobile terrestrial robot.</p>
+  </li>
+  <li>
+    <p>2nd Year: Implementation in a complex simulated environment of classical reinforcement learning and deep learning algorithms to solve basic practical problems that will allow to gather a number of techniques that will provide the PhD student with the necessary tools to tackle complex problems. It will also contribute to the development of the tool to provide it with the necessary power to facilitate the implementation of these complex problems that will be addressed in the coming years.</p>
+  </li>
+  <li>
+    <p>Year 3: Development of solutions combining deep learning and reinforcement learning to provide robustness to the robot for the previously developed environments and formalization of the solved problems in order to serve as a basis for solving future problems and to clearly illustrate the work done so that it can be used for teaching purposes.</p>
+  </li>
+  <li>
+    <p>4th Year: Application of what has been previously learned to real environments, with real physical robots and resolution of more complex problems in simulators.</p>
+  </li>
+  <li>
+    <p>Year 5: Continuation of research of complex solutions transferred to real mobile robots after extraction of knowledge in simulation and application of the lessons learned to real environments that have a utility for the end user</p>
+  </li>
+</ul>
+
+<p>That said, this plan is likely to be modified and extended in the future.</p>
+
+<p><strong>Regarding the mountain car adaptation/migration</strong>, the following actions has been performed:</p>
+
+<ul>
+  <li>
+    <p>Create new environment simpler and feasibler trying to make the algorithm able to solve it before analysing what has to be done to solve the more compmlex one.</p>
+  </li>
+  <li>
+    <p>Include a statistics display after the 2 hours trainig to enable the algorithm monitoring and the subsequent analysis of what is and what is not working as expected.</p>
+  </li>
+  <li>
+    <p>Some minor fixes to the qlearning implementation (still insufficient)</p>
+  </li>
+</ul>
+
+<h2 id="lectures">Lectures</h2>
+
+<p>The following lecture was useful to understand some concepts abut pickle files, used in RL-Studio.</p>
+
+<ul>
+  <li><a href="https://networkx.org/documentation/stable/reference/readwrite/gpickle.html">pickle documentation</a></li>
+</ul>
+
+<p>Additionally, find below a forum were pull requests are explained and was useful to propperly share material with the teammates</p>
+
+<ul>
+  <li><a href="https://opensource.com/article/19/7/create-pull-request-github">how to create a pull request in github</a>. Note that in RL-Studio team, this procedure also includes creating an incidence in the original repository and making the pull request from a branch named with this incidence id in the forked/cloned repository.</li>
+</ul>
+
+<h2 id="lab-work">Lab work</h2>
+
+<ul>
+  <li>This week, the laboratory work consisted of keeping implementing the adapted/migrated to Rl-Studio mountain-car problem. <strong>No consistent results yet</strong>.</li>
+</ul>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/2020-phd-ruben-lucas/tags/#tag-1" class="page__taxonomy-item" rel="tag">tag 1</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/2020-phd-ruben-lucas/tags/#tag-2" class="page__taxonomy-item" rel="tag">tag 2</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/2020-phd-ruben-lucas/tags/#tag-3" class="page__taxonomy-item" rel="tag">tag 3</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/2020-phd-ruben-lucas/tags/#tag-4" class="page__taxonomy-item" rel="tag">tag 4</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/2020-phd-ruben-lucas/categories/#your-category" class="page__taxonomy-item" rel="tag">your category</a>
+    
+    </span>
+  </p>
+
+
+        
+          <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2021-10-04T00:00:00-07:00">October 04, 2021</time></p>
+        
+      </footer>
+
+      <section class="page__share">
+  
+
+  <a href="https://twitter.com/intent/tweet?text=Still+migrating+mountain+car+to+RL-Studio+and+year+1+phd+formalization+%28Month+13+-+First+half%29%20http%3A%2F%2Flocalhost%3A4000%2F2020-phd-ruben-lucas%2Fyour%2520category%2Fyear_summary_and_mountain_car_debugging%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <!--<a href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Flocalhost%3A4000%2F2020-phd-ruben-lucas%2Fyour%2520category%2Fyear_summary_and_mountain_car_debugging%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>-->
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=http%3A%2F%2Flocalhost%3A4000%2F2020-phd-ruben-lucas%2Fyour%2520category%2Fyear_summary_and_mountain_car_debugging%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/2020-phd-ruben-lucas/your%20category/RLStudio_Migration_and_Mountain_car/" class="pagination--pager" title="Migrating to new RLStudio and migrating mountain car to RLStudio 0.1.0 (Month 12)
+">Previous</a>
+    
+    
+      <a href="/2020-phd-ruben-lucas/your%20category/mountain_car_final_migration_to_RLStudio_0.1.0/" class="pagination--pager" title="Final implementation of mountain_car basic scenario (Month 13 - Second half)
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+  </article>
+
+  
+  
+    <div class="page__related">
+      <h4 class="page__related-title">You May Also Enjoy</h4>
+      <div class="grid__wrapper">
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title" itemprop="headline">
+      
+        <a href="/2020-phd-ruben-lucas/your%20category/projects-polishing/" rel="permalink">Projects polishing pre-integration with RL-Studio 1.1.0 (month 14)
+</a>
+      
+    </h2>
+    
+      <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+
+
+
+
+  less than 1 minute read
+</p>
+    
+    <p class="archive__item-excerpt" itemprop="description">Projects fixes, algorithms fine tuning and algorighms course
+</p>
+  </article>
+</div>
+
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title" itemprop="headline">
+      
+        <a href="/2020-phd-ruben-lucas/your%20category/mountain_car_final_migration_to_RLStudio_0.1.0/" rel="permalink">Final implementation of mountain_car basic scenario (Month 13 - Second half)
+</a>
+      
+    </h2>
+    
+      <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+
+
+
+
+  1 minute read
+</p>
+    
+    <p class="archive__item-excerpt" itemprop="description">Implemented first prototype for mountain car in RL-Studio
+</p>
+  </article>
+</div>
+
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title" itemprop="headline">
+      
+        <a href="/2020-phd-ruben-lucas/your%20category/RLStudio_Migration_and_Mountain_car/" rel="permalink">Migrating to new RLStudio and migrating mountain car to RLStudio 0.1.0 (Month 12)
+</a>
+      
+    </h2>
+    
+      <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+
+
+
+
+  less than 1 minute read
+</p>
+    
+    <p class="archive__item-excerpt" itemprop="description">Run Nacho TFM in new RLStudio and adapt mountain car made problem to work on it
+</p>
+  </article>
+</div>
+
+        
+          
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title" itemprop="headline">
+      
+        <a href="/2020-phd-ruben-lucas/your%20category/rlstudio_robotmesh/" rel="permalink">Learning about RLStudio with basic robot mesh problem (months 10 and 11)
+</a>
+      
+    </h2>
+    
+      <p class="page__meta"><i class="far fa-clock" aria-hidden="true"></i> 
+
+
+
+
+  less than 1 minute read
+</p>
+    
+    <p class="archive__item-excerpt" itemprop="description">Run Nacho TFM in RLStudio and adapt robot_mesh made problem to work on it
+</p>
+  </article>
+</div>
+
+        
+      </div>
+    </div>
+  
+  
+</div>
+
+    </div>
+
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+
+    
+      
+        
+          <li><a href="https://www.linkedin.com/in/ruben-lucas-zaragoza/" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin-in" aria-hidden="true"></i> Linkedn</a></li>
+        
+      
+        
+          <li><a href="https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+        
+          <li><a href="https://www.youtube.com/channel/UC8Kl0ECm4gjhxSozBqghQLQ" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-youtube" aria-hidden="true"></i> Youtube</a></li>
+        
+      
+    
+
+    <li><a href="/2020-phd-ruben-lucas/feed.xml"><!--<i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed--></a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">&copy; 2022 JdeRobot. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a>, <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a> &amp; modified by <a href="https://github.com/igarag">NachoAz</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/2020-phd-ruben-lucas/assets/js/main.min.js"></script>
+  <script src="https://kit.fontawesome.com/4eee35f757.js"></script>
+  <script type="text/javascript" async
+    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-MML-AM_CHTML">
+  </script>
+  <script type="text/x-mathjax-config">
+     MathJax.Hub.Config({
+       extensions: ["tex2jax.js"],
+       jax: ["input/TeX", "output/HTML-CSS"],
+       tex2jax: {
+         inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+         displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+         processEscapes: true
+       },
+       "HTML-CSS": { availableFonts: ["TeX"] }
+     });
+  </script>
+
+
+
+
+
+
+
+
+
+
+  </body>
+</html>
