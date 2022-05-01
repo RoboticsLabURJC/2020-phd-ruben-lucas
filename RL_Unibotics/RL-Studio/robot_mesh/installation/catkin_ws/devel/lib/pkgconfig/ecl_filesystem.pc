@@ -1,0 +1,8 @@
+prefix=/home/rlucasz/Desktop/doctorado/RL_Unibotics/RL-Studio/robot_mesh/installation/catkin_ws/devel
+
+Name: ecl_filesystem
+Description: Description of ecl_filesystem
+Version: 0.62.3
+Cflags: -I/home/rlucasz/Desktop/doctorado/RL_Unibotics/RL-Studio/robot_mesh/installation/catkin_ws/src/ecl_core/ecl_filesystem/include
+Libs: -L${prefix}/lib -lecl_filesystem
+Requires: ecl_config ecl_errors
