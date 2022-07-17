@@ -32,7 +32,7 @@ This migration consisted of:
   -  Adapt rewards as a non-stationary problem.
   -  perform several tests to conclude that the problem was succesfully migrated and solved using qlearning.
 
-you can find all the iterations tested in the [results uploaded](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car/agents/logs) in the repository.
+you can find all the iterations tested in the [results uploaded](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car) in the repository.
 
 In there you will notice that there is not need to give plenty of information to the agent through the reward function.
    - If you give a reward of 1 when the goal is achieved and 0 otherwise, the robot finally learn the optimal path.
