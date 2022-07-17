@@ -1,91 +1,116 @@
-import random
 import gym
 import numpy as np
-from collections import deque
-from keras.models import Sequential
-from keras.layers import Dense
-from tensorflow.keras.optimizers import Adam
-from scores.score_logger import ScoreLogger
+import matplotlib.pyplot as plt
+
+env = gym.make('CartPole-v0')
+
+# How much new info will override old info. 0 means nothing is learned, 1 means only most recent is considered, old knowledge is discarded
+LEARNING_RATE = 0.1
+# Between 0 and 1, mesue of how much we carre about future reward over immedate reward
+DISCOUNT = 0.95
+RUNS = 10000  # Number of iterations run
+SHOW_EVERY = 2000  # How oftern the current solution is rendered
+UPDATE_EVERY = 100  # How oftern the current progress is recorded
+
+# Exploration settings
+epsilon = 1  # not a constant, going to be decayed
+START_EPSILON_DECAYING = 1
+END_EPSILON_DECAYING = RUNS // 2
+epsilon_decay_value = epsilon / (END_EPSILON_DECAYING - START_EPSILON_DECAYING)
 
 
-ENV_NAME = "CartPole-v1"
+# Create bins and Q table
+def create_bins_and_q_table():
+    # env.observation_space.high
+    # [4.8000002e+00 3.4028235e+38 4.1887903e-01 3.4028235e+38]
+    # env.observation_space.low
+    # [-4.8000002e+00 -3.4028235e+38 -4.1887903e-01 -3.4028235e+38]
 
-GAMMA = 0.95
-LEARNING_RATE = 0.001
+    # remove hard coded Values when I know how to
 
-MEMORY_SIZE = 1000000
-BATCH_SIZE = 20
+    numBins = 20
+    obsSpaceSize = len(env.observation_space.high)
 
-EXPLORATION_MAX = 1.0
-EXPLORATION_MIN = 0.01
-EXPLORATION_DECAY = 0.995
+    # Get the size of each bucket
+    bins = [
+        np.linspace(-4.8, 4.8, numBins),
+        np.linspace(-4, 4, numBins),
+        np.linspace(-.418, .418, numBins),
+        np.linspace(-4, 4, numBins)
+    ]
 
+    qTable = np.random.uniform(low=-2, high=0, size=([numBins] * obsSpaceSize + [env.action_space.n]))
 
-class DQNSolver:
-
-    def __init__(self, observation_space, action_space):
-        self.exploration_rate = EXPLORATION_MAX
-
-        self.action_space = action_space
-        self.memory = deque(maxlen=MEMORY_SIZE)
-
-        self.model = Sequential()
-        self.model.add(Dense(24, input_shape=(observation_space,), activation="relu"))
-        self.model.add(Dense(24, activation="relu"))
-        self.model.add(Dense(self.action_space, activation="linear"))
-        self.model.compile(loss="mse", optimizer=Adam(lr=LEARNING_RATE))
-
-    def remember(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
-
-    def act(self, state):
-        if np.random.rand() < self.exploration_rate:
-            return random.randrange(self.action_space)
-        q_values = self.model.predict(state)
-        return np.argmax(q_values[0])
-
-    def experience_replay(self):
-        if len(self.memory) < BATCH_SIZE:
-            return
-        batch = random.sample(self.memory, BATCH_SIZE)
-        for state, action, reward, state_next, terminal in batch:
-            q_update = reward
-            if not terminal:
-                q_update = (reward + GAMMA * np.amax(self.model.predict(state_next)[0]))
-            q_values = self.model.predict(state)
-            q_values[0][action] = q_update
-            self.model.fit(state, q_values, verbose=0)
-        self.exploration_rate *= EXPLORATION_DECAY
-        self.exploration_rate = max(EXPLORATION_MIN, self.exploration_rate)
+    return bins, obsSpaceSize, qTable
 
 
-def cartpole():
-    env = gym.make(ENV_NAME)
-    score_logger = ScoreLogger(ENV_NAME)
-    observation_space = env.observation_space.shape[0]
-    action_space = env.action_space.n
-    dqn_solver = DQNSolver(observation_space, action_space)
-    run = 0
-    while True:
-        run += 1
-        state = env.reset()
-        state = np.reshape(state, [1, observation_space])
-        step = 0
-        while True:
-            step += 1
-            env.render()
-            action = dqn_solver.act(state)
-            state_next, reward, terminal, info = env.step(action)
-            reward = reward if not terminal else -reward
-            state_next = np.reshape(state_next, [1, observation_space])
-            dqn_solver.remember(state, action, reward, state_next, terminal)
-            state = state_next
-            if terminal:
-                print("Run: " + str(run) + ", exploration: " + str(dqn_solver.exploration_rate) + ", score: " + str(step))
-                score_logger.add_score(step, run)
-                break
-            dqn_solver.experience_replay()
+# Given a state of the enviroment, return its descreteState index in qTable
+def get_discrete_state(state, bins, obsSpaceSize):
+    stateIndex = []
+    for i in range(obsSpaceSize):
+        stateIndex.append(np.digitize(state[i], bins[i]) - 1)  # -1 will turn bin into index
+    return tuple(stateIndex)
 
 
-if __name__ == "__main__":
-    cartpole()
+bins, obsSpaceSize, qTable = create_bins_and_q_table()
+
+previousCnt = []  # array of all scores over runs
+metrics = {'ep': [], 'avg': [], 'min': [], 'max': []}  # metrics recorded for graph
+
+for run in range(RUNS):
+    discreteState = get_discrete_state(env.reset(), bins, obsSpaceSize)
+    done = False  # has the enviroment finished?
+    cnt = 0  # how may movements cart has made
+
+    while not done:
+        if run % SHOW_EVERY == 0:
+            env.render()  # if running RL comment this out
+
+        cnt += 1
+        # Get action from Q table
+        if np.random.random() > epsilon:
+            action = np.argmax(qTable[discreteState])
+        # Get random action
+        else:
+            action = np.random.randint(0, env.action_space.n)
+        newState, reward, done, _ = env.step(action)  # perform action on enviroment
+
+        newDiscreteState = get_discrete_state(newState, bins, obsSpaceSize)
+
+        maxFutureQ = np.max(qTable[newDiscreteState])  # estimate of optimal future value
+        currentQ = qTable[discreteState + (action,)]  # old value
+
+        # pole fell over / went out of bounds, negative reward
+        if done and cnt < 200:
+            reward = -375
+
+        # formula to caculate all Q values
+        newQ = (1 - LEARNING_RATE) * currentQ + LEARNING_RATE * (reward + DISCOUNT * maxFutureQ)
+        qTable[discreteState + (action,)] = newQ  # Update qTable with new Q value
+
+        discreteState = newDiscreteState
+
+    previousCnt.append(cnt)
+
+    # Decaying is being done every run if run number is within decaying range
+    if END_EPSILON_DECAYING >= run >= START_EPSILON_DECAYING:
+        epsilon -= epsilon_decay_value
+
+    # Add new metrics for graph
+    if run % UPDATE_EVERY == 0:
+        latestRuns = previousCnt[-UPDATE_EVERY:]
+        averageCnt = sum(latestRuns) / len(latestRuns)
+        metrics['ep'].append(run)
+        metrics['avg'].append(averageCnt)
+        metrics['min'].append(min(latestRuns))
+        metrics['max'].append(max(latestRuns))
+        print("Run:", run, "Average:", averageCnt, "Min:", min(latestRuns), "Max:", max(latestRuns))
+
+env.close()
+
+# Plot graph
+plt.plot(metrics['ep'], metrics['avg'], label="average rewards")
+plt.plot(metrics['ep'], metrics['min'], label="min rewards")
+plt.plot(metrics['ep'], metrics['max'], label="max rewards")
+plt.legend(loc=4)
+plt.show()
