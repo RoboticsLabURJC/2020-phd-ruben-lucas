@@ -1,6 +1,6 @@
 ---
-title: "created an inference module for RL-Studio"
-excerpt: "Implemented inference module in RL-Studio 1.1.0"
+title: "Qlearning and DQN cartpole problems included"
+excerpt: "Cartpole as a guinea pig OpenAIGym simulator related problem"
 
 sidebar:
   nav: "docs"
