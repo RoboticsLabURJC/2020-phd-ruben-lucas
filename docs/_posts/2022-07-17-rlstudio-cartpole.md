@@ -1,6 +1,6 @@
 ---
-title: "JdeRobot team allignment & inference rlstudio module created (month 17)"
-excerpt: "final allignment within the team to progress in same direction and creation of rl-studio inferencer module"
+title: "OpenAIGym simulator included in RL-Studio to include canonical problems with Cartpole as the guinea pig one (month 20)"
+excerpt: "Qlearning and DQN cartpole problems included"
 
 sidebar:
   nav: "docs"
