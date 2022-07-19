@@ -1,6 +1,6 @@
 ---
-title: "JdeRobot team allignment & inference rlstudio module created (month 17)"
-excerpt: "final allignment within the team to progress in same direction and creation of rl-studio inferencer module"
+title: "RL-Studio refinement and article writing (Month 18 and 19)"
+excerpt: "RL-Studio was bornt! We got to write an article"
 
 sidebar:
   nav: "docs"
