@@ -33,18 +33,21 @@ The steps to migrate cartpole to rl-studio were the following:
 3. Create a new environment to enable different configuration of actions, goals, steps, rewards, etc. So we can adapt the problem at our preference
 4. Create inference mode in cartpole problem
 
-<strong>DEMO</strong>
-
-As it can be seen in the following video, the goal defined in openAiGym was achieved and surpassed.
-
 <strong>GOAL</strong>
 
 The problem is considered solved when the average accumulated reward is at least 195 out of 100 trials.
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/Cb0vg969T54" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<strong>DEMO</strong>
 
-The algorithm used in the video is qlearning.
+As it can be seen in the following video, the goal defined for cartpole_v0 in openAiGym was achieved and surpassed.
+
+The algorithm used in this experiment was qlearning.
+
 The hyperparameters are indicated below:
 -      alpha: 0.8
 -      gamma: 0.95
--      epsilon_discount: 0.99999995
+-      epsilon discount: 0.99999995
+
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/Cb0vg969T54" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
