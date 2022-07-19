@@ -38,12 +38,10 @@ The steps to migrate cartpole to rl-studio were the following:
 As it can be seen in the following video, the goal defined in openAiGym was achieved and surpassed.
 
 <strong>GOAL</strong>
-```
-The puzzle is considered solved when the average accumulated reward is at least 195 out of 100 trials.
-```
 
+The problem is considered solved when the average accumulated reward is at least 195 out of 100 trials.
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/KnQ3zd_VgrY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/Cb0vg969T54" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 The algorithm used in the video is qlearning.
 The hyperparameters are indicated below:
