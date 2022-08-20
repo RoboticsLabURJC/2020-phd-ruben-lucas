@@ -1,5 +1,5 @@
 ---
-title: "DQN cartpole problems included"
+title: "DQN cartpole problem included"
 excerpt: "Cartpole optimal solution reached"
 
 sidebar:
