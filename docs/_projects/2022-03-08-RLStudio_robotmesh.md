@@ -32,16 +32,14 @@ This migration consisted of:
   -  Adapt rewards as a non-stationary problem.
   -  perform several tests to conclude that the goal is achieved as soon as posible.
 
-you can find all the iterations tested in the [results uploaded](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/robot_mesh/agents/logs) in the repository.
-
 In there you will notice that there is not need to give plenty of information to the agent through the reward function (and indeed it could be counterproductive).
    - If you give a reward of 1 when the goal is achieved and 0 otherwise, the robot finally learn the optimal path.
    - If you give a reward of -1 when the robot crash and reset the scenario afterwards, does not matter what reward you give when reaching the goal.
    The robot will learn to avoid the walls and will never reach the goal.
    - If you stop the episode when the robot colide with a wall, the robot will probably never reach the goal and so, never learn.
 
-The optimal reward configuration and hyperparameters can be found in the [uploaded agent code](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/robot_mesh/agents)
-In the same way, there you will find the [worlds](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/robot_mesh/world) and [models](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/robot_mesh/model) used.
+The optimal reward configuration and hyperparameters can be found in the [uploaded agent code](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/config)
+In the same way, there you will find the [worlds and models](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/CustomRobots) used.
 
 Note also that two different environments were implemented and a robot has been build for each one.
 This is not a coincidence. Due to the algorithm used constraints, each step must lead to the same consecuent state. If a 

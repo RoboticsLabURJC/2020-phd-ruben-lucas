@@ -34,4 +34,4 @@ bugsfixes and improvements in "mountain_car" and minor code cleaning in "robot_m
 
 ## Lab work
 
-- The modifications and more relevant adjustments of the mountain_car problem have been documented in its [q_learning analysis report](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car/results.docx).  
+- The modifications and more relevant adjustments of the mountain_car problem have been documented in its [q_learning analysis report](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/results/mountain_car/results.docx).  
