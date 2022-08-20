@@ -32,14 +32,14 @@ This migration consisted of:
   -  Adapt rewards as a non-stationary problem.
   -  perform several tests to conclude that the problem was succesfully migrated and solved using qlearning.
 
-you can find all the iterations tested in the [results uploaded](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car) in the repository.
+you can find all the iterations tested in the [results uploaded](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/results/mountain_car) in the repository.
 
 In there you will notice that there is not need to give plenty of information to the agent through the reward function.
    - If you give a reward of 1 when the goal is achieved and 0 otherwise, the robot finally learn the optimal path.
    - If you stop the episode when the robot perform 0 steps you encourage the robot to reach the goal before 20 steps are accomplished.
 
-The optimal reward configuration and hyperparameters can be found in the [uploaded agent code](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car/agents)
-In the same way, there you will find the [worlds](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car/world) and [models](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/mountain_car/model) used.
+The optimal reward configuration and hyperparameters can be found in the [uploaded agent code](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/)
+In the same way, there you will find the [worlds and models](https://github.com/RoboticsLabURJC/2020-phd-ruben-lucas/tree/master/RL_Unibotics/RL-Studio/CustomRobots) used.
 
 <strong>RL-Studio related<strong>
 
