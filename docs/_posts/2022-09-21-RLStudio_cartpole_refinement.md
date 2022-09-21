@@ -1,5 +1,5 @@
 ---
-title: "Included random initial positions and random perturbations to cartpole problem (month 22)"
+title: "Included random initial positions and random perturbations to cartpole problem (month 23)"
 excerpt: "Qlearning and DQN cartpole problems included"
 
 sidebar:
