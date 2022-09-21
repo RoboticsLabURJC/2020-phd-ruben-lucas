@@ -1,5 +1,5 @@
 ---
-title: "Qlearning cartpole problems included"
+title: "Qlearning cartpole problem included"
 excerpt: "Cartpole as a guinea pig OpenAIGym simulator related problem"
 
 sidebar:
