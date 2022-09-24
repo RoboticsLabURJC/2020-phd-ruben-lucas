@@ -73,11 +73,12 @@ ____
 
 ##### Successful iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_02_success" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_01_success" alt="map" class="img-responsive" /></p>
 
 ##### Failed iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_02_fails" alt="map" class="img-responsive" /></p>
+No failures (i.e every iteration reached 500 steps)
+
 
 ____
 #### RANDOM INITIAL STATES CASE 2
