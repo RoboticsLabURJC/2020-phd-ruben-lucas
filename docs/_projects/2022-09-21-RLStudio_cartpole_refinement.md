@@ -22,7 +22,7 @@ author: Rubén Lucas
 pinned: false
 ---
 
-### IMPLEMENTATION
+## IMPLEMENTATION
 
 To success with the basic approach ("easy" start position and no perturbations) we implemented **double dqn** making use of
 a target neural network that execute the steps and is periodically updated with other neural network that
@@ -42,16 +42,17 @@ None of them worked as expected, so we had to:
 
 Once we got the most stable solution we could reach, we started making the problem harder with the two following configuration parameters:
 - random_start_level: it indicates how wide is the spectrum of possible initial states which the agent must recover from
-- random_perturbations_level: it indicates how often a small random perturbation is provoked to the pole.
+- random_perturbations_level: it indicates how often a random perturbation is provoked to the pole.
+- perturbation_intensity: it indicates how intense is the provoked perturbation to the pole. It must be an Integer.
 
 After tons of trials, the agent could not learn when we change the problem to a more difficult one.
 However, after learning in the simple scenario, the pole was able to recover from a wide spectrum of situations as we will see in the following section.
 For more info ou can check the [simulated anealing algorithm](https://es.wikipedia.org/wiki/Algoritmo_de_recocido_simulado)
 
-### DEMO
+## DEMO
 
 That said, our goal is to prove that we are able to train an agent that can recover the pole even trying to boycott it.
-All of the following scenarios were run with the agent shown in the following video (same than previous post), that was trained with the following hyperparameters:
+All the following scenarios were run with the agent shown in the following video (same than previous post), that was trained with the following hyperparameters:
 
 - gamma: 0.95
 - epsilon_discount: 0.9998
@@ -59,81 +60,196 @@ All of the following scenarios were run with the agent shown in the following vi
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/Cb0vg969T54" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### RANDOM START
+## EXPERIMENTS
 
-##### CASE 1 
+### WITH RANDOM INITIAL STATES
 
-random_start_level = 0.2 (all initial states attributes will be between -0.2 and 0.2)
+____
+#### RANDOM INITIAL STATES CASE 1 
 
-###### Success iterations
+**random_start_level = 0.1** (all initial states attributes will be between -0.1 and 0.1)
+
+0 failed iterations vs 300 succeeded iterations => **100% success**
+
+##### Successful iterations
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_02_success" alt="map" class="img-responsive" /></p>
 
-###### Failed iterations
+##### Failed iterations
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_02_fails" alt="map" class="img-responsive" /></p>
 
+____
+#### RANDOM INITIAL STATES CASE 2
 
-##### CASE 2 
+**random_start_level = 0.2** (all initial states attributes will be between -0.2 and 0.2)
 
-random_start_level = 0.3 (all initial states attributes will be between -0.3 and 0.3)
+66 failed iterations vs 234 succeeded iterations => **88% success**
 
-###### Success iterations
+##### Successful iterations
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_02_success" alt="map" class="img-responsive" /></p>
+
+##### Failed iterations
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_02_fails" alt="map" class="img-responsive" /></p>
+
+---
+
+#### RANDOM INITIAL STATES CASE 3 
+
+**random_start_level = 0.3** (all initial states attributes will be between -0.3 and 0.3)
+
+123 failed iterations vs 177 succeeded iterations => **59% success**
+
+##### Successful iterations
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_03_success" alt="map" class="img-responsive" /></p>
 
-###### Failed iterations
+##### Failed iterations
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_03_fails" alt="map" class="img-responsive" /></p>
 
+___
 
-##### CASE 3 
+#### RANDOM INITIAL STATES CASE 4
 
-random_start_level = 0.4 (all initial states attributes will be between -0.4 and 0.4)
+**random_start_level = 0.4** (all initial states attributes will be between -0.4 and 0.4)
 
-###### Success iterations
+222 failed iterations vs 78 succeeded iterations => **26% success**
+
+
+##### Successful iterations
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_04_success" alt="map" class="img-responsive" /></p>
 
-###### Failed iterations
+##### Failed iterations
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_04_fails" alt="map" class="img-responsive" /></p>
 
-#### RANDOM PERTURBATIONS
+___
 
-##### CASE 1
+### WITH RANDOM PERTURBATIONS
 
-random_perturbations_level = 0.1 (perturbation in 10% of control iterations)
+#### RANDOM PERTURBATIONS CASE 1
 
-###### Success iterations
+**random_perturbations_level = 0.1** (perturbation in 10% of control iterations)
+**perturbation_intensity = 1** 
 
-No success (i.e iteration reached 500 steps)
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_1_comparison" alt="map" class="img-responsive" /></p>
 
-###### Failed iterations
-
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_01_fails" alt="map" class="img-responsive" /></p>
-
-##### CASE 2
-
-random_perturbations_level = 0.2 (perturbation in 10% of control iterations)
-
-###### Success iterations
+##### Successful iterations
 
 No success (i.e iteration reached 500 steps)
 
-###### Failed iterations
+##### Failed iterations
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_1_fails" alt="map" class="img-responsive" /></p>
+
+Average number of steps per iteration: 411.72 time spent 0:21:39.494413
+
+___
+
+#### RANDOM PERTURBATIONS CASE 2
+
+**random_perturbations_level = 0.2** (perturbation in 10% of control iterations)
+**perturbation_intensity = 1** 
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_02_comparison" alt="map" class="img-responsive" /></p>
+
+##### Successful iterations
+
+No success (i.e iteration reached 500 steps)
+
+##### Failed iterations
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_02_fails" alt="map" class="img-responsive" /></p>
 
-##### CASE 3
+Average number of steps per iteration: 279.53 time spent 0:14:45.903080
 
-random_perturbations_level = 0.3 (perturbation in 10% of control iterations)
+___
 
-###### Success iterations
+#### RANDOM PERTURBATIONS CASE 3
+
+**random_perturbations_level = 0.3** (perturbation in 10% of control iterations)
+**perturbation_intensity = 1** 
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_03_comparison" alt="map" class="img-responsive" /></p>
+
+##### Successful iterations
 
 No success (i.e iteration reached 500 steps)
 
-###### Failed iterations
+##### Failed iterations
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_03_fails" alt="map" class="img-responsive" /></p>
+
+Average number of steps per iteration: 148.12 time spent 0:07:48.545202
+
+___
+
+### WITH DIFFERENT PERTURBATIONS INTENSITIES
+
+___
+
+#### PERTURBATIONS INTENSITIES CASE 1
+
+random_perturbations_level = 0.1 (perturbation in 10% of control iterations)<br>
+**perturbation_intensity = 2** (2 times more intense than in previous experiments)
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_2_comparison" alt="map" class="img-responsive" /></p>
+
+##### Successful iterations
+
+No success (i.e iteration reached 500 steps)
+
+##### Failed iterations
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_2_fails" alt="map" class="img-responsive" /></p>
+
+Average number of steps per iteration: 109.71333333333334 time spent 0:05:47.789954
+
+___
+
+#### PERTURBATIONS INTENSITIES CASE 2
+
+random_perturbations_level = 0.1 (perturbation in 10% of control iterations)<br>
+**perturbation_intensity = 3** (3 times more intense than in previous experiments)
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_3_comparison" alt="map" class="img-responsive" /></p>
+
+##### Successful iterations
+
+No success (i.e iteration reached 500 steps)
+
+
+##### Failed iterations
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_3_fails" alt="map" class="img-responsive" /></p>
+
+Average number of steps per iteration: 41.82 time spent 0:02:13.276751
+
+___
+
+## CONCLUSIONS
+
+- It is important to start from an easy problem when training and then, iteratively train this trained brain with different more complex situations
+- If you keep training too much time when uising neural networks, you may run into the catastrophic forgetting problem.
+Save your model periodically and make sure you train with the correct hyperparameters (mainly learning rate and  replay buffer size) 
+and the correct duration
+- The dqn algorithm trains better than qlearning and it is able to recover from quite intense perturbations and random initial positions.
+The thresholds from with the agent is able to recover in terms of initial position and perturbations is the following:
+  - Initial position between the following ranges
+    - cart position between -0.4 and 0.4
+    - pole angle between -0.3 and 0.3
+  - The pole is not able to keep vertical for the 500 iterations. However, we observed that it is able to reach 400 steps when configured with:
+    - random perturbation frequency a 10% of the iteration controls
+    - random perturbation intensity configured to 1
+    
+    The performance decrease considerably when incrementing any of the two configuration variables
+
+
+
+
+
 
