@@ -43,7 +43,7 @@ None of them worked as expected, so we had to:
 Once we got the most stable solution we could reach, we started making the problem harder with the two following configuration parameters:
 - random_start_level: it indicates how wide is the spectrum of possible initial states which the agent must recover from
 - random_perturbations_level: it indicates how often a random perturbation is provoked to the pole.
-- perturbation_intensity: it indicates how intense is the provoked perturbation to the pole.
+- perturbation_intensity: it indicates how intense is the provoked perturbation to the pole. It must be an Integer.
 
 After tons of trials, the agent could not learn when we change the problem to a more difficult one.
 However, after learning in the simple scenario, the pole was able to recover from a wide spectrum of situations as we will see in the following section.
@@ -156,7 +156,7 @@ ___
 #### PERTURBATIONS INTENSITIES CASE 1
 
 random_perturbations_level = 0.1 (perturbation in 10% of control iterations)<br>
-**perturbation_intensity = 1.5** (1.5 times more intense than in previous experiments)
+**perturbation_intensity = 2** (2 times more intense than in previous experiments)
 
 ##### Successful iterations
 
@@ -168,7 +168,7 @@ ___
 #### PERTURBATIONS INTENSITIES CASE 2
 
 random_perturbations_level = 0.1 (perturbation in 10% of control iterations)<br>
-**perturbation_intensity = 2** (2 times more intense than in previous experiments)
+**perturbation_intensity = 3** (3 times more intense than in previous experiments)
 
 ##### Successful iterations
 
