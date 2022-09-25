@@ -240,9 +240,9 @@ Save your model periodically and make sure you train with the correct hyperparam
 and the correct duration
 - The dqn algorithm trains better than qlearning and it is able to recover from quite intense perturbations and random initial positions.
 The thresholds from with the agent is able to recover in terms of initial position and perturbations is the following:
-  - Initial position between the following ranges
-    - cart position between -0.4 and 0.4
-    - pole angle between -0.3 and 0.3
+  - Initial state attributes (cart position, pole angle, cart velocity and pole velocity) set between -0.2 and 0.2 except when:
+    - The pole angular velocity and the cart velocity are set close to the opposite boundary (e.g cart velocity=-0.18 and pole angular velocity=0.19)
+    - The pole angular velocity and pole position are set close to the same boundary (e.g pole position = 0.19 and pole angular velocity=0.17))
   - The pole is not able to keep vertical for the 500 iterations. However, we observed that it is able to reach 400 steps when configured with:
     - random perturbation frequency a 10% of the iteration controls
     - random perturbation intensity configured to 1
