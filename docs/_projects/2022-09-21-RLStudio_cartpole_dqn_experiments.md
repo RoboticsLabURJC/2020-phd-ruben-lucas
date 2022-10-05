@@ -49,56 +49,32 @@ to behave when the perturbation occur.
 Adding this and using the same configuration previously indicated, we got a much better and solid agent for both situations. No
 perturbations and perturbations in action (indicating the "sensorized" perturbation of course).
 
-[//]: # (#### RANDOM PERTURBATIONS CASE 1)
+#### RANDOM PERTURBATIONS CASE 2
 
-[//]: # ()
-[//]: # (- **random_perturbations_level = 0.1** &#40;perturbation in 10% of control iterations&#41;)
+With previous agent, no success was reached with the following configuration:
 
-[//]: # (- **perturbation_intensity = 1** )
+**random_perturbations_level = 0.3** (perturbation in 10% of control iterations)
 
-[//]: # ()
-[//]: # (<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/trained_case_1_perturb_intense_1_comparison" alt="map" class="img-responsive" /></p>)
+**perturbation_intensity = 1** 
 
-[//]: # ()
-[//]: # (##### Successful iterations)
+In this case we got the following results in 100 iterations:
 
-[//]: # ()
-[//]: # (<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/trained_case_1_perturb_intense_1_success" alt="map" class="img-responsive" /></p>)
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/trained_case_2_random_pert_03_comparison" alt="map" class="img-responsive" /></p>
 
-[//]: # ()
-[//]: # (##### Failed iterations)
 
-[//]: # ()
-[//]: # (<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/trained_case_1_perturb_intense_1_fails" alt="map" class="img-responsive" /></p>)
+##### Successful iterations
 
-[//]: # ()
-[//]: # (___)
 
-[//]: # ()
-[//]: # (#### RANDOM PERTURBATIONS CASE 2)
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/trained_case_2_random_pert_03_success" alt="map" class="img-responsive" /></p>
 
-[//]: # ()
-[//]: # (**random_perturbations_level = 0.2** &#40;perturbation in 10% of control iterations&#41;)
 
-[//]: # (**perturbation_intensity = 1** )
+##### Failed iterations
 
-[//]: # ()
-[//]: # (<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/trained_case_1_random_pert_02_comparison" alt="map" class="img-responsive" /></p>)
 
-[//]: # ()
-[//]: # (##### Successful iterations)
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/trained_case_2_random_pert_03_fails" alt="map" class="img-responsive" /></p>
 
-[//]: # ()
-[//]: # (<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/trained_case_1_random_pert_02_success" alt="map" class="img-responsive" /></p>)
 
-[//]: # ()
-[//]: # (##### Failed iterations)
-
-[//]: # ()
-[//]: # (<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/trained_case_1_random_pert_02_fails" alt="map" class="img-responsive" /></p>)
-
-[//]: # ()
-[//]: # (___)
+___
 
 
 
@@ -115,8 +91,11 @@ Not always reaching the goal means that your agent learned the optimal behavior.
 - Training with perturbations without letting the agent now that it was perturbed not worked at all.
 If you have a problem or an external agent that make your excenario more complex. try to add this agent actions as an input
 or your model will suffern to figure it out what it is fighting.
-- TOEXPLORE: If the problem actions are too wide and the optimal actions impossible to learn in a randomly way, we can use iterative learning
+
+## CONCLUSIONS
+
+- If the problem actions are too wide and the optimal actions impossible to learn in a randomly way, we can use iterative learning
 to make our agent learn how it has to behave (going gradually from the most basic scenario to the complex one)
-- TOEXPLORE: adaptative learning rate
+- Adaptative learning rate could help. (e.g [torch implementation](https://pytorch.org/docs/stable/optim.html))
 
 
