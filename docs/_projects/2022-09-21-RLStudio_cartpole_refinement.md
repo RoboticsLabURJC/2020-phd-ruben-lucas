@@ -67,7 +67,7 @@ All the following scenarios were run with the agent shown in the following video
 ____
 #### RANDOM INITIAL STATES CASE 1 
 
-**random_start_level = 0.1** (all initial states attributes will be between -0.1 and 0.1)
+- **random_start_level = 0.1** (all initial states attributes will be between -0.1 and 0.1)
 
 0 failed iterations vs 300 succeeded iterations => **100% success**
 
@@ -83,7 +83,7 @@ No failures (i.e every iteration reached 500 steps)
 ____
 #### RANDOM INITIAL STATES CASE 2
 
-**random_start_level = 0.2** (all initial states attributes will be between -0.2 and 0.2)
+- **random_start_level = 0.2** (all initial states attributes will be between -0.2 and 0.2)
 
 66 failed iterations vs 234 succeeded iterations => **88% success**
 
@@ -99,7 +99,7 @@ ____
 
 #### RANDOM INITIAL STATES CASE 3 
 
-**random_start_level = 0.3** (all initial states attributes will be between -0.3 and 0.3)
+- **random_start_level = 0.3** (all initial states attributes will be between -0.3 and 0.3)
 
 123 failed iterations vs 177 succeeded iterations => **59% success**
 
@@ -115,7 +115,7 @@ ___
 
 #### RANDOM INITIAL STATES CASE 4
 
-**random_start_level = 0.4** (all initial states attributes will be between -0.4 and 0.4)
+- **random_start_level = 0.4** (all initial states attributes will be between -0.4 and 0.4)
 
 222 failed iterations vs 78 succeeded iterations => **26% success**
 
@@ -134,58 +134,58 @@ ___
 
 #### RANDOM PERTURBATIONS CASE 1
 
-**random_perturbations_level = 0.1** (perturbation in 10% of control iterations)
-**perturbation_intensity = 1** 
+- **random_perturbations_level = 0.1** (perturbation in 10% of control iterations)
+- **perturbation_intensity = 1** 
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_1_comparison" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_01_comparison" alt="map" class="img-responsive" /></p>
 
 ##### Successful iterations
 
-No success (i.e iteration reached 500 steps)
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_01_success" alt="map" class="img-responsive" /></p>
 
 ##### Failed iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_1_fails" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_01_fail" alt="map" class="img-responsive" /></p>
 
-Average number of steps per iteration: 411.72 time spent 0:21:39.494413
+Average: 479.43333333333334 time spent 0:25:14.425255
 
 ___
 
 #### RANDOM PERTURBATIONS CASE 2
 
-**random_perturbations_level = 0.2** (perturbation in 10% of control iterations)
-**perturbation_intensity = 1** 
+- **random_perturbations_level = 0.2** (perturbation in 10% of control iterations)
+- **perturbation_intensity = 1** 
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_02_comparison" alt="map" class="img-responsive" /></p>
 
 ##### Successful iterations
 
-No success (i.e iteration reached 500 steps)
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_02_success" alt="map" class="img-responsive" /></p>
 
 ##### Failed iterations
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_02_fails" alt="map" class="img-responsive" /></p>
 
-Average number of steps per iteration: 279.53 time spent 0:14:45.903080
+Average: 414.5833333333333 time spent 0:21:52.976723
 
 ___
 
 #### RANDOM PERTURBATIONS CASE 3
 
-**random_perturbations_level = 0.3** (perturbation in 10% of control iterations)
-**perturbation_intensity = 1** 
+- **random_perturbations_level = 0.3** (perturbation in 10% of control iterations)
+- **perturbation_intensity = 1** 
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_03_comparison" alt="map" class="img-responsive" /></p>
 
 ##### Successful iterations
 
-No success (i.e iteration reached 500 steps)
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_03_success" alt="map" class="img-responsive" /></p>
 
 ##### Failed iterations
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_03_fails" alt="map" class="img-responsive" /></p>
 
-Average number of steps per iteration: 148.12 time spent 0:07:48.545202
+Average: 243.72 time spent 0:12:54.998979
 
 ___
 
@@ -195,27 +195,27 @@ ___
 
 #### PERTURBATIONS INTENSITIES CASE 1
 
-random_perturbations_level = 0.1 (perturbation in 10% of control iterations)<br>
-**perturbation_intensity = 2** (2 times more intense than in previous experiments)
+- **random_perturbations_level = 0.1** (perturbation in 10% of control iterations)<br>
+- **perturbation_intensity = 2** (2 times more intense than in previous experiments)
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_2_comparison" alt="map" class="img-responsive" /></p>
 
 ##### Successful iterations
 
-No success (i.e iteration reached 500 steps)
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_2_success" alt="map" class="img-responsive" /></p>
 
 ##### Failed iterations
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_2_fails" alt="map" class="img-responsive" /></p>
 
-Average number of steps per iteration: 109.71333333333334 time spent 0:05:47.789954
+Average: 147.16666666666666 time spent 0:07:44.651692
 
 ___
 
 #### PERTURBATIONS INTENSITIES CASE 2
 
-random_perturbations_level = 0.1 (perturbation in 10% of control iterations)<br>
-**perturbation_intensity = 3** (3 times more intense than in previous experiments)
+- **random_perturbations_level = 0.1** (perturbation in 10% of control iterations)<br>
+- **perturbation_intensity = 3** (3 times more intense than in previous experiments)
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_3_comparison" alt="map" class="img-responsive" /></p>
 
@@ -228,7 +228,7 @@ No success (i.e iteration reached 500 steps)
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_3_fails" alt="map" class="img-responsive" /></p>
 
-Average number of steps per iteration: 41.82 time spent 0:02:13.276751
+Average: 45.406666666666666 time spent 0:02:24.456620
 
 ___
 
@@ -243,11 +243,9 @@ The thresholds from with the agent is able to recover in terms of initial positi
   - Initial state attributes (cart position, pole angle, cart velocity and pole velocity) set between -0.2 and 0.2 except when:
     - The pole angular velocity and the cart velocity are set close to the opposite boundary (e.g cart velocity=-0.18 and pole angular velocity=0.19)
     - The pole angular velocity and pole position are set close to the same boundary (e.g pole position = 0.19 and pole angular velocity=0.17))
-  - The pole is not able to keep vertical for the 500 iterations. However, we observed that it is able to reach 400 steps when configured with:
-    - random perturbation frequency a 10% of the iteration controls
-    - random perturbation intensity configured to 1
-    
-    The performance decrease considerably when incrementing any of the two configuration variables
+  - The pole is able to keep up when 
+    - frequency of perturbations is in 20% of control iterations with low intense (and not bad performance also with 30%)
+    - being the frequency of 10% of control iterations, the intensity is two times bigger than the agent actions 
 
 
 
