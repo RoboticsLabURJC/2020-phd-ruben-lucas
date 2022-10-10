@@ -73,7 +73,7 @@ ____
 
 ##### Successful iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_01_success" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_init_01_success" alt="map" class="img-responsive" /></p>
 
 ##### Failed iterations
 
@@ -89,11 +89,11 @@ ____
 
 ##### Successful iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_02_success" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_init_02_success" alt="map" class="img-responsive" /></p>
 
 ##### Failed iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_02_fails" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_init_02_fails" alt="map" class="img-responsive" /></p>
 
 ---
 
@@ -105,11 +105,11 @@ ____
 
 ##### Successful iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_03_success" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_init_03_success" alt="map" class="img-responsive" /></p>
 
 ##### Failed iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_03_fails" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_init_03_fails" alt="map" class="img-responsive" /></p>
 
 ___
 
@@ -122,11 +122,11 @@ ___
 
 ##### Successful iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_04_success" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_init_04_success" alt="map" class="img-responsive" /></p>
 
 ##### Failed iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_init_04_fails" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_init_04_fails" alt="map" class="img-responsive" /></p>
 
 ___
 
@@ -137,15 +137,15 @@ ___
 - **random_perturbations_level = 0.1** (perturbation in 10% of control iterations)
 - **perturbation_intensity = 1** 
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_01_comparison" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_pert_01_comparison" alt="map" class="img-responsive" /></p>
 
 ##### Successful iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_01_success" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_pert_01_success" alt="map" class="img-responsive" /></p>
 
 ##### Failed iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_01_fail" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_pert_01_fail" alt="map" class="img-responsive" /></p>
 
 Average: 479.43333333333334 time spent 0:25:14.425255
 
@@ -156,15 +156,15 @@ ___
 - **random_perturbations_level = 0.2** (perturbation in 10% of control iterations)
 - **perturbation_intensity = 1** 
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_02_comparison" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_pert_02_comparison" alt="map" class="img-responsive" /></p>
 
 ##### Successful iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_02_success" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_pert_02_success" alt="map" class="img-responsive" /></p>
 
 ##### Failed iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_02_fails" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_pert_02_fails" alt="map" class="img-responsive" /></p>
 
 Average: 414.5833333333333 time spent 0:21:52.976723
 
@@ -175,15 +175,15 @@ ___
 - **random_perturbations_level = 0.3** (perturbation in 10% of control iterations)
 - **perturbation_intensity = 1** 
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_03_comparison" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_pert_03_comparison" alt="map" class="img-responsive" /></p>
 
 ##### Successful iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_03_success" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_pert_03_success" alt="map" class="img-responsive" /></p>
 
 ##### Failed iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_random_pert_03_fails" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_pert_03_fails" alt="map" class="img-responsive" /></p>
 
 Average: 243.72 time spent 0:12:54.998979
 
@@ -198,15 +198,15 @@ ___
 - **random_perturbations_level = 0.1** (perturbation in 10% of control iterations)<br>
 - **perturbation_intensity = 2** (2 times more intense than in previous experiments)
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_2_comparison" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_perturb_intense_2_comparison" alt="map" class="img-responsive" /></p>
 
 ##### Successful iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_2_success" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_perturb_intense_2_success" alt="map" class="img-responsive" /></p>
 
 ##### Failed iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_2_fails" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_perturb_intense_2_fails" alt="map" class="img-responsive" /></p>
 
 Average: 147.16666666666666 time spent 0:07:44.651692
 
@@ -217,7 +217,7 @@ ___
 - **random_perturbations_level = 0.1** (perturbation in 10% of control iterations)<br>
 - **perturbation_intensity = 3** (3 times more intense than in previous experiments)
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_3_comparison" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_perturb_intense_3_comparison" alt="map" class="img-responsive" /></p>
 
 ##### Successful iterations
 
@@ -226,7 +226,7 @@ No success (i.e iteration reached 500 steps)
 
 ##### Failed iterations
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/case_perturb_intense_3_fails" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_perturb_intense_3_fails" alt="map" class="img-responsive" /></p>
 
 Average: 45.406666666666666 time spent 0:02:24.456620
 
@@ -238,7 +238,7 @@ ___
 - If you keep training too much time when uising neural networks, you may run into the catastrophic forgetting problem.
 Save your model periodically and make sure you train with the correct hyperparameters (mainly learning rate and  replay buffer size) 
 and the correct duration
-- The dqn algorithm trains better than qlearning and it is able to recover from quite intense perturbations and random initial positions.
+- The dqn algorithm trains better than qlearning, and it is able to recover from quite intense perturbations and random initial positions.
 The thresholds from with the agent is able to recover in terms of initial position and perturbations is the following:
   - Initial state attributes (cart position, pole angle, cart velocity and pole velocity) set between -0.2 and 0.2 except when:
     - The pole angular velocity and the cart velocity are set close to the opposite boundary (e.g cart velocity=-0.18 and pole angular velocity=0.19)
