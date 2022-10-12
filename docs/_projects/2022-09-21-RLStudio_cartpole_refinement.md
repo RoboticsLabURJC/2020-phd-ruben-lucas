@@ -153,7 +153,7 @@ ___
 
 #### RANDOM PERTURBATIONS CASE 2
 
-- **random_perturbations_level = 0.2** (perturbation in 10% of control iterations)
+- **random_perturbations_level = 0.2** (perturbation in 20% of control iterations)
 - **perturbation_intensity = 1** 
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_pert_02_comparison" alt="map" class="img-responsive" /></p>
@@ -172,7 +172,7 @@ ___
 
 #### RANDOM PERTURBATIONS CASE 3
 
-- **random_perturbations_level = 0.3** (perturbation in 10% of control iterations)
+- **random_perturbations_level = 0.3** (perturbation in 30% of control iterations)
 - **perturbation_intensity = 1** 
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/cartpoleBase/case_random_pert_03_comparison" alt="map" class="img-responsive" /></p>
