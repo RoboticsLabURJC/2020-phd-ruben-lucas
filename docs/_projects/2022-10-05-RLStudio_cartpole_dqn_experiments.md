@@ -41,21 +41,11 @@ the agent was not able to reach the end of the episode, being the result the fol
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/base_agent_intensity_1.png" alt="map" class="img-responsive" /></p>
 
-#### Giving extra information to the agent when perturbations happen
-
-
-That said, we tried to include this previous perturbation to the state that the agent is using to learn.
-It may be able to sensor this perturbation in any way in the real world and it may help the agent to know how
-to behave when the perturbation occurs.
-
-Adding this we got the agent to stop learning. Even when no perturbations were configured for the training. 
-It was confused about that non crucial extra information:
-
 #### Increasing the frequency in which the agent sensor the current state
 
 Increasing the frequency in which the agent received the inputs it was much more precise in which action to take.
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/frequent_agent_intensity_level_03.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/frequent_agent_intensity_level_1.png" alt="map" class="img-responsive" /></p>
 
 That demonstrated that the problem was that the agent was taking an action for an state that was not reflecting the
 real current situation because a perturbation happened between the last state measure and the agent new decision.
@@ -74,24 +64,44 @@ Starting from the reached performance shown in previous section (Increasing the 
 Now, instead of training the agent with ideal conditions, we will set the perturbation frequency to 0.1 and we will
 play with the intensity of those perturbations.
 
-##### intensity 0.1 times the action taken by the agent
+##### Trained with intensity 0.1 times the action taken by the agent
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/01_agent_intensity_03.png" alt="map" class="img-responsive" /></p>
 
-##### intensity 0.3 times the action taken by the agent
+##### Trained with intensity 0.3 times the action taken by the agent
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/03_agent_intensity_03.png" alt="map" class="img-responsive" /></p>
 
-##### intensity 0.5 times the action taken by the agent
+##### Trained with intensity 0.5 times the action taken by the agent
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/05_agent_intensity_03.png" alt="map" class="img-responsive" /></p>
 
-##### intensity 0.7 times the action taken by the agent
+##### Trained with intensity 0.7 times the action taken by the agent
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/07_agent_intensity_03.png" alt="map" class="img-responsive" /></p>
 
 As we could see, none of them worked better than the agent trained with 0 perturbations noise.
 Our conclusion is that it didn't help because the agent did not know if a perturbation was the problem or its action was not the right one so it made the situation worse.
+
+#### Giving extra information to the agent when perturbations happen
+
+
+That said, we tried to include this previous perturbation to the state that the agent is using to learn.
+It may be able to sensor this perturbation in any way in the real world and it may help the agent to know how
+to behave when the perturbation occurs.
+
+Adding this we got the agent to stop learning. Even when no perturbations were configured for the training. 
+It was confused about that non crucial extra information.
+However, after performing the following code modifications, it started learning from that input:
+- Scale this input to be the same magnitude as the others (0 means perturbation to left, 0.1 perturbation to right 
+and 0 no perturbation)
+- Increase the number of neurons in the intermediate layer from 64 to 248
+
+Doing that, as it can be seen in the following graph, it trained worse than the agent trained without perturbations, but better than the previous experiments in which it was trained with small perturbation but no hints about them.
+
+##### Trained with intensity 0.5 times the action taken by the agent
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/05_improved_agent_intensity_03.png" alt="map" class="img-responsive" /></p>
 
 ___
 
@@ -146,13 +156,16 @@ ___
 - Sometimes the agent learned to reach the 500 episodes moving little by little to the right
 and in episode 500 is almost jumping out of the environment bounds (but reach the 500 steps goal).
 Not always reaching the goal means that your agent learned the optimal behavior. I may have learned the minimum possible to reach the goal, so define good the goal is important.
-- neural network size and number of layers are capricious. Nor too much nor too little.
+- neural network size and number of layers are capricious. Nor too much nor too little. Additionally, more inputs should mean that
+more neurons in intermediate layers are needed, but it does not means that the increase must be linear. In our case, when adding
+one more action (5 instead of 4), we needed to quatriplicate the number of neurons in the intermediate layer.
 - It is important to sensorize as frequent as possible (and it is critical o sensorize just before taking the action).
 Otherwise you may miss some important information or even you will decide with delayed state, what means the agent will surely fail.
-- Training with perturbations letting the agent now that it was perturbed was useless.
+- Training with perturbations letting the agent now that it was perturbed helped a little.
 If you have a problem or an external agent that make your excenario more complex. try to add this agent actions as an input
 or your model will suffer to figure it out what it is fighting against. BUT make sure you are adding this information because
-it is crucial to know that information to reach the goal.
+it is crucial to know that information to reach the goal and tune this input to scale it according to its importance (all the inputs
+should be normalized to indicate the agent their importance)
 
 ## TO EXPLORE
 
