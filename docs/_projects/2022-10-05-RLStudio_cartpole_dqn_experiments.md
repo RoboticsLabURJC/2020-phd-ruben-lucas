@@ -34,7 +34,7 @@ Our starting point for the following experiments is the initial solution present
 
 As we could see in previous post, when we configured:
 
-- **random_perturbations_level = 0.3** (perturbation in 10% of control iterations)
+- **random_perturbations_level = 0.3** (perturbation in 30% of control iterations)
 - **perturbation_intensity = 1** 
 
 the agent was not able to reach the end of the episode, being the result the following one:
@@ -162,7 +162,7 @@ one more action (5 instead of 4), we needed to quatriplicate the number of neuro
 - It is important to sensorize as frequent as possible (and it is critical o sensorize just before taking the action).
 Otherwise you may miss some important information or even you will decide with delayed state, what means the agent will surely fail.
 - Training with perturbations letting the agent now that it was perturbed helped a little.
-If you have a problem or an external agent that make your excenario more complex. try to add this agent actions as an input
+If you have a problem or an external agent that make your scenario more complex. try to add this agent actions as an input
 or your model will suffer to figure it out what it is fighting against. BUT make sure you are adding this information because
 it is crucial to know that information to reach the goal and tune this input to scale it according to its importance (all the inputs
 should be normalized to indicate the agent their importance)
