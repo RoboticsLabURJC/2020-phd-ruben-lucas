@@ -29,53 +29,56 @@ we will try to make the agent as stable as possible.
 
 ## RANDOM PERTURBATIONS
 
-As we can see in the following graph, when we configure:
+The first step is to get the threshold from which our agent is not able to recover using different perturbation
+frequencies and perturbation intensities standard deviation.
 
-- **random_perturbations_level = 0.2** (perturbation in 20% of control iterations)
-- **perturbation_intensity_std = 1** 
+### RANDOM PERTURBATION PRELIMINARY ANALYSIS:
 
-Our agent nearly always reach the 500 steps goal.
+The following results are conducted with an agent trained with no perturbations
 
-Let's plan a more complex scenario to solve:
+#### INTENSITY ANALYSIS
 
-### RANDOM PERTURBATIONS MORE INTENSE
+All the following experiments were performed with perturbation frequency 0.2 (perturbation in 20% of control iterations)
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/intensity_preliminary_analysis.png" alt="map" class="img-responsive" /></p>
+
+#### FREQUENCY ANALYSIS
+
+All the following experiments were performed with perturbation intensity 1
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/frequency_preliminary_analysis.png" alt="map" class="img-responsive" /></p>
+
+### Training with additive random perturbations
+
+For the following experiments we will try to improve the results of the no perturbations trained agent in the following scenario configuration:
 
 - **random_perturbations_level = 0.2** (perturbation in 20% of control iterations)
 - **perturbation_intensity_std = 10** 
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/base_agent_intensity_std_10.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/base_agent_intensity_std_10.png" alt="map" class="img-responsive" /></p>
 
-#### Training with additive random perturbations
+
+#### RANDOM PERTURBATIONS INTENSITY TRAINING EVALUATION
+
 
 Now, instead of training the agent in ideal conditions, we will set the perturbation frequency to 0.1 and we will
 play with the intensity standard deviation of those perturbations.
 
-##### Trained with intensity standard deviation
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/intense_trained_agent.png" alt="map" class="img-responsive" /></p>
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/intense_trained_agent.png" alt="map" class="img-responsive" /></p>
+
+#### RANDOM PERTURBATIONS FREQUENCY TRAINING EVALUATION
+
+Now, instead of training the agent in ideal conditions, we will set the perturbation intensity to 1 and we will
+play with the frequency of those perturbations.
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/frequency_trained_agent.png" alt="map" class="img-responsive" /></p>
+
+
+___
 
 As we could see, none of them worked better than the agent trained with 0 perturbations noise.
 Our conclusion is that it didn't help because the agent did not know if a perturbation was the problem or its action was not the right one so it made the situation worse.
-
-[//]: # (### RANDOM PERTURBATIONS MORE FREQUENT)
-
-[//]: # ()
-[//]: # (- **random_perturbations_level = 0.4** &#40;perturbation in 20% of control iterations&#41;)
-
-[//]: # (- **perturbation_intensity_std = 1** )
-
-[//]: # ()
-[//]: # (<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/base_agent_intensity_frq_04.png" alt="map" class="img-responsive" /></p>)
-
-[//]: # ()
-[//]: # (#### Training with different random perturbations frequency)
-
-[//]: # ()
-[//]: # (<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/frequence_trained_agent.png" alt="map" class="img-responsive" /></p>)
-
-[//]: # ()
-[//]: # (Now we will check if training with random perturbations help the agent to solve them changing the frequency.)
-
 
 ___
 
@@ -85,11 +88,11 @@ let's see how solid is our agent in terms of initial position pole angle
 
 #### Initial pole angle of 0.25
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/init_angle_solidity_ok.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/init_angle_solidity_ok.png" alt="map" class="img-responsive" /></p>
 
 #### Initial pole angle of 0.3
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/init_angle_solidity_nok.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/init_angle_solidity_nok.png" alt="map" class="img-responsive" /></p>
 
 
 After the visualizations, we observed that the actions the agent was taken were correct (all the time push to the right to correct the pole angle), but it was not possible
