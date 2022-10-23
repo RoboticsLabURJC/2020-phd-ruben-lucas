@@ -42,11 +42,15 @@ All the following experiments were performed with perturbation frequency 0.2 (pe
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/intensity_preliminary_analysis.png" alt="map" class="img-responsive" /></p>
 
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/intensity_preliminary_analysis_ecdf.png" alt="map" class="img-responsive" /></p>
+
 #### FREQUENCY ANALYSIS
 
 All the following experiments were performed with perturbation intensity 1
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/frequency_preliminary_analysis.png" alt="map" class="img-responsive" /></p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/frequency_preliminary_analysis_ecdf.png" alt="map" class="img-responsive" /></p>
 
 ### Training with additive random perturbations
 
