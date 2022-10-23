@@ -66,6 +66,7 @@ play with the intensity standard deviation of those perturbations.
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/intense_trained_agent.png" alt="map" class="img-responsive" /></p>
 
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/intense_trained_agent_ecdf.png" alt="map" class="img-responsive" /></p>
 
 #### RANDOM PERTURBATIONS FREQUENCY TRAINING EVALUATION
 
@@ -74,6 +75,7 @@ play with the frequency of those perturbations.
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/frequency_trained_agent.png" alt="map" class="img-responsive" /></p>
 
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/frequency_trained_agent_ecdf.png" alt="map" class="img-responsive" /></p>
 
 ___
 
