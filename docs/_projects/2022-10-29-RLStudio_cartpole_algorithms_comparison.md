@@ -35,7 +35,7 @@ to fill the q values table used to choose what is the best next step.
 That said, QLearning took more than 200000 steps and 40 minutes to learn its best policy.
 Moreover, DQN took 20000 steps and 20 minutes.
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/algorithms_comparison/dqn_qlearning_training.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/algorithms_comparison/dqn_qlearning_training.png" alt="map" class="img-responsive" /></p>
 
 ## INFERENCE
 
@@ -45,7 +45,7 @@ While qlearning is not able to perform more than XX steps. DQN learns to keep th
 non perturbation scenario.
 However, if we trained infinitely we would have likely achieved a perfect agent in qlearning
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/algorithms_comparison/dqn_qlearning_base_inference.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/algorithms_comparison/dqn_qlearning_base_inference.png" alt="map" class="img-responsive" /></p>
 
 ### PERTURBATIONS TOLERANCE
 
@@ -56,7 +56,7 @@ On the other hand, QLearning performance considerably decrease when adding a min
 To illustrate it we will test both agents adding a perturbation of 10 (equal to the action intensity) the 20% of the control iterations
 The following figure illustrates how more solid is DQN than QLearning: 
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/algorithms_comparison/dqn_qlearning_perturbations_inference.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/algorithms_comparison/dqn_qlearning_perturbations_inference.png" alt="map" class="img-responsive" /></p>
 
 - The DQN agent is able to reach the 500 steps (goal achievement) the 60 percent of the episodes
 - The Qlearning agent reach a maximum of 300 steps, being the 80% of the episodes below 100 steps
