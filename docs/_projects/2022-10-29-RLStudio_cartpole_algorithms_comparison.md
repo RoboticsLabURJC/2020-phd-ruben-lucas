@@ -41,9 +41,9 @@ Moreover, DQN took 20000 steps and 20 minutes.
 
 ### SIMPLE SCENARIO ACHIEVEMENTS
 
-While qlearning is not able to perform more than XX steps. DQN learns to keep the pole always vertical in a 
+While qlearning is not able to perform more than 400 steps. DQN learns to keep the pole always vertical in a 
 non perturbation scenario.
-However, if we trained infinitely we would have likely achieved a perfect agent in qlearning
+However, if we trained infinitely we would have likely achieved a perfect agent in qlearning (lookout for the next post)
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/algorithms_comparison/dqn_qlearning_base_inference.png" alt="map" class="img-responsive" /></p>
 
@@ -63,12 +63,6 @@ The following figure illustrates how more solid is DQN than QLearning:
 
 Note that the actions taken by the agent have an intensity of 10.
 
-# DQN Vs DDPG comparison
+## CONCLUSION
 
-TODO
-
-## CONCLUSIONS
-
-We showed that when a wide possible actions and states are encountered, a DRL algorithm is more adequate.
-
-Additionally, if we use a  TODO (discrete Vs continuous algorithm)
+We showed that when a wide possible actions and states are encountered, a DRL algorithm is much more adequate
