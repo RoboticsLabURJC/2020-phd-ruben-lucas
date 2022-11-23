@@ -146,8 +146,7 @@ the following figure illustrates how robust the agents are to this situation:
 
 # PPO trained agent demo
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/9hkZtfAMisY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-
+<iframe width="560" height="315" src="https://www.youtube.com/embed/WeR7KXjj_BI" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 # CONCLUSIONS
 
 We showed that when a wide possible actions and states are encountered, a DRL algorithm is more adequate.
