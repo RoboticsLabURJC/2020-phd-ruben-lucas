@@ -33,7 +33,7 @@ that said, the following results are provided with the following algorithms conf
 (Since the 4 discrete actions algorithm have been exposed in previous blog, we analyse here the two continuous actions
 added algorithms)
 
-## PPO (continuous and discrete actions)
+## PPO (continuous actions)
 
 The idea with Proximal Policy Optimization (PPO) is that we want to improve the training stability of the policy by limiting the change you make to the policy at each training epoch: we want to avoid having too large policy updates.
 
@@ -47,7 +47,8 @@ And even more in detail [here](https://huggingface.co/blog/deep-rl-ppo)
 We used the "Clipped Surrogate Objective" approach and the parametrization was he following:
 - gamma: 1
 - epsilon: 0.15
-- random initial state with mean = (MaxPossibleState - MinPossibleState / 2) and standard deviation = 0.2
+- random perturbations std: actions_force / 10
+- perturbations frequency: 80% of control iterations
 
 In this case the training took around 5 minutes to converge in ppo_discrete and 2 minutes in ppo_continouse
 
@@ -111,3 +112,4 @@ In here we demonstrated the following:
 - 1 solidity test could give enough information to know which algorithm is better solving the problem. However, it could happen 
   that unexpected situations or a modification in the problem to solve makes a different algorithm/agent better for that specific
   use case (we showed that DDPG tolerates better adverse initial position while PPO tolerates better random perturbances)
+- When training with continuous actions and a robust algorithm, adding perturbations at training time can help.
