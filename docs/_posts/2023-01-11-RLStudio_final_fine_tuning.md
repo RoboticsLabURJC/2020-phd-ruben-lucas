@@ -61,3 +61,4 @@ should be normalized to indicate the agent their importance)
 - 1 solidity test could give enough information to know which algorithm is better solving the problem. However, it could happen 
   that unexpected situations or a modification in the problem to solve makes a different algorithm/agent better for that specific
   use case (we showed that DDPG tolerates better adverse initial position while PPO tolerates better random perturbances)
+- When training with continuous actions and a robust algorithm, adding perturbations at training time can help.
