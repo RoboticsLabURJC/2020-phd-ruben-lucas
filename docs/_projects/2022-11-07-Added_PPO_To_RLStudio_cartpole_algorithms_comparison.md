@@ -60,7 +60,7 @@ In both rounds, we used:
 
 The [DQN (Deep Q-Network)](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf) algorithm was developed by DeepMind in 2015. It was able to solve a wide range of Atari games (some to superhuman level) by combining reinforcement learning and deep neural networks at scale. The algorithm was developed by enhancing a classic RL algorithm called Q-Learning with deep neural networks and a technique called experience replay.
 
-The training in this case took around 2 hours and 30 minutes
+The training in this case took around 1 hour
 
 The parametrization was the following: 
 - A double network to stabilise the agent performance as explained in the [following blog](https://towardsdatascience.com/deep-q-learning-for-the-cartpole-44d761085c2f)
@@ -81,12 +81,13 @@ For two reasons:
 for more details regarding PPO, it is explained in the [following post](https://jonathan-hui.medium.com/rl-proximal-policy-optimization-ppo-explained-77f014ec3f12)
 And even more in detail [here](https://huggingface.co/blog/deep-rl-ppo)
 
+In this case the training took around 5 minutes to converge 
+
 We used the "Clipped Surrogate Objective" approach and the parametrization was he following:
 - gamma: 1
 - epsilon: 0.15
 - random initial state with mean = (MaxPossibleState - MinPossibleState / 2) and standard deviation = 0.2
 
-In this case the training took around 1 hour an a half
 
 ## Programmatic
 

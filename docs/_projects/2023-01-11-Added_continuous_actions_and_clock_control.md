@@ -49,7 +49,7 @@ We used the "Clipped Surrogate Objective" approach and the parametrization was h
 - epsilon: 0.15
 - random initial state with mean = (MaxPossibleState - MinPossibleState / 2) and standard deviation = 0.2
 
-In this case the training took around 1 hour an a half
+In this case the training took around 5 minutes to converge in ppo_discrete and 2 minutes in ppo_continouse
 
 ## DDPG
 
@@ -64,11 +64,16 @@ The used hyper parameters were the following:
 - learning rate: 1e-4
 - batch size: 128
 
-In this case the training took around 1 hour an a half
+In this case the training took around 10 minutes
 
 # TRAINING
 
-As it can be seen in the following image, both of them XXXXXXXXXXXXXXXXXXX TODO XXXXXXXXXXXXXXXXXXX
+As it can be seen in the following image, ppo is much faster and efficient when learning.
+Both of them converge in less than 1000 iterations, being the training much more stable from then.
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/training.png" alt="map" class="img-responsive" /></p>
+
+We do not have reasons to think yet that discretes actions provides any advantage with respect to continuous actions in ppo.
 
 # INFERENCE
 
@@ -76,19 +81,19 @@ As it can be seen in the following image, both of them XXXXXXXXXXXXXXXXXXX TODO 
 
 PPO continuous actions wins in this regard, being the discrete actions algorithm outperformed by the continuous ones.
 
-TODO add diagram
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/intensities.png" alt="map" class="img-responsive" /></p>
 
 ## PERTURBATIONS FREQUENCY TOLERANCE
 
 In this case, PPO wins at all cost. DDPG is not able to outperform PPO discrete actions algorithm.
 
-TODO add diagram
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/frequencies.png" alt="map" class="img-responsive" /></p>
 
 ## INITIAL POLE ANGLE TOLERANCE
 
 In this case DDPG is the best one with difference. Recovering from a really adverse initial position
 
-TODO add diagram
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/init_pos.png" alt="map" class="img-responsive" /></p>
 
 # CONCLUSIONS
 
@@ -96,7 +101,7 @@ In here we demonstrated the following:
 
 - when the problem is simple and we do not have too many inputs-outputs, an continuous actions algorithm works better than a discrete one.
 - ppo still being the most sample efficient and best performance agent of these 4.
-- DRL discrete actions algorithm behaves quite well considering that they converge faster (TODO to demonstrate)
+- DRL discrete actions algorithm behaves quite well, but continuous actions are better in all regards for a simple and constrained problem like this one.
 - the iteration control is quite similar in all algorithms, not being in this simple problem a key factor to choose one or another
 - neural networks with 1 hidden layer is more than enough for this. In case the task is not that easy (and solution seems to not to be
   a linear combination of the inputs) we could consider adding
