@@ -102,7 +102,8 @@ In here we demonstrated the following:
 - when the problem is simple and we do not have too many inputs-outputs, an continuous actions algorithm works better than a discrete one.
 - ppo still being the most sample efficient and best performance agent of these 4.
 - DRL discrete actions algorithm behaves quite well, but continuous actions are better in all regards for a simple and constrained problem like this one.
-- the iteration control is quite similar in all algorithms, not being in this simple problem a key factor to choose one or another
+- the iteration control is quite similar in all algorithms, not being in this simple problem a key factor to choose one or another.
+  However, it has to be consistent the frequency when training with the frequency when inferencing
 - neural networks with 1 hidden layer is more than enough for this. In case the task is not that easy (and solution seems to not to be
   a linear combination of the inputs) we could consider adding
   more layers, but we must note that the training will be longer and more unstable. However, adding neurons to the hidden layer
