@@ -96,6 +96,28 @@ In this case DDPG is the best one with difference. Recovering from a really adve
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/init_pos.png" alt="map" class="img-responsive" /></p>
 
+## training control iteration times
+
+
+QLEARNING -> 3.0823134953899285e-05 (Fastest)
+
+DQN -> 0.00017751333668847394 (Fastest DRL)
+
+PPO_CONTINUOUS -> 0.0010866998368678623
+PPO -> 0.0016804589243498828
+DDPG -> 0.0028640604265402826
+
+## inferencing control iteration times
+
+PROGRAMMATIC -> 1.3000000000000858e-05 (Fastest)
+QLEARNING -> 2.6726140000009457e-05 (Fastest RL)
+
+DDPG -> 0.0001359128571428555
+DQN -> 0.00014053947368421053
+PPO -> 0.00028647799999999924
+
+PPO_CONTINUOUS -> 0.0008786243257633599 (Slowest)
+
 # CONCLUSIONS
 
 In here we demonstrated the following:
@@ -113,3 +135,9 @@ In here we demonstrated the following:
   that unexpected situations or a modification in the problem to solve makes a different algorithm/agent better for that specific
   use case (we showed that DDPG tolerates better adverse initial position while PPO tolerates better random perturbances)
 - When training with continuous actions and a robust algorithm, adding perturbations at training time can help.
+- training and inferencing iteration control frequencies must be controlled in order to decide at a reasonable frequency
+- increasing this control iteration frequency can help to improve the agent behavior, but keep also in mind that actions
+  must be adjusted accordingly (mostly when using a discrete actions algorithm)
+- Both inferencing and training times can vary according to the way of implementing each algorithm, 
+  but an approximation of the speed at training and inferencing in this report illustrates that DQN is the fastest one, 
+  DQN takes less time in training at each iteration than other DRL ones and PPO_Continuous is the slowest at inferencing time
