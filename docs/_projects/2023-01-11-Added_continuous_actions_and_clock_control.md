@@ -81,42 +81,52 @@ We do not have reasons to think yet that discretes actions provides any advantag
 ## PERTURBATIONS INTENSITY TOLERANCE
 
 PPO continuous actions wins in this regard, being the discrete actions algorithm outperformed by the continuous ones.
+Note that x units is the percentage of the intensity applied with respect to the maximum intensity available for the agent actions.
+0.1 = 10%
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/intensities.png" alt="map" class="img-responsive" /></p>
 
 ## PERTURBATIONS FREQUENCY TOLERANCE
 
 In this case, PPO wins at all cost. DDPG is not able to outperform PPO discrete actions algorithm.
+Note that x axis unit is the percentage of iteration controls where a perturbation is applied
+0.1 = 10%
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/frequencies.png" alt="map" class="img-responsive" /></p>
 
 ## INITIAL POLE ANGLE TOLERANCE
 
-In this case DDPG is the best one with difference. Recovering from a really adverse initial position
+In this case DDPG is the best one with difference. Recovering from a really adverse initial position.
+Note that the x axis units are radians
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/init_pos.png" alt="map" class="img-responsive" /></p>
 
 ## training control iteration times
 
 
-QLEARNING -> 3.0823134953899285e-05 (Fastest)
+- QLEARNING -> 3.0823134953899285e-05 (Fastest)
 
-DQN -> 0.00017751333668847394 (Fastest DRL)
+- DQN -> 0.00017751333668847394 (Fastest DRL)
 
-PPO_CONTINUOUS -> 0.0010866998368678623
-PPO -> 0.0016804589243498828
-DDPG -> 0.0028640604265402826
+- PPO_CONTINUOUS -> 0.0010866998368678623
+
+- PPO -> 0.0016804589243498828
+
+- DDPG -> 0.0028640604265402826
 
 ## inferencing control iteration times
 
-PROGRAMMATIC -> 1.3000000000000858e-05 (Fastest)
-QLEARNING -> 2.6726140000009457e-05 (Fastest RL)
+- PROGRAMMATIC -> 1.3000000000000858e-05 (Fastest)
 
-DDPG -> 0.0001359128571428555
-DQN -> 0.00014053947368421053
-PPO -> 0.00028647799999999924
+- QLEARNING -> 2.6726140000009457e-05 (Fastest RL)
 
-PPO_CONTINUOUS -> 0.0008786243257633599 (Slowest)
+- DDPG -> 0.0001359128571428555
+
+- DQN -> 0.00014053947368421053
+
+- PPO -> 0.00028647799999999924
+
+- PPO_CONTINUOUS -> 0.0008786243257633599 (Slowest)
 
 # CONCLUSIONS
 
