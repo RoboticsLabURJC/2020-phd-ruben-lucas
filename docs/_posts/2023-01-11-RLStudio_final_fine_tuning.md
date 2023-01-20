@@ -65,3 +65,5 @@ should be normalized to indicate the agent their importance)
 - training and inferencing iteration control frequencies must be controlled in order to decide at a reasonable frequency
 - increasing this control iteration frequency can help to improve the agent behavior, but keep also in mind that actions
   must be adjusted accordingly (mostly when using a discrete actions algorithm)
+- When working with tensors and GPU, it is important to keep track of all the tensors to free all of them in each experiment before the next one to not to
+  incur in a "segmentation fault"
