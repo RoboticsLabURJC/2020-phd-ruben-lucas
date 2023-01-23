@@ -195,7 +195,7 @@ In here we demonstrated the following:
 - 1 solidity test could give enough information to know which algorithm is better solving the problem. However, it could happen 
   that unexpected situations or a modification in the problem to solve makes a different algorithm/agent better for that specific
   use case (we showed that DDPG tolerates better adverse initial position while PPO tolerates better random perturbances)
-- When training with continuous actions and a robust algorithm, adding perturbations at training time can help.
+- When training with continuous actions and a robust algorithm, adding perturbations at training time can help
 - training and inferencing iteration control frequencies must be controlled in order to decide at a reasonable frequency
 - increasing this control iteration frequency can help to improve the agent behavior, but keep also in mind that actions
   must be adjusted accordingly (mostly when using a discrete actions algorithm)
