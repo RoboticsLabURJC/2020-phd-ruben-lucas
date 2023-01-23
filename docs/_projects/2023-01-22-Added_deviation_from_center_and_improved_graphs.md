@@ -127,14 +127,27 @@ Note that the x axis units are radians
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/initpose/comparison.png" alt="map" class="img-responsive" /></p>
 
+confidence intervals:
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/initpose/ddpg.png" alt="map" class="img-responsive" /></p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/initpose/dqn.png" alt="map" class="img-responsive" /></p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/initpose/ppo.png" alt="map" class="img-responsive" /></p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/initpose/qlearning.png" alt="map" class="img-responsive" /></p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/initpose/no_rl.png" alt="map" class="img-responsive" /></p>
+
+
 ## Absolute average angle deviation with respect to the center
 
 An interesting analysis to perform is how stable is the agent to the different perturbations, so we also illustrate in the following graph
 the absolute average deviation from the vertical in the different use cases previously mentioned
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/frequency/deviation.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/frequency/deviations.png" alt="map" class="img-responsive" /></p>
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/intensity/deviation.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/intensity/deviations.png" alt="map" class="img-responsive" /></p>
 
 ## training control iteration times
 
