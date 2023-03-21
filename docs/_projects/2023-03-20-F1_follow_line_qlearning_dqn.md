@@ -45,7 +45,7 @@ Both algorithms are able to perform one of the following actions during each con
 - action 1:  
   - linear velocity push = 3
   - angular velocity push = 0
-  - 
+
 - action 2:  
   - linear velocity push = 2 
   - angular velocity push = 1
