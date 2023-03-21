@@ -1,6 +1,6 @@
 ---
 title: "Gazebo F1 Follow line dqn & qlearning comparison (months 29 and 30)"
-excerpt: "Qlearning and DQN cartpole problems included"
+excerpt: "Qlearning and DQN f1 follow line gazebo comparison"
 
 sidebar:
   nav: "docs"
