@@ -22,12 +22,13 @@ author: Rubén Lucas
 pinned: false
 ---
 
-# INTRODUCTION
+# Summary
 
-The goal of this blog is to provide a comparison of qlearning and dqn algorithms performance in the following problem:
+The goal of this post is to provide a comparison of qlearning and dqn algorithms performance in the following problem:
+
 - F1 follow line in gazebo with simplified perception and discrete actions.
 
-
+---
 
 ## Configuration
 
@@ -57,7 +58,7 @@ Note that this outputs inferences are performed in real time, without pausing th
 
 ### QLearning
 
-the used hyperparameters the following:
+the used hyperparameters are the following:
   - **alpha:** 0.2
   - **epsilon:** 0.95
   - **epsilon_min:** 0.05
@@ -66,7 +67,7 @@ the used hyperparameters the following:
 
 ### DQN
 
-the used hyperparameters the following:
+the used hyperparameters are the following:
   - **alpha**: 0.8
   - **gamma**: 0.9
   - **epsilon**: 0.99
@@ -81,6 +82,8 @@ the used hyperparameters the following:
   - **minibatch size:** 64 # How many steps (samples) to use for training
   - **update target every**: 5  # How many steps until target dqn is updated
 
+---
+
 ## Training
 
 Both of them lasted around 24 hours to converge, showing great instability along the way.
@@ -89,6 +92,8 @@ dqn eventually forgot its learnings.
 
 That is not a problem since we periodically save the trained models both in pickle and h5 (which is 
 more keras/tf standard) formats
+
+---
 
 ## Inference and Behavior metrics comparison
 
