@@ -27,16 +27,18 @@ pinned: false
 The goal of this blog is to provide a comparison of qlearning and dqn algorithms performance in the following problem:
 - F1 follow line in gazebo with simplified perception and discrete actions.
 
-# Configuration
 
-## input
+
+## Configuration
+
+### input
 
 Both algorithms processed the image to get 1 point of the red line to follow
 and the horizontal distance between the center of the frontal image and that retrieved point.
 
 Note that this processing is performed in real time, without pausing the simulation.
 
-## Output
+### Output
 
 Both algorithms are able to perform one of the following actions during each control iteration:
 - action 1:  
@@ -53,7 +55,7 @@ Both algorithms are able to perform one of the following actions during each con
 
 Note that this outputs inferences are performed in real time, without pausing the simulation.
 
-## QLearning
+### QLearning
 
 the used hyperparameters the following:
   - **alpha:** 0.2
@@ -62,7 +64,7 @@ the used hyperparameters the following:
   - **gamma:** 0.9
 
 
-## DQN
+### DQN
 
 the used hyperparameters the following:
   - **alpha**: 0.8
@@ -79,7 +81,7 @@ the used hyperparameters the following:
   - **minibatch size:** 64 # How many steps (samples) to use for training
   - **update target every**: 5  # How many steps until target dqn is updated
 
-# Training
+## Training
 
 Both of them lasted around 24 hours to converge, showing great instability along the way.
 However, once the policy was learned, Qlearning was able to keep the right pace, while 
@@ -88,13 +90,14 @@ dqn eventually forgot its learnings.
 That is not a problem since we periodically save the trained models both in pickle and h5 (which is 
 more keras/tf standard) formats
 
-# Inference and Behavior metrics comparison
+## Inference and Behavior metrics comparison
 
 As you can see in the following video and metrics, dqn is slower and sometimes deviates from the center of the line.
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/SKuoXAekYBw" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp1_discrete/comparison_dqn_qlearning.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/init_pos.png" alt="map" class="img-responsive" /></p>
 
 The deviation can be explained since dqn is not the ideal algorithm ofr such a simple kind of inputs.
 It is behaving good, learning that it should stay close to the line, but it is not fully aware of the optimal
