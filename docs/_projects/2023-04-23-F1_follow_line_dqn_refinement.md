@@ -164,8 +164,6 @@ As you can see in the following video and metrics, dqn better agent was got with
 
 #### performance comparison
 
-TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp7_discrete/comparison_dqn_qlearning.png" alt="map" class="img-responsive" /></p>
 
 #### states histogram
