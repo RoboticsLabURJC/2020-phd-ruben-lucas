@@ -102,7 +102,6 @@ As you can see in the following video and metrics, dqn is slower and sometimes d
 <iframe width="560" height="315" src="https://www.youtube.com/embed/SKuoXAekYBw" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp1_discrete/comparison_dqn_qlearning.png" alt="map" class="img-responsive" /></p>
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/cartpole/solidityExperiments/refinement/refinementOfRefinement/init_pos.png" alt="map" class="img-responsive" /></p>
 
 The deviation can be explained since dqn is not the ideal algorithm ofr such a simple kind of inputs.
 It is behaving good, learning that it should stay close to the line, but it is not fully aware of the optimal
