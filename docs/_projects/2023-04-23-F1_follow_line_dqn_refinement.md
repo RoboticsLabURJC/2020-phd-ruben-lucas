@@ -162,8 +162,7 @@ As you can see in the following video and metrics, dqn better agent was got with
 
 ### Best agent (3 inputs) video demo
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/dx8RKuI-Afk" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-___
+<iframe width="560" height="315" src="https://www.youtube.com/embed/p68O5sixkjs" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>___
 
 Note that in here we are comparing the best dqn agent against the best qlearning agent, but this is not a 100% fair
 comparison since the number of actions and perception inputs are not exactly the same for both agents 
