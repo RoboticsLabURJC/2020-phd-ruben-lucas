@@ -50,7 +50,7 @@ Sometimes the camera did not receive the image after a reset. Calling the "getIm
 Moreover, the reset state and the step state were not aligned. Now they are ok
 
 Additionally, 1 point is not enough to determine where the car is. We need more than 1 point to univocal 
-tell the agent when the car is above the line so we used 7.
+tell the agent when the car is above the line so we used 3.
 
 ### training
 
@@ -146,7 +146,7 @@ learning occurs
 
 ## Inference and Behavior metrics comparison
 
-As you can see in the following video and metrics, dqn better agent was got with 7 inputs
+As you can see in the following video and metrics, dqn better agent was got with 3 inputs
 
 ### with 3 inputs
 
@@ -160,19 +160,7 @@ As you can see in the following video and metrics, dqn better agent was got with
 
 <p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp3_discrete/3d_actions.png" alt="map" class="img-responsive" /></p>
 
-### with 7 inputs
-
-#### performance comparison
-
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp7_discrete/comparison_dqn_qlearning.png" alt="map" class="img-responsive" /></p>
-
-#### states histogram
-
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp7_discrete/2d_actions.png" alt="map" class="img-responsive" /></p>
-
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp7_discrete/3d_actions.png" alt="map" class="img-responsive" /></p>
-
-### Best agent (7 inputs) video demo
+### Best agent (3 inputs) video demo
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/dx8RKuI-Afk" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 ___
