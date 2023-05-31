@@ -50,7 +50,10 @@ Sometimes the camera did not receive the image after a reset. Calling the "getIm
 Moreover, the reset state and the step state were not aligned. Now they are ok
 
 Additionally, 1 point is not enough to determine where the car is. We need more than 1 point to univocal 
-tell the agent when the car is above the line so we used 3.
+tell the agent when the car is above the line so we used 5.
+
+Regarding the input discretization, we also must make sure that we granularize the proper amount (not more not less) so the
+agent is able to assign unique coherent rewards to unique states/actions.
 
 ### training
 
@@ -140,7 +143,9 @@ It converged now in around 5 hours with the next configuration:
 
 It is important to mention also that a periodic evaluation episode with epsilon 0 helped to realize
 when the agent converged before the end of the training and identifying good agents before a catastrophical
-learning occurs
+learning occurs and not to get the optimal agent. An example of this catastrphic forgeting is ilustrated below:
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp5_discrete/catastrophic_learning_case.png" alt="map" class="img-responsive" /></p>
 
 ---
 
@@ -173,8 +178,8 @@ comparison since the number of actions and perception inputs are not exactly the
 
 **discounting the time the environment is paused during training**
 
-~5.5 fps
+~20 fps
 
 ### training
 
-~6.5 fps
+~25 fps
