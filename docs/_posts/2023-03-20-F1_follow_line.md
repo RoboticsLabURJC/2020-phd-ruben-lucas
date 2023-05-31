@@ -1,5 +1,5 @@
 ---
-title: "Gazebo F1 Follow line dqn & qlearning comparison (months 29, 30, 31 and 32)"
+title: "Gazebo F1 Follow line dqn & qlearning comparison (months 29, 30, 31, 32 and 33)"
 excerpt: "Qlearning and DQN f1 follow line gazebo comparison"
 
 sidebar:
