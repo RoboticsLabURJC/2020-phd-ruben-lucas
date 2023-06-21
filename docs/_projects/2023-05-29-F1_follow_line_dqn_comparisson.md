@@ -1,5 +1,5 @@
 ---
-title: "Gazebo F1 Follow line dqn refinement"
+title: "Gazebo F1 Follow line dqn comparisson"
 excerpt: "Algorithms comparison"
 
 sidebar:
@@ -28,54 +28,51 @@ The goal of this post is to show different versions of the optimized dqn algorit
 and compare them to the already trained qlearning one.
 
 DQN Agents:
-- Just rewarding the line proximity
 - Balance between following line and maximizing speed highly prioritizing position
 - Balance between following line and maximizing speed prioritizing position independently of speed:
 
 ---
 
-### input 
+# input 
 
 the input used consists of the distance between 5 line points and the center of the image.
 The height of those line points are the following y-axis pixels: [13, 25, 60, 110, 160]
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp5_discrete/input_image.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/dqn/sp5_discrete/input_image.png" alt="map" class="img-responsive" /></p>
 
-### Reward
+# Reward
 
-- Balance between following line and maximizing highly speed prioritizing position
-  - For this one we rewarded also the alignment of the car including a second line point in the equation. Additionally, 
-    the speed is rewarded by adding it to the reward in the following way (velocity does not take a role if car is badly
-    positioned:
-    R = (C1 - X1) + (C2 - X2) + ((C1 - X1) + (C2 - X2)) * abs(v)
-  - 
-- Balance between following line and maximizing speed prioritizing position independently of speed:
-  - For this one, the speed is rewarded by adding it to the reward in the following way:
-    R = (C1 - X1) + (C2 - X2) + abs(v)
+## highly prioritizing position
+
+For this one we rewarded also the alignment of the car including a second line point in the equation. Additionally, 
+the speed is rewarded by adding it to the reward in the following way (velocity does not take a role if car is badly
+positioned:
+   
+ R = (C1 - X1) + (C2 - X2) + ((C1 - X1) + (C2 - X2)) * abs(v)
+
+## position & speed balance
+
+Balance between following line and maximizing speed prioritizing position independently of speed.
+For this one, the speed is rewarded by adding it to the reward in the following way:
+   
+ R = (C1 - X1) + (C2 - X2) + abs(v)
 
 
-### Output
+# Output
 
 Different set of actions have been evaluated. Regardless of the number of actions provided to 
 the agent. It always uses a maximum of 4 actions.
 
-#### Just rewarding position
+## highly prioritizing position
 
-It uses the following 3 actions provided to the agent (simple scenario, not interesting analysis here)
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/dqn/sp5_discrete/7_actions_balance.png" alt="map" class="img-responsive" /></p>
 
-    0: [5, 0]
-    1: [0.4, 0.2]
-    2: [0.4, -0.2]
+## position & speed balance
 
-#### highly prioritizing position
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/dqn/sp5_discrete/11_actions_speed_priority.png" alt="map" class="img-responsive" /></p>
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp5_discrete/11_actions_speed_priority.png" alt="map" class="img-responsive" /></p>
 
-#### position & speed balance
-
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp5_discrete/7_actions_balance.png" alt="map" class="img-responsive" /></p>
-
-## Training/Configuration
+# Training/Configuration
 
 Both of them used the same hyperparameters configuration
 
@@ -96,72 +93,59 @@ Both of them used the same hyperparameters configuration
 Note that, for enabling long trainings, I had to replace model.perdict by model and model.fit by model.train_on_batch 
 to avoid memory leaks provoking the training to exit with code 137
 
-#### Just rewarding position
-
-Converged in 3 hours
-
-#### highly prioritizing position
+## highly prioritizing position
 
 Converged in 5:30 hours & 1074 epochs
 
-#### position & speed balance
+## position & speed balance
 
 Converged in 4:30 hours & 921 epochs
 
 ---
 
-## Inference and Behavior metrics comparison
+# Inference and Behavior metrics comparison
 
-#### Just rewarding position
+## highly prioritizing position
 
-#### DEMO
-
-// TODO!
-
-#### BM Metrics
-
-// TODO!
-
-### highly prioritizing position
-
-#### DEMO
+### DEMO
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/hKo8Tkktea0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
-#### BM Metrics
+### BM Metrics
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp5_discrete/simple_circuit_7_balance.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/dqn/sp5_discrete/BM_7_position.png" alt="map" class="img-responsive" /></p>
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp5_discrete/many_curves_7_balance.png" alt="map" class="img-responsive" /></p>
+## position & speed balance
 
-### position & speed balance
-
-#### DEMO
+### DEMO
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/76hDcDVbRkQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
-#### BM Metrics
+### BM Metrics
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp5_discrete/simple_circuit_11_speed.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/dqn/sp5_discrete/BM_11_speed.png" alt="map" class="img-responsive" /></p>
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp5_discrete/many_curves_11_speed.png" alt="map" class="img-responsive" /></p>
+## Inreasing speeds in "position & speed balance"
 
-### Inreasing speeds in "highly prioritizing position"
+As we can see, in both of them the cars travel slowly to not deviate from the line due to the fps during training were lower than in qlearning.
+In inference the fps are bigger so we can increase a little the angular velocities, obtaining the following results:
 
-As we can see, in both of them the cars travel slowly to not to deviate from the line due to the fps during training were lower than in qlearning.
-In inference the fps are bigger so we can increase a litle the angular velocities, obtaining the following results:
-
-#### new outputs
+### new outputs using highly prioritizing position agent
 
     0: [1, 0]
-    1: [4, 0]
-    2: [2, -0.5]
-    3: [2, 0.5]
-    4: [0.5, -0.3]
-    5: [0.5, 0.3]
-    6: [1, -0.3]
-    7: [1, 0.3]
+    1: [3, 0]
+    2: [10, 0]
+    3: [3, -1]
+    4: [3, 1]
+    5: [2, -0.5]
+    6: [2, 0.5]
+    7: [1.5, -1]
+    8: [1.5, 1]
+    9: [1, -0.5]
+    10: [1, 0.5]
+    11: [1, -0.5]
+    12: [1, 0.5]
 
-#### BM metrics
+### BM metrics
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp5_discrete/BM_7_balance_upgrade.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/dqn/sp5_discrete/BM_11_speed_upgrade.png" alt="map" class="img-responsive" /></p>
