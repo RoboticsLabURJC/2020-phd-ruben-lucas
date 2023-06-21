@@ -147,7 +147,7 @@ It is important to mention also that a periodic evaluation episode with epsilon 
 when the agent converged before the end of the training and identifying good agents before a catastrophical
 learning occurs and not to get the optimal agent. An example of this catastrphic forgeting is ilustrated below:
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp5_discrete/catastrophic_learning_case.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/dqn/sp5_discrete/catastrophic_learning_case.png" alt="map" class="img-responsive" /></p>
 
 ---
 
@@ -159,13 +159,13 @@ As you can see in the following video and metrics, dqn better agent was got with
 
 #### performance comparison
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp3_discrete/comparison_dqn_qlearning.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/dqn/sp3_discrete/comparison_dqn_qlearning.png" alt="map" class="img-responsive" /></p>
 
 #### states histogram
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp3_discrete/2d_actions.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/dqn/sp3_discrete/2d_actions.png" alt="map" class="img-responsive" /></p>
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp3_discrete/3d_actions.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/dqn/sp3_discrete/3d_actions.png" alt="map" class="img-responsive" /></p>
 
 ### Best agent (3 inputs) video demo
 
@@ -229,14 +229,15 @@ which consumes processing time and is error-prone.
 
 Additionally, using normalization we got the agent to use all the available actions as convenience:
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp5_discrete/actions_normalization.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/dqn/sp5_discrete/actions_normalization.png" alt="map" class="img-responsive" /></p>
 
 Note that now, instead of having discrete states, we have continuous states, releasing much more power to our agent performance.
 
 ## Is it better to use the 5 inputs for rewarding than using the 2 more close to the car?
 
 From what I saw, it is not providing any performance improvement. May be for a different scenario
-it is beneficial.
+it is beneficial (e.g if there is a possibility that all lines are missing except the last one, which reward can guide the 
+car to go back to the line).
 
 The conclusions so far are the following:
 
@@ -250,6 +251,7 @@ The conclusions so far are the following:
   - Moreover, the stop condition dilemma arises again if we are forced to use the 5 points in the reward. Should we stop when we lose all the points on 
     the image or just the closest ones? In our test we decided to be coherent and stop the simulation when all
     the points are too far from the center of the image
+- Making a reward function with contradictory factors make the training to converge slower. It took 6 hours instead of 4.
 
 ### Rewarding all points
 
@@ -275,7 +277,7 @@ Note that the x1 is the point closest to the car, x2 the following one and so on
 
 #### BM Metrics
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp5_discrete/bm_normalization_reward_all.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/dqn/sp5_discrete/bm_normalization_reward_all.png" alt="map" class="img-responsive" /></p>
 
 ### Rewarding closest points
 
@@ -301,6 +303,6 @@ agent learns to apply a twist before reaching the curve.
 
 #### BM Metrics
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/sp5_discrete/bm_normalization_reward_closest.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/dqn/sp5_discrete/bm_normalization_reward_closest.png" alt="map" class="img-responsive" /></p>
 
 
