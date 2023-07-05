@@ -127,7 +127,33 @@ We opted for the Puecewise linear function exposed below:
     reward = p_reward+v_reward
     ```
 
+    - **Result** Just adding the velocity (or multiplying it, what was also tried) seems to be confusing the agent
+      and it does not converge (neither seems to be learning nothing) in 10 hours of training
 
+
+
+- Function 4: 
+  - Now we are trying doing reward shaping and just rewarding the velocity when the car is really close to the line, otherwise, 
+    we just reward the position. It will also contribute to to not to shadow the position factor when the car is far from 
+    the line.
+
+    ```
+    def reward_proximity(self, state, v):
+        # sigmoid_pos = self.sigmoid_function(0, 1, state)
+        if abs(state) > 0.7:
+            return 0, True
+        if abs(state) > 0.3:
+            return 1 - abs(state), False
+        else:
+            return (1 - abs(state))+v/10, False
+    ```
+    
+- Other possible future attempts could be:
+  - play with learning rates
+  - play with more layers/neurons to add complexity to the network
+  - Different reward scaling to make sure velocity does not overshadow position
+  - Train more time. 20 or 30 hours.
+  
 # Output
 
 We use continous actions in the following ranges:
