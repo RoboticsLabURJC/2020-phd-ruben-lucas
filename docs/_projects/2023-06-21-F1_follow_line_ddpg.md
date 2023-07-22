@@ -74,8 +74,8 @@ and it might impact in the results
 
     ```
         def sigmoid_function(start, end, x):
-            slope = 10/(end-start-1)
-            sigmoid = 1 / (1 + np.exp(-slope * (x - (0.5*(end-start-1)) - (start-1))))
+            slope = 10/(end-start)
+            sigmoid = 1 / (1 + np.exp(-slope * (x - ((start+end)/2))))
             return sigmoid
     
     p_reward = sigmoid_function(0, 1, abs(d_p1)) +  sigmoid_function(0, 1, abs(d_p1))
@@ -136,29 +136,66 @@ We opted for the Puecewise linear function exposed below:
   - Now we are trying doing reward shaping and just rewarding the velocity when the car is really close to the line, otherwise, 
     we just reward the position. It will also contribute to to not to shadow the position factor when the car is far from 
     the line.
+  - Additionally, we decided to not to apply penalties to the reset state due to the following reasons:
+    ```
+    Here are a few potential problems when using negative rewards excessively:
+
+    - Confusion in Gradient Descent: If the negative rewards are too harsh or overly dominant, the actor network may find it challenging to understand how to navigate the state-action space effectively. Gradient descent can get stuck in local minima, leading to suboptimal policies or even preventing convergence.
+
+    - Sparse Rewards: If negative rewards dominate, the agent might receive negative feedback most of the time, resulting in sparse reward signals. Sparse rewards can slow down the learning process and make it difficult for the actor network to learn from limited feedback.
+
+    - Reward Hacking: The actor network might find shortcuts to avoid receiving negative rewards, even if these shortcuts do not lead to optimal behavior. This phenomenon is known as "reward hacking," where the agent exploits loopholes in the reward function to achieve higher cumulative rewards without actually learning the desired behavior.
+
+    To mitigate these issues, it's important to design the reward function carefully:
+
+    - Use positive rewards to encourage desired behavior and guide the agent toward the task's objective.
+    - Use negative rewards sparingly and only when necessary to discourage undesirable behavior.
+    - Make sure the magnitude of negative rewards is reasonable and balanced relative to positive rewards to maintain meaningful learning signals.
+    
+    Consider using reward shaping techniques to make learning more effective without heavily relying on negative rewards.
+    ```
 
     ```
-    def reward_proximity(self, state, v):
+    def rewards_followline_velocity_center(self, v, state, range_v):
+        """
+        original for Following Line
+        """
+        # we reward proximity to the line
+        p_reward1, done1 = self.reward_proximity(state[4])
+        p_reward2, done2 = self.reward_proximity(state[3])
+        p_reward = (p_reward1 + p_reward2)/2
+        done = done1 and done2
+
+        # we reward higher velocities as long as the car keeps stick to the line
+        # v_reward = self.normalize_range(v, range_v[0], range_v[1])
+        v_reward = self.sigmoid_function(range_v[0], range_v[1], v, 5)
+        #reward shaping to ease training with speed:
+        if abs(state[4]) <= 0.4:
+            beta = 0.7
+        elif abs(state[4]) <= 0.15:
+            beta = 0.5
+        else:
+            beta = 0.9
+
+        v_reward = (1 - beta) * v_reward
+        p_reward = beta * p_reward
+        reward = p_reward + (p_reward * v_reward)
+        return reward, done
+
+    def reward_proximity(self, state):
         # sigmoid_pos = self.sigmoid_function(0, 1, state)
         if abs(state) > 0.7:
             return 0, True
-        if abs(state) > 0.3:
-            return 1 - abs(state), False
         else:
-            return (1 - abs(state))+v/10, False
+            return 1-self.sigmoid_function(0, 1, abs(state), 5), False
+
     ```
-    
-- Other possible future attempts could be:
-  - play with learning rates
-  - play with more layers/neurons to add complexity to the network
-  - Different reward scaling to make sure velocity does not overshadow position
-  - Train more time. 20 or 30 hours.
-  
+
 # Output
 
 We use continous actions in the following ranges:
 
-    v: [2, 25]
+    v: [1, 15]
 
     w: [-2, 2]
 
@@ -169,10 +206,10 @@ Both of them used the same hyperparameters configuration
 - gamma: 0.9
 - tau: 0.005
 - std_dev: 0.2 (note that we had to change how it was applied, since it was summed and we wanted to explore in the same way
-  for v and w independently of the actions range, therefore we decided to multiply this factor)
+  for v and w independently of the actions range, therefore we decided to multiply this factor by the actor network outputs)
 - replay_memory_size: 50_000
 - memory_fraction: 0.20
-- critic_lr: 0.003
+- critic_lr: 0.002
 - actor_lr: 0.0015
 - buffer_capacity: 100_000
 - batch_size: 64
