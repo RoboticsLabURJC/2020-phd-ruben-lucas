@@ -1,6 +1,6 @@
 ---
-title: "Gazebo F1 Follow line ddpg (months 33 and 34)"
-excerpt: "Qlearning and DQN f1 follow line gazebo comparison"
+title: "Gazebo F1 Follow line algorithms comparison (months 35, 36 and 37)"
+excerpt: "all algorithms comparison"
 
 sidebar:
   nav: "docs"
@@ -21,8 +21,6 @@ tags:
 author: Tony Stark
 pinned: false
 ---
-
-Finished cartpole!!
 
 # Next goal
 
