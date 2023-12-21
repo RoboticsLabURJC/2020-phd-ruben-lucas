@@ -1,5 +1,5 @@
 ---
-title: "Gazebo F1 Follow line ddpg"
+title: "Gazebo F1 Follow line all algorithms comparison"
 excerpt: "Algorithms comparison"
 
 sidebar:
