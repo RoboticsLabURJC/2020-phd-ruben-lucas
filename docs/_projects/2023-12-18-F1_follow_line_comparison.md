@@ -44,7 +44,7 @@ gamma: 0.9
 3 possible actions 
 
 ```yaml
-0: [ 3, 0 ]
+0: [ 6, 0 ]
 1: [ 2, 1 ]
 2: [ 2, -1 ]
 ```
@@ -67,7 +67,6 @@ Let \( \text{center} \) represent a value. The reward is computed based on the f
 
 
 ## DQN
-
 
 ### Hyperparameters
 
@@ -167,7 +166,7 @@ Same than in DQN algorithm
 v and w continuous within following ranges:
 
 ```yaml
-v: [1, 20]
+v: [1, 10]
 w: [-2, 2]
 ```
 
@@ -217,14 +216,69 @@ Same than in DQN algorithm
 
 # Training
 
-TODO ----- GRAPH WITH TRAINING TIMES. IF NOT THERE, UES LOGS TO GET AN IDEA AND BUILD THEM ARTIFICIALLY
-INCLUDE IN THE GRAPH STEPS AND TIMES
+In future implementations, metrics will be recorded and stored in files while launched so they can be 
+graphed afterwards in the same plot. In this experiment we used tensorboard.
+
+_Note that training convergence times could be reduced using different decreasing factors or learning rates._
+
+## QLEARN
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/qlearning_training.png" alt="map" class="img-responsive" /></p>
+
+convergence_epoch = 4.723
+best_step = 15.001
+convergence_epoch_training_time = 0:34:09
+
+## DQN
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/dqn_training.png" alt="map" class="img-responsive" /></p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/dqn_retraining.png" alt="map" class="img-responsive" /></p>
+
+convergence_epoch = 802.302
+convergence_epoch_training_time = 22:34:44
+
+## DDPG
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/ddpg_training.png" alt="map" class="img-responsive" /></p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/ddpg_actions_v.png" alt="map" class="img-responsive" /></p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/ddpg_actions_w.png" alt="map" class="img-responsive" /></p>
+
+convergence_epoch = 980.020
+convergence_epoch_training_time = 56:11:19
+
+## PPO
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/ppo_training.png" alt="map" class="img-responsive" /></p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/ppo_actions_v.png" alt="map" class="img-responsive" /></p>
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/ppo_actions_w.png" alt="map" class="img-responsive" /></p>
+
+convergence_epoch = 180.437
+convergence_epoch_training_time = 36:11:59
 
 ---
 
 # Inference
 
-TODO ----- USE BM TO GET THE GRAPHHS
+The four best agents were tested on simple circuit where they were trained and on many courves to test generalization.
+
+The 3 metrics measured are speed, circuit completion percentage and deviation with respect to the line:
+
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/comparison_1.png" alt="map" class="img-responsive" /></p>
+
+## Conclusions
+
+- Both dqn and qlearning looks good enough for this simple task. However, the difference between their proximity to the line
+  in both circuits illustrates that the chosen discrete actions could be good for one circuit and bad for other, making
+  complex to find a feasible discrete actions set that fit to different scenarios.
+- The best agent in simple_circuit is ppo, but it overfitted because it is not able to finish the many_courves circuit.
+  Either using a more aggresive epsilon decay to avoid over training or use regularization techniques should work
+- The unstability of ddpg while learning seems to contribute to learn a more conservative driving on courves, which also
+  make it slower but safer when using more complex scenarios
 
 ---
 
@@ -244,8 +298,8 @@ TODO ----- USE BM TO GET THE GRAPHHS
 - Training and infererence must be totally aligned regarding inputs-outputs and all other neural network hyperparameters
 - When building a neural network, start with a small one with not too big learning rates to avoid vanishing gradient and
   overfitting. Then you can iteratively start making it more complex and abrupt
-- QLearning and DQN are fine for simpler tasks, but unfeasible for real AD
-  - TODO CONCLUSIONS AFTER GRAPHS
+- QLearning and DQN are fine and converge faster for simpler tasks, but they are unfeasible for real AD where we may need
+  too many degrees of freedom on the actions to be applied
 - PPO Vs DDPG
   - PPO
     - Pros:
@@ -263,6 +317,5 @@ TODO ----- USE BM TO GET THE GRAPHHS
       - Instability: DDPG can be sensitive to hyperparameters and initial conditions, leading to instability during training.
       - Exploration Challenges: DDPG might face challenges in exploration, especially in high-dimensional and complex environments.
       - Limited to Deterministic Policies: DDPG is designed for deterministic policies, which might be a limitation in scenarios where stochastic policies are more suitable.
-  - TODO CONCLUSIONS AFTER GRAPHS
 
 ---
