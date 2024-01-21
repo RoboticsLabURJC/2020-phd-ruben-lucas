@@ -109,30 +109,26 @@ batch_size: 64
 Let \(P_1\), \(P_2\), \(P_3\) be proximity rewards at different positions, \(v\) be linear velocity, \(w\) be angular velocity, and \(R\) be the overall reward.
 
 1. Compute Proximity Reward:
-   - \(P_1, \text{done}_1 = \text{reward\_proximity}(P_{\text{state}_1})\)
-   - \(P_2, \text{done}_2 = \text{reward\_proximity}(P_{\text{state}_2})\)
-   - \(P_3, \text{done}_3 = \text{reward\_proximity}(P_{\text{state}_3})\)
-   - Average proximity reward: \(P = \frac{P_1 + P_2 + P_3}{3}\)
-
-   being reward\_proximity: (1 - abs(state))⁵
+- P1,done1=reward_proximity(Pstate1)
+- P2,done2=reward_proximity(Pstate2)
+- P3,done3=reward_proximity(Pstate3)
+- Average proximity reward: P=P1+P2+P3/3
+  
+  where reward_proximity:(1−∣state∣)
 
 2. Normalize Linear Velocity:
-   - \(v_{\text{norm}} = \text{normalize\_range}(v, \text{min\_linear\_velocity}, \text{max\_linear\_velocity})\)
+   - vnorm=normalize_range(v,min_linear_velocity,max_linear_velocity)
 
 3. Compute Velocity Reward:
-   - \(v_{\text{reward}} = v_{\text{norm}} \cdot P^2\)
+   - vreward=vnorm⋅P
 
 4. Combine Proximity and Velocity Rewards:
-   - \(\beta = \text{beta\_1}\)
-   - \(R = \beta \cdot P + (1 - \beta) \cdot v_{\text{reward}}\)
+   - β=beta_1
+   - R=β⋅P+(1−β)⋅vreward
 
 5. Penalize Angular Velocity (prevent zig-zag behavior):
-   - \(w_{\text{punish}} = \text{normalize\_range}(|w|, 0, \text{max\_angular\_velocity}) \cdot \text{punish\_zig\_zag\_value}\)
-   - \(R = R - (R \cdot w_{\text{punish}})\)
-
-6. Penalize Ineffective Acceleration (accelerates convergence):
-   - \(v_{\text{punish}} = R \cdot (1 - P) \cdot v_{\text{norm}} \cdot \text{punish\_ineffective\_vel}\)
-   - \(R = R - v_{\text{punish}}\)
+   - wpunish=normalize_range(∣w∣,0,max_angular_velocity)⋅punish_zig_zag_value
+   - R=R−(R⋅wpunish)
 
 ## DDPG
 
@@ -223,7 +219,7 @@ _Note that training convergence times could be reduced using different decreasin
 
 ## QLEARN
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/qlearning_training.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative_final_all/qlearning_training.png" alt="map" class="img-responsive" /></p>
 
 convergence_epoch = 4.723
 best_step = 15.001
@@ -231,31 +227,31 @@ convergence_epoch_training_time = 0:34:09
 
 ## DQN
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/dqn_training.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative_final_all/dqn_training.png" alt="map" class="img-responsive" /></p>
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/dqn_retraining.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative_final_all/dqn_retraining.png" alt="map" class="img-responsive" /></p>
 
 convergence_epoch = 802.302
 convergence_epoch_training_time = 22:34:44
 
 ## DDPG
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/ddpg_training.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative_final_all/ddpg_training.png" alt="map" class="img-responsive" /></p>
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/ddpg_actions_v.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative_final_all/ddpg_actions_v.png" alt="map" class="img-responsive" /></p>
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/ddpg_actions_w.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative_final_all/ddpg_actions_w.png" alt="map" class="img-responsive" /></p>
 
 convergence_epoch = 980.020
 convergence_epoch_training_time = 56:11:19
 
 ## PPO
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/ppo_training.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative_final_all/ppo_training.png" alt="map" class="img-responsive" /></p>
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/ppo_actions_v.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative_final_all/ppo_actions_v.png" alt="map" class="img-responsive" /></p>
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/ppo_actions_w.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative_final_all/ppo_actions_w.png" alt="map" class="img-responsive" /></p>
 
 convergence_epoch = 180.437
 convergence_epoch_training_time = 36:11:59
@@ -268,7 +264,11 @@ The four best agents were tested on simple circuit where they were trained and o
 
 The 3 metrics measured are speed, circuit completion percentage and deviation with respect to the line:
 
-<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative/comparison_1.png" alt="map" class="img-responsive" /></p>
+<p><img src="/2020-phd-ruben-lucas/assets/images/results_images/f1-follow-line/gazebo/comparative_final_all/comparison_1.png" alt="map" class="img-responsive" /></p>
+
+## DEMO
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/LP9e5KsWc0c?si=7LdGclhabPKqaAx-" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## Conclusions
 
