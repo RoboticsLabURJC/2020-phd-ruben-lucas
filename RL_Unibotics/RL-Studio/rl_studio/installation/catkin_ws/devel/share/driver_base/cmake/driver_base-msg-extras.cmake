@@ -1,0 +1,2 @@
+set(driver_base_MESSAGE_FILES "/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/src/driver_base/driver_base/msg/ConfigString.msg;/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/src/driver_base/driver_base/msg/ConfigValue.msg;/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/src/driver_base/driver_base/msg/SensorLevels.msg")
+set(driver_base_SERVICE_FILES "")
