@@ -1,0 +1,8 @@
+prefix=/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/devel
+
+Name: turtlebot_gazebo
+Description: Description of turtlebot_gazebo
+Version: 2.2.3
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

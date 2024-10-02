@@ -274,7 +274,7 @@ The 3 metrics measured are speed, circuit completion percentage and deviation wi
 
 - Both dqn and qlearning looks good enough for this simple task. However, the difference between their proximity to the line
   in both circuits illustrates that the chosen discrete actions could be good for one circuit and bad for other, making
-  complex to find a feasible discrete actions set that fit to different scenarios.
+  complex to find a feasible discrete actions set that fit to different scenarios.                                                          
 - The best agent in simple_circuit is ppo, but it overfitted because it is not able to finish the many_courves circuit.
   Either using a more aggresive epsilon decay to avoid over training or use regularization techniques should work
 - The unstability of ddpg while learning seems to contribute to learn a more conservative driving on courves, which also
