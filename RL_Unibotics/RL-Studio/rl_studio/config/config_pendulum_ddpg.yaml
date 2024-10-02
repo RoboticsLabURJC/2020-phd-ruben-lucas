@@ -1,0 +1,38 @@
+settings:
+  output_dir: "./logs/"
+  save_model: True
+  save_positions: True
+  telemetry: False
+  logging_level: info
+  mode: inference
+  agent: pendulum
+  algorithm: ddpg_torch
+
+# TODO make this section optional
+actions:
+    available_actions:
+      simple:
+
+agent:
+  # TODO To be removed
+  camera_params:
+    witdh: 640
+    height: 480
+
+environments:
+    env_name: Pendulum-v1
+    environment_folder: pendulum
+#    runs: 20000
+    runs: 20000
+    full_experimentation_runs: 0
+    update_every: 20
+    show_every: 50
+    objective_reward: -430
+
+inference:
+  inference_file: /home/ruben/Desktop/my-RL-Studio/rl_studio/checkpoints/pendulum/ddpg/20221231_0100_actor_avg_-392.54141588266396.pkl
+
+algorithm:
+    gamma: 0.99
+    hidden_size: 512
+    batch_size: 128
