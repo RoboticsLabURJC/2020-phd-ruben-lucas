@@ -34,7 +34,7 @@ ros:
 
 retraining:
   ddpg:
-    retrain_ddpg_tf_model_name: /home/ruben/Desktop/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20241001-202512/best_model.zip
+    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20241002-131245/model_490000_steps.zip
 inference:
   ddpg:
     retrain_ddpg_tf_model_name: /whatever
@@ -129,5 +129,5 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: 4002
+  carla_client: 4001
   manager_port: 8022
