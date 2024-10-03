@@ -716,25 +716,20 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         distance_error = [abs(x) for x in right_lane_normalized_distances]
         ## -------- Rewards
         reward, done, crash = self.rewards_easy(distance_error, action, params)
-        # if reward == 121212:
-        #     if self.failures < 6 and action[1] < 0.12:
-        #         self.failures+=1
-        #         return self.step(action)
-        #     else:
-        #         reward = 0
-        # self.failures = 0
 
         self.step_count += 1
 
         params["bad_perception"], _ = self.has_bad_perception(right_lane_normalized_distances, threshold=0.999)
         params["crash"] = crash
 
-      #  if params["bad_perception"] and not params["crash"]:
-      #       if self.failures < 5:
-      #           self.failures += 1
-      #           return self.step(action)
-      #       else:
-      #           self.failures = 0
+        if params["bad_perception"] and not params["crash"]:
+            if self.failures < 10:
+                self.failures += 1
+                return self.step([0.1, 0.05 * random.choice([1, -1])])
+            else:
+                reward = 0
+        self.failures = 0
+
 
         right_lane_normalized_distances.append(params["velocity"])
         right_lane_normalized_distances.append(params["steering_angle"])
@@ -820,13 +815,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             return 0, done, crash
 
         crash = False
-        done, states_above_threshold = self.has_bad_perception(distance_error, 0.95, len(distance_error)//2)
-        if done:
-            #sensor_data = Image.fromarray(self.front_camera_1_5.front_camera)
-            #sensor_data.save("/home/ruben/Desktop/broken_perc/" +
-             #                str(np.random.random()), format="PNG")
-            # print("line missed")
-            return 0, True, False
 
         done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold, len(distance_error)//2)
 
@@ -858,7 +846,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # VELOCITY REWARD CALCULCATION
 
         #v_reward = self.scale_velocity(params["velocity"])
-        v_reward = params["velocity"]/15
+        v_reward = params["velocity"]/10
         #v_factor = d_reward if d_reward > 0.6 else 0
         #v_eff_reward = v_reward
         #v_eff_reward = v_reward * v_factor
@@ -1436,7 +1424,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             cv2.line(line_mask, (int(extended_x1), extended_y1), (int(extended_x2), extended_y2), (255, 0, 0), 2)
         return line_mask
 
-    def has_bad_perception(self, distances_error, threshold=0.3, min_conf_states=5):
+    def has_bad_perception(self, distances_error, threshold=0.3, min_conf_states=1):
         done = False
         states_above_threshold = sum(1 for state_value in distances_error if state_value > threshold)
 
