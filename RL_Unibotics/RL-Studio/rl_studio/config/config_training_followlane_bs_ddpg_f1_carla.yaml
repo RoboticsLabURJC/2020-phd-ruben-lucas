@@ -18,15 +18,15 @@ settings:
   metrics_dir: "./metrics"
   debug_stats: false
   show_monitoring: false
-  steps_to_decrease: 30000
+  steps_to_decrease: 10000
   decrease_substraction: 0.003
   decrease_min: 0.003
-  entropy_factor: 0.060663539505472615
+  entropy_factor: 0
   reward_params:
     function: pow
-    punish_zig_zag_value: 3
+    punish_zig_zag_value: 5
     punish_ineffective_vel: 1
-    beta_1: 0.15 #ojooo sube estooo
+    beta_1: 0
 
 ros:
   ros_master_uri: "11311"
@@ -34,21 +34,21 @@ ros:
 
 retraining:
   ddpg:
-    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20241002-131245/model_490000_steps.zip
+    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20241007-220244/best_model.zip
 inference:
   ddpg:
     retrain_ddpg_tf_model_name: /whatever
 
 algorithm:
   ddpg:
-    gamma: 0.9628103430604882
-    tau: 0.009415509989878633
+    gamma: 0.98
+    tau: 0.008
     std_dev: 0.08
     model_name: DDPG_Actor_conv2d32x64_Critic_conv2d32x64
     replay_memory_size: 10_000
     memory_fraction: 0.20
-    critic_lr: 0.0003658053488204442
-    actor_lr: 0.0002658053488204442
+    critic_lr: 0.0003
+    actor_lr: 0.0002
     buffer_capacity: 600180
     batch_size: 274
 
@@ -79,7 +79,7 @@ states:
     0: [10]
 
 actions:
-  continuous:
+  continuous: # OJO! Esto hace nada en este agente
     v: [0, 1]
     w: [-0.2, 0.2]
     b: [0, 1]
@@ -98,7 +98,7 @@ carla_environments:
     traffic_pedestrians: False
     city_lights: False
     car_lights: False
-    estimated_steps: 5000
+    estimated_steps: 3000
     save_episodes: 5 # not used in this carla ppo
     save_every_step: 100 # not used in this carla ppo
     goal_pose:
@@ -109,7 +109,7 @@ carla_environments:
     gamma: 2.2 #for camera
     sync: True #syncronous mode or async
     detection_mode: lane_detector_v2
-    fixed_delta_seconds: 0.1
+    fixed_delta_seconds: 0.05
     async_forced_delta_seconds: 0
     reset_threshold: 0.3
     alternate_pose: True
@@ -129,5 +129,5 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: 4001
+  carla_client: 4002
   manager_port: 8022

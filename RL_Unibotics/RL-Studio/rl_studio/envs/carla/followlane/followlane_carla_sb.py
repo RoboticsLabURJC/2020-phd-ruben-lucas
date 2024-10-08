@@ -723,7 +723,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params["crash"] = crash
 
         if params["bad_perception"] and not params["crash"]:
-            if self.failures < 10:
+            if self.failures < 6:
                 self.failures += 1
                 return self.step([0.1, 0.05 * random.choice([1, -1])])
             else:
@@ -803,8 +803,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def rewards_easy(self, distance_error, action, params):
 
         ## EARLY RETURNS
-        done = self.end_if_conditions(distance_error, threshold=self.reset_threshold,
-                                                       min_conf_states=len(distance_error)//2)
+        done = self.has_crashed(distance_error, threshold=self.reset_threshold,
+                                min_conf_states=len(distance_error)//2)
         params["d_reward"] = 0
         params["v_reward"] = 0
         params["v_eff_reward"] = 0
@@ -819,7 +819,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold, len(distance_error)//2)
 
         if done:
-            return 0, done, crash
+            return -1, done, crash
 
         # REWARD CALCULATION
         low_vel_factor=1
@@ -834,31 +834,24 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # DISTANCE REWARD CALCULCATION
         d_rewards = []
         for _, error in enumerate(distance_error):
-            #d_rewards.append(1 - error)
-            d_rewards.append(math.pow(max(1 - error, 0), 5))
+            d_rewards.append(math.pow(1 - error, 2))
 
         # TODO ignore non detected centers
         d_reward = sum(d_rewards) / len(d_rewards)
-        d_rewards *= low_vel_factor
-        # d_reward = math.pow(d_reward, 9)
+
         self.episode_d_reward = self.episode_d_reward + (d_reward - self.episode_d_reward) / self.step_count
 
         # VELOCITY REWARD CALCULCATION
 
-        #v_reward = self.scale_velocity(params["velocity"])
-        v_reward = params["velocity"]/10
-        #v_factor = d_reward if d_reward > 0.6 else 0
-        #v_eff_reward = v_reward
-        #v_eff_reward = v_reward * v_factor
-        v_eff_reward = v_reward * d_reward
-        # params["v_reward"] = v_reward
+        v = params["velocity"]
+        v_eff_reward = (np.log1p(v) / np.log1p(5)) * math.pow(d_reward, (v / 3) + 1)
         self.episode_v_eff_reward = self.episode_v_eff_reward + (v_eff_reward - self.episode_v_eff_reward) / self.step_count
         params["v_eff_reward"] = v_eff_reward
 
         # TOTAL REWARD CALCULATION
-        # TODO Ver que valores toma la velocity para compensarlo mejor
-        function_reward = self.beta * d_reward + (1-self.beta) * v_eff_reward
-        # function_reward = low_vel_factor * self.beta * d_reward + (1-self.beta) * v_eff_reward
+        d_reward_component = low_vel_factor * self.beta * d_reward
+        v_reward_component = (1-self.beta) * v_eff_reward
+        function_reward = d_reward_component + v_reward_component
         #function_reward = d_reward * v_reward
         params["reward"] = function_reward
 
@@ -869,7 +862,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # PUNISH CALCULATION
         punish = 0
         punish += self.punish_zig_zag_value * abs(params["steering_angle"])
-        punish += (1-self.beta) * v_reward * math.pow((1-d_reward), 2)
+        # punish += (1-self.beta) * v_reward * math.pow((1-d_reward), 2)
         if function_reward > punish: # to avoid negative rewards
             function_reward -= punish
         else:
@@ -1268,7 +1261,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 extended_lines.append([(x1_extended, y1_extended, x2_extended, y2_extended)])
         return extended_lines
 
-    def end_if_conditions(self, distances_error, threshold=0.3, min_conf_states=3):
+    def has_crashed(self, distances_error, threshold=0.3, min_conf_states=3):
         if len(self.collision_hist) > 0:  # te has chocado, baby
             return True
 

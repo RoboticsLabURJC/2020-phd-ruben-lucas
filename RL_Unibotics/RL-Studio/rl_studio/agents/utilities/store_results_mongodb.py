@@ -9,12 +9,23 @@ import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
 
-yaml_file = '/home/ruben/Desktop/RL-Studio/rl_studio/config/config_training_followlane_bs_ddpg_f1_carla.yaml'  # Replace with your YAML file path
+yaml_file = '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/config/config_training_followlane_bs_ddpg_f1_carla.yaml'  # Replace with your YAML file path
 
 reward_filename = '/home/ruben/Desktop/RL-Studio/rl_studio/envs/carla/followlane/followlane_carla_sb.py'
 reward_method = 'rewards_easy'
 
-tensorboard_logs_dir = '/home/ruben/Desktop/RL-Studio/rl_studio/logs/retraining/follow_lane_carla_ddpg_auto_carla_baselines/TensorBoard/DDPG_Actor_conv2d32x64_Critic_conv2d32x64-20240924-202411'
+tensorboard_logs_dir = '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/logs/retraining/follow_lane_carla_ddpg_auto_carla_baselines/TensorBoard/DDPG_Actor_conv2d32x64_Critic_conv2d32x64-20241008-124335'
+
+lesson_learned = '''
+it is important to fine tune parameters, choose the right architectures and implement 
+a conservative catastrophic strategy so the agent does not learn from missing lines states and recover from that state in the same way than inference. 
+However, the most important thing is the reward, making it simple and guiding the agent to the behavior you want. 
+In this case: 
+1. dont stop, velocity is always important 
+2. position is more important 
+3. if you get out the lane you are punished 
+4. if you start deviating you can center the car or, if difficult, brake alittle, which will make it easier
+'''
 
 def load_hyperparameters(yaml_file):
     with open(yaml_file, 'r') as file:
@@ -49,6 +60,7 @@ def store_training_results(config, training_results):
     document = {
         'config': config,
         'results': training_results,
+        'lessons': lesson_learned,
         'timestamp': datetime.datetime.utcnow()
     }
 

@@ -371,7 +371,7 @@ class TrainerFollowLaneDDPGCarla:
                 # CustomDDPGPolicy,
                 "MlpPolicy",
                 self.env,
-                policy_kwargs=dict(net_arch=dict(pi=[128, 128, 128, 128, 128], qf=[128, 128, 128, 128, 128])),
+                policy_kwargs=dict(net_arch=dict(pi=[256, 256, 256, 256, 256], qf=[256, 256, 256, 256, 256])),
                 learning_rate=self.params["learning_rate"],
                 buffer_size=self.params["buffer_size"],
                 batch_size=self.params["batch_size"],
@@ -421,6 +421,25 @@ class TrainerFollowLaneDDPGCarla:
 
         self.ddpg_agent.learn(total_timesteps=self.params["total_timesteps"],
                               callback=callback_list)
+
+        if self.environment.environment["mode"] == "inference":
+            self.evaluate_ddpg_agent(self.env, self.ddpg_agent, 10000)
+
+    def evaluate_ddpg_agent(self, env, agent, num_episodes):
+        for episode in range(num_episodes):
+            obs = env.reset()
+            done = False
+            episode_reward = 0
+
+            while not done:
+                # Use the agent to predict the action without learning (no training)
+                action, _states = agent.predict(obs, deterministic=True)
+
+                # Take the action in the environment
+                obs, reward, done, info = env.step(action)
+                episode_reward += reward
+
+            print(f"Episode {episode + 1}: Total Reward = {episode_reward}")
 
         # self.env.close()
 
