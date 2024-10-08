@@ -1,10 +1,11 @@
 import os
 import matplotlib.pyplot as plt
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+from tensorboard.backend.event_processing import event_accumulator
 import tensorflow as tf
 
 def extract_tensorboard_data(log_dir):
-    event_acc = EventAccumulator(log_dir)
+    event_acc = event_accumulator.EventAccumulator(log_dir,
+                                 size_guidance={event_accumulator.SCALARS: 0},)
     event_acc.Reload()
 
     # Retrieve metrics from TensorBoard logs as Tensors
@@ -69,7 +70,7 @@ def plot_metrics(rewards, advanced_meters, avg_speed, std_dev):
     plt.show()
 
 if __name__ == '__main__':
-    log_dir = '/home/ruben/Desktop/RL-Studio/rl_studio/logs/training/follow_lane_carla_ddpg_auto_carla_baselines/TensorBoard/DDPG_Actor_conv2d32x64_Critic_conv2d32x64-20240923-221222'
+    log_dir = '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/logs/retraining/follow_lane_carla_ddpg_auto_carla_baselines/TensorBoard/DDPG_Actor_conv2d32x64_Critic_conv2d32x64-20241008-124335'
     rewards, advanced_meters, avg_speed, std_dev = extract_tensorboard_data(log_dir)
 
     plot_metrics(rewards, advanced_meters, avg_speed, std_dev)

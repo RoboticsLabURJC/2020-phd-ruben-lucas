@@ -15,7 +15,6 @@ from tensorflow.keras.layers import (
 )
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.optimizers import Adam
-from tensorboardX import SummaryWriter
 from tabulate import tabulate
 from tensorflow.keras.losses import MeanSquaredError, BinaryCrossentropy
 
@@ -53,7 +52,6 @@ class ModifiedTensorBoard(TensorBoard):
         self.step = 1
         self.fps_step = 1
         self.writer = tf.summary.create_file_writer(self.log_dir)
-        self.txWriter = SummaryWriter(self.log_dir)
 
     def save_location_stats(self, stats):
         with open(f"{self.log_dir}/loc_stats.pkl", "wb") as f:
