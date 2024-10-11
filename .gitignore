@@ -1,4 +1,7 @@
+.idea
+*.pyc
 RL_Unibotics/RL-Studio/logs/
 RL_Unibotics/RL-Studio/.idea/
 RL_Unibotics/RL-Studio/rl_studio/checkpoints/
 RL_Unibotics/RL-Studio/rl_studio/logs/
+RL_Unibotics/RL-Studio/condaEnv/
