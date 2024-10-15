@@ -1,8 +1,0 @@
-prefix=/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/devel
-
-Name: controller_interface
-Description: Description of controller_interface
-Version: 0.19.5
-Cflags: -I/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/src/ros_control/controller_interface/include
-Libs: -L${prefix}/lib 
-Requires: hardware_interface roscpp

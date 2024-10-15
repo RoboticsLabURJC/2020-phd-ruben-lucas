@@ -1,8 +1,0 @@
-prefix=/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/install
-
-Name: controller_manager_tests
-Description: Description of controller_manager_tests
-Version: 0.19.5
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

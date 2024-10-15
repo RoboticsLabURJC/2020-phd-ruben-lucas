@@ -1,8 +1,0 @@
-prefix=/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/devel
-
-Name: xacro
-Description: Description of xacro
-Version: 1.14.13
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

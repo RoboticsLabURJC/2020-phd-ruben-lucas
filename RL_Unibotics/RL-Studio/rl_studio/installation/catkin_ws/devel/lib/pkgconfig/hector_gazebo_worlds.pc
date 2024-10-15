@@ -1,8 +1,0 @@
-prefix=/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/devel
-
-Name: hector_gazebo_worlds
-Description: Description of hector_gazebo_worlds
-Version: 0.5.4
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
