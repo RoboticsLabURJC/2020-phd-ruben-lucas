@@ -9,14 +9,16 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+from rl_studio.agents.utilities.store_results_mongodb import lesson_learned
+
 # Connect to MongoDB
 client = MongoClient('mongodb://localhost:27017/')
 db = client['training_db']
 collection = db['training_results']
 
 # Query by date range
-start_date = datetime(2024, 9, 24)
-end_date = datetime(2024, 9, 26)
+start_date = datetime(2024, 10, 1)
+end_date = datetime(2024, 10, 26)
 
 query = {"timestamp": {"$gte": start_date, "$lt": end_date}}
 documents = collection.find(query)
@@ -33,6 +35,7 @@ for doc in documents:
     config = doc['config']
     reward_function = doc['results']['reward_function']
     plots = doc['results']['plots']
+    lesson_learned = doc['lessons']
 
     # Create the Tkinter window
     root = tk.Tk()
@@ -90,6 +93,15 @@ for doc in documents:
 
     config_text = tk.Text(frame3, wrap=tk.WORD)
     config_text.pack(fill='both', expand=True)
+
+    # --- Tab 4: Reward Function ---
+    frame4 = ttk.Frame(notebook)
+    notebook.add(frame4, text='Lesson learned')
+
+    reward_function_text = tk.Text(frame4, wrap=tk.WORD)
+    reward_function_text.pack(fill='both', expand=True)
+    reward_function_text.insert(tk.END, lesson_learned)
+
 
     # Format the YAML and insert into the text widget
     yaml_str = yaml.dump(config, default_flow_style=False)

@@ -479,6 +479,7 @@ def detect_lane_detector_v3(raw_image):
     x_tensor = torch.from_numpy(image_tensor).to("cuda").unsqueeze(0)
     model_output = torch.softmax(lane_model_v3.forward(x_tensor), dim=1).cpu().numpy()
     return model_output
+
 def lane_detection_overlay(image, left_mask, right_mask):
     res = np.copy(image)
     # We show only points with probability higher than 0.5
@@ -1221,9 +1222,9 @@ def benchmark_one(dataset, detection_mode, processing_mode):
 
 def wasDetected(labels: list):
     for i in range(len(labels)):
-        if abs(labels[i]) > 0.1:
-            return False
-    return True
+        if abs(labels[i]) != 1:
+            return True
+    return False
 
 def anyDetected(labels: list):
     for i in range(len(labels)):
