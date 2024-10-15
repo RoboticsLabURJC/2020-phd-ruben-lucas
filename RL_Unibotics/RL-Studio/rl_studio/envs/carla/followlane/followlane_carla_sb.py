@@ -199,6 +199,30 @@ class EntropyCalculator:
         return np.digitize(action, np.linspace(-1, 1, self.ACTION_BINS))
 
 
+def is_curve(ll_segment):
+    # edges = cv2.Canny(ll_segment, 50, 100)
+    # Extract coordinates of non-zero points
+    nonzero_points = np.argwhere(ll_segment == 255)
+    if len(nonzero_points) == 0:
+        return None
+
+    # Extract x and y coordinates
+    x = nonzero_points[:, 1].reshape(-1, 1)[:, 0]  # Reshape for scikit-learn input
+    y = nonzero_points[:, 0]
+
+    # Fit linear regression model
+    polinomio = np.polyfit(x, y, 2)
+    second_derivative = np.polyder(polinomio, 2)
+    curvature_values = np.polyval(second_derivative, x)
+    mean_curvature = np.mean(np.abs(curvature_values))
+    # print(mean_curvature)
+    # print (f"curvature = {mean_curvature}")
+    if mean_curvature < 0.002:
+        return False
+    else:
+        return True
+
+
 class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def __init__(self, **config):
 
@@ -215,6 +239,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.entropy_factor = config.get("entropy_factor")
         self.entropy_calculator = EntropyCalculator()
+
+        self.use_curves_state = config.get("use_curves_state")
 
         self.failures = 0
         self.tensorboard = config.get("tensorboard")
@@ -377,10 +403,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         raw_image = self.get_resized_image(self.front_camera_1_5.front_camera)
         segmentated_image = self.get_resized_image(self.front_camera_1_5_segmentated.front_camera)
 
+        curve = False
         if self.detection_mode == 'carla_perfect':
             ll_segment_post_process = self.detect_lines_from_segmentated(segmentated_image)
         else:
-            ll_segment_post_process = self.detect_lines(raw_image)
+            ll_segment_post_process, curve = self.detect_lines(raw_image)
+
         (
             center_lanes,
             distance_to_center_normalized,
@@ -389,12 +417,16 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.show_ll_seg_image(right_center_lane, ll_segment_post_process) if self.sync_mode and self.show_images else None
 
-        state_size = len(distance_to_center_normalized)
         # right_lane_normalized_distances = [1,1,1,1,1,1,1,1,1,1]
         # state_size = 12
         time.sleep(1)
-        right_lane_normalized_distances.append(0)
-        right_lane_normalized_distances.append(0)
+
+        states = right_lane_normalized_distances
+        states.append(0)
+        states.append(0)
+        if self.use_curves_state:
+            states.append(curve)
+        state_size = len(states)
 
         if self.tensorboard is not None:
             self.calculate_and_report_episode_stats()
@@ -402,7 +434,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.cumulated_reward = 0
         self.step_count = 1
 
-        return np.array(right_lane_normalized_distances), state_size
+        return np.array(states), state_size
 
     def calculate_and_report_episode_stats(self):
         if len(self.episodes_speed) == 0:
@@ -663,10 +695,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         raw_image = self.get_resized_image(self.front_camera_1_5.front_camera) # TODO Think it is not aligned with BM
         segmentated_image = self.get_resized_image(self.front_camera_1_5_segmentated.front_camera)
 
+        curve = False
         if self.detection_mode == 'carla_perfect':
             ll_segment = self.detect_lines_from_segmentated(segmentated_image)
         else:
-            ll_segment = self.detect_lines(raw_image)
+            ll_segment, curve = self.detect_lines(raw_image)
 
         (
             center_lanes,
@@ -681,7 +714,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         if self.debug_waypoints:
             average_abs = sum(abs(x) for x in right_lane_normalized_distances) / len(distance_to_center_normalized)
-            if average_abs > 0.8:
+            # if average_abs > 0.8:
+            #     color = carla.Color(r=255, g=0, b=0)
+            # else:
+            #     green_value = max(int((1 - average_abs * 2 ) * 255), 0 )
+            #     color = carla.Color(r=0, g=green_value, b=0)
+            if curve:
                 color = carla.Color(r=255, g=0, b=0)
             else:
                 green_value = max(int((1 - average_abs * 2 ) * 255), 0 )
@@ -731,8 +769,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.failures = 0
 
 
-        right_lane_normalized_distances.append(params["velocity"])
-        right_lane_normalized_distances.append(params["steering_angle"])
+        states = right_lane_normalized_distances
+        states.append(params["velocity"])
+        states.append(params["steering_angle"])
+        if self.use_curves_state:
+            states.append(curve)
 
         self.display_manager.render()
 
@@ -751,7 +792,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.location_actions[location] = action
             self.location_rewards[location] = reward
 
-        return np.array(right_lane_normalized_distances), reward, done, done, params
+        return np.array(states), reward, done, done, params
 
     def control(self, action):
 
@@ -800,8 +841,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # Logarithmic scaling formula
         return math.log(1 + velocity) / math.log(1 + v_max)
 
-    def rewards_easy(self, distance_error, action, params):
+    def rewards_easy(self, error, action, params):
 
+        # distance_error = error[2:] # We are just rewarding the 3 lowest points!
+        distance_error = error
         ## EARLY RETURNS
         done = self.has_crashed(distance_error, threshold=self.reset_threshold,
                                 min_conf_states=len(distance_error)//2)
@@ -834,7 +877,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # DISTANCE REWARD CALCULCATION
         d_rewards = []
         for _, error in enumerate(distance_error):
-            d_rewards.append(math.pow(1 - error, 2))
+            d_rewards.append(math.pow(1 - error, 1))
 
         # TODO ignore non detected centers
         d_reward = sum(d_rewards) / len(d_rewards)
@@ -844,13 +887,15 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # VELOCITY REWARD CALCULCATION
 
         v = params["velocity"]
-        v_eff_reward = (np.log1p(v) / np.log1p(5)) * math.pow(d_reward, (v / 3) + 1)
+
+        v_eff_reward = (np.log1p(v) / np.log1p(3)) * math.pow(d_reward, (v / 8) + 1)
         self.episode_v_eff_reward = self.episode_v_eff_reward + (v_eff_reward - self.episode_v_eff_reward) / self.step_count
         params["v_eff_reward"] = v_eff_reward
 
         # TOTAL REWARD CALCULATION
         d_reward_component = low_vel_factor * self.beta * d_reward
-        v_reward_component = (1-self.beta) * v_eff_reward
+        v_reward_component = (1-self.beta) * math.pow(v_eff_reward, 2)
+
         function_reward = d_reward_component + v_reward_component
         #function_reward = d_reward * v_reward
         params["reward"] = function_reward
@@ -964,6 +1009,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
 
     def detect_lines(self, raw_image):
+        curve = False
         if self.detection_mode == 'programmatic':
             gray = cv2.cvtColor(raw_image, cv2.COLOR_BGR2RGB)
             # mask_white = cv2.inRange(gray, 200, 255)
@@ -988,6 +1034,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             # Extract blue and red channels
             blue_channel = ll_segment[:, :, 0]  # Blue channel
             red_channel = ll_segment[:, :, 2]  # Red channel
+            # print(f"left curve -> {is_curve(blue_channel)}")
+            # print(f"right curve -> {is_curve(red_channel)}")
+            #curve = is_curve(blue_channel) or is_curve(red_channel)
 
             lines = []
             left_line = self.post_process_hough_lane_det(blue_channel)
@@ -1012,7 +1061,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         ll_segment[boundary_y:, :] = detected_lines[boundary_y:, :]
         ll_segment = (ll_segment // 255).astype(np.uint8) # Keep the lower one-third of the image
 
-        return ll_segment
+        return ll_segment, curve
 
     def detect_yolop(self, raw_image):
         # Get names and colors
