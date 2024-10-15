@@ -1,8 +1,0 @@
-prefix=/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/devel
-
-Name: joy
-Description: Description of joy
-Version: 1.14.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: sensor_msgs

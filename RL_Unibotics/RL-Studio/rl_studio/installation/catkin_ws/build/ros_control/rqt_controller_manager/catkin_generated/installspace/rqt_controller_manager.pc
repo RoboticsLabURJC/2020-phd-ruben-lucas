@@ -1,8 +1,0 @@
-prefix=/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/install
-
-Name: rqt_controller_manager
-Description: Description of rqt_controller_manager
-Version: 0.19.5
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
