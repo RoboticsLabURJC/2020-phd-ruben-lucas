@@ -1,8 +1,0 @@
-prefix=/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/devel
-
-Name: spacenav_node
-Description: Description of spacenav_node
-Version: 1.14.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: geometry_msgs sensor_msgs

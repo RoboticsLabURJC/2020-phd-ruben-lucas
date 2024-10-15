@@ -1,8 +1,0 @@
-prefix=/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/install
-
-Name: gazebo_dev
-Description: Description of gazebo_dev
-Version: 2.9.2
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

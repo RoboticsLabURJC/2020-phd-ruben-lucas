@@ -1,8 +1,0 @@
-prefix=/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/devel
-
-Name: nav_core
-Description: Description of nav_core
-Version: 1.17.2
-Cflags: -I/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/src/navigation/nav_core/include
-Libs: -L${prefix}/lib 
-Requires: std_msgs geometry_msgs tf2_ros costmap_2d

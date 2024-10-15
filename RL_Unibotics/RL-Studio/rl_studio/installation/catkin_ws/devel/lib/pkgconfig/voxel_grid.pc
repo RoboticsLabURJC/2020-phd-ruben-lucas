@@ -1,8 +1,0 @@
-prefix=/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/devel
-
-Name: voxel_grid
-Description: Description of voxel_grid
-Version: 1.17.2
-Cflags: -I/home/ruben/Desktop/RL-Studio/rl_studio/installation/catkin_ws/src/navigation/voxel_grid/include
-Libs: -L${prefix}/lib -lvoxel_grid
-Requires: roscpp
