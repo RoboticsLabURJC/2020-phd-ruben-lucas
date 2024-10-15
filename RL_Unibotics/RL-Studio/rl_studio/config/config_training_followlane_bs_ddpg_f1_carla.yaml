@@ -18,13 +18,14 @@ settings:
   metrics_dir: "./metrics"
   debug_stats: false
   show_monitoring: false
-  steps_to_decrease: 10000
+  steps_to_decrease: 15000
   decrease_substraction: 0.003
   decrease_min: 0.003
-  entropy_factor: 0
+  entropy_factor: 0.5
+  use_curves_state: False
   reward_params:
     function: pow
-    punish_zig_zag_value: 5
+    punish_zig_zag_value: 3
     punish_ineffective_vel: 1
     beta_1: 0
 
@@ -34,7 +35,7 @@ ros:
 
 retraining:
   ddpg:
-    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20241007-220244/best_model.zip
+    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20241008-124344/best_model.zip
 inference:
   ddpg:
     retrain_ddpg_tf_model_name: /whatever
@@ -43,7 +44,7 @@ algorithm:
   ddpg:
     gamma: 0.98
     tau: 0.008
-    std_dev: 0.08
+    std_dev: 0.02
     model_name: DDPG_Actor_conv2d32x64_Critic_conv2d32x64
     replay_memory_size: 10_000
     memory_fraction: 0.20

@@ -4,6 +4,7 @@ import glob
 import time
 import pynvml
 import psutil
+from stable_baselines3.common.monitor import Monitor
 
 from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.policies import BasePolicy
@@ -322,6 +323,7 @@ class TrainerFollowLaneDDPGCarla:
         # CarlaEnv.__init__(self)
 
         self.environment.environment["entropy_factor"] = config["settings"]["entropy_factor"]
+        self.environment.environment["use_curves_state"] = config["settings"]["use_curves_state"]
         self.env = gym.make(self.env_params.env_name, **self.environment.environment)
         self.all_steps = 0
         self.current_max_reward = 0
@@ -404,14 +406,19 @@ class TrainerFollowLaneDDPGCarla:
                                                             decay_steps=self.global_params.steps_to_decrease,
                                                             exploration_min=self.global_params.decrease_min,
                                                             verbose=1)
+
+        # Assuming `self.env` is your original environment
+        self.eval_env = Monitor(self.env)
+
         # wandb_callback = WandbCallback(gradient_save_freq=100, verbose=2)
         eval_callback = EvalCallback(
-            self.env,
+            self.eval_env,
             best_model_save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
             eval_freq=5000,
             deterministic=True,
             render=False
         )
+
         periodic_save_callback = PeriodicSaveCallback(
             save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
             verbose=1

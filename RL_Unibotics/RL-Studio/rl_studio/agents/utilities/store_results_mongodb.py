@@ -14,7 +14,9 @@ yaml_file = '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_
 reward_filename = '/home/ruben/Desktop/RL-Studio/rl_studio/envs/carla/followlane/followlane_carla_sb.py'
 reward_method = 'rewards_easy'
 
-tensorboard_logs_dir = '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/logs/retraining/follow_lane_carla_ddpg_auto_carla_baselines/TensorBoard/DDPG_Actor_conv2d32x64_Critic_conv2d32x64-20241008-124335'
+tensorboard_logs_dir = os.path.join(
+    '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/logs/retraining/follow_lane_carla_ddpg_auto_carla_baselines/TensorBoard/DDPG_Actor_conv2d32x64_Critic_conv2d32x64-20241008-124335',
+    'events.out.tfevents.1728384215.ruben-Alienware-Aurora-Ryzen-Edition.749605.0.v2')
 
 lesson_learned = '''
 it is important to fine tune parameters, choose the right architectures and implement 
@@ -33,14 +35,7 @@ def load_hyperparameters(yaml_file):
     return config
 
 
-def plot_and_encode(x, y, title):
-    plt.figure()
-    plt.plot(x, y)
-    plt.title(title)
-    plt.xlabel('Steps')
-    plt.ylabel('Values')
-
-    # Save plot to a BytesIO object and convert to base64
+def encode_plots():
     buf = BytesIO()
     plt.savefig(buf, format='png')
     buf.seek(0)
@@ -87,17 +82,17 @@ def run_training_and_store_results(yaml_file):
 
     reward_function = extract_reward_function.extract_reward_function(reward_filename, reward_method)
 
-    rewards, advanced_meters, avg_speed, std_dev = plot_tensorboard_results.extract_tensorboard_data(tensorboard_logs_dir)
-    reward_steps, reward_values = plot_tensorboard_results.tensor_to_value_list(rewards)
-    advanced_meters_steps, advanced_meters_values = plot_tensorboard_results.tensor_to_value_list(advanced_meters)
-    avg_speed_steps, avg_speed_values = plot_tensorboard_results.tensor_to_value_list(avg_speed)
-    std_dev_steps, std_dev_values = plot_tensorboard_results.tensor_to_value_list(std_dev)
+    plot_tensorboard_results.plot_metrics(tensorboard_logs_dir, "cum_rewards", True)
+    reward_plot = encode_plots()
 
-    # Plot figures and encode as base64 strings
-    reward_plot = plot_and_encode(reward_steps, reward_values, 'Reward Function Plot')
-    advanced_meters_plot = plot_and_encode(advanced_meters_steps, advanced_meters_values, 'Advanced Meters Plot')
-    avg_speed_plot = plot_and_encode(avg_speed_steps, avg_speed_values, 'Average Speed Plot')
-    std_dev_plot = plot_and_encode(std_dev_steps, std_dev_values, 'Standard Deviation Plot')
+    plot_tensorboard_results.plot_metrics(tensorboard_logs_dir, "advanced_meters", True)
+    advanced_meters_plot = encode_plots()
+
+    plot_tensorboard_results.plot_metrics(tensorboard_logs_dir, "avg_speed", False)
+    avg_speed_plot = encode_plots()
+
+    plot_tensorboard_results.plot_metrics(tensorboard_logs_dir, "avg_speed", False)
+    std_dev_plot = encode_plots()
 
     # Simulate training results
     training_results = {
