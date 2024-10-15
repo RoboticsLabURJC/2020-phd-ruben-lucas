@@ -5,3 +5,5 @@ RL_Unibotics/RL-Studio/.idea/
 RL_Unibotics/RL-Studio/rl_studio/checkpoints/
 RL_Unibotics/RL-Studio/rl_studio/logs/
 RL_Unibotics/RL-Studio/condaEnv/
+RL_Unibotics/RL-Studio/rl_studio/CustomRobots/
+RL_Unibotics/RL-Studio/rl_studio/installation/
