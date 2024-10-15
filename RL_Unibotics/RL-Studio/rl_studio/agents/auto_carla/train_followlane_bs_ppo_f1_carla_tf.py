@@ -4,13 +4,10 @@ import glob
 import time
 import pynvml
 import psutil
-from stable_baselines3.common.monitor import Monitor
 
 from stable_baselines3.common.noise import NormalActionNoise
-from stable_baselines3.common.policies import BasePolicy
+from stable_baselines3.common.policies import ActorCriticPolicy
 
-from gym import spaces
-from typing import Callable, Tuple
 
 import torch as th
 import torch.nn as nn
@@ -29,6 +26,7 @@ from stable_baselines3.common.callbacks import CallbackList
 
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.callbacks import EvalCallback
+
 # from wandb.integration.sb3 import WandbCallback
 # import wandb
 
@@ -41,7 +39,7 @@ from rl_studio.algorithms.ddpg import (
 from rl_studio.agents.f1.loaders import (
     LoadAlgorithmParams,
     LoadEnvParams,
-    LoadEnvVariablesDDPGCarla,
+    LoadEnvVariablesPPOCarla,
     LoadGlobalParams,
 )
 from rl_studio.agents.utils import (
@@ -51,17 +49,14 @@ from rl_studio.agents.utils import (
     LoggingHandler,
 )
 
-from rl_studio.algorithms.ddpg import (
-    OUActionNoise
-)
-
 from rl_studio.envs.gazebo.gazebo_envs import *
 from rl_studio.envs.carla.carla_env import CarlaEnv
 
-from stable_baselines3 import DDPG
-# from stable_baselines3 import DDPG
+from stable_baselines3 import PPO
+# from stable_baselines3 import PPO
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.logger import configure
+
 
 try:
     sys.path.append(
@@ -118,6 +113,20 @@ def combine_attributes(obj1, obj2, obj3):
     return combined_dict
 
 
+class CustomPolicyNetwork(BaseFeaturesExtractor):
+    def __init__(self, observation_space, features_dim=128):
+        super(CustomPolicyNetwork, self).__init__(observation_space, features_dim)
+        self.net = nn.Sequential(
+            nn.Linear(observation_space.shape[0], 128),
+            nn.ReLU(),
+            nn.Linear(128, 256),
+            nn.ReLU(),
+            nn.Linear(256, features_dim)
+        )
+
+    def forward(self, observations):
+        return self.net(observations)
+
 class PeriodicSaveCallback(BaseCallback):
     def __init__(self, save_path, save_freq=10000, verbose=1):
         super(PeriodicSaveCallback, self).__init__(verbose)
@@ -151,9 +160,9 @@ class ExplorationRateCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         self.current_step += 1
-        if self.current_step % self.decay_steps == 1:
+        if self.current_step % self.decay_steps == 0:
             self.exploration_rate = max(self.exploration_min, self.exploration_rate - self.decay_rate)
-            # Assuming self.model is a DDPG model
+            # Assuming self.model is a PPO model
             self.model.action_noise = NormalActionNoise(
                 mean=np.zeros(2),
                 sigma=self.exploration_rate * np.ones(2)
@@ -163,129 +172,63 @@ class ExplorationRateCallback(BaseCallback):
             self.tensorboard.update_stats(std_dev=self.exploration_rate)
         return True
 
-
-# class CustomActor(nn.Module):
-#     """
-#     Custom actor network for policy function.
-#     :param feature_dim: dimension of the features extracted with the features_extractor
-#     """
-#
-#     def __init__(self, feature_dim: int, last_layer_dim_pi: int = 64):
-#         super(CustomActor, self).__init__()
-#
-#         # Policy network
-#         self.policy_net = nn.Sequential(
-#             nn.Linear(feature_dim, last_layer_dim_pi),
-#             nn.ReLU(),
-#             nn.Linear(last_layer_dim_pi, 32),
-#             nn.ReLU(),
-#         )
-#         # Separate heads for velocity and steering
-#         self.velocity_head = nn.Sequential(
-#             nn.Linear(32, 1),
-#             nn.Sigmoid()  # Output range [0, 1]
-#         )
-#         self.steering_head = nn.Sequential(
-#             nn.Linear(32, 1),
-#             nn.Tanh()  # Output range [-1, 1], will be scaled to [-0.5, 0.5]
-#         )
-#         self.optimizer = th.optim.Adam(self.parameters())
-#
-#     def forward(self, features: th.Tensor) -> th.Tensor:
-#         features = th.tensor(features, dtype=th.float32).to("cuda")
-#         policy_latent = self.policy_net(features)
-#         velocity = self.velocity_head(policy_latent)
-#         steering = self.steering_head(policy_latent) * 0.2  # Scale to [-0.5, 0.5]
-#         return th.cat((velocity, steering), dim=-1)
-#
-#
-# class CustomCritic(nn.Module):
-#     """
-#     Custom critic network for value function.
-#     :param feature_dim: dimension of the features extracted with the features_extractor
-#     """
-#
-#     def __init__(self, feature_dim: int, last_layer_dim_vf: int = 64):
-#         super(CustomCritic, self).__init__()
-#
-#         # Value network
-#         self.value_net = nn.Sequential(
-#             nn.Linear(feature_dim, last_layer_dim_vf),
-#             nn.ReLU(),
-#             nn.Linear(last_layer_dim_vf, 32),
-#             nn.ReLU(),
-#             nn.Linear(32, 1)
-#         )
-#         self.optimizer = th.optim.Adam(self.parameters())
-#
-#     def forward(self, features: th.Tensor) -> th.Tensor:
-#         return self.value_net(features)
-
-
-# class CustomDDPGPolicy(BasePolicy):
-#     def __init__(
-#             self,
-#             observation_space: spaces.Space,
-#             action_space: spaces.Space,
-#             lr_schedule: Callable[[float], float],
-#             *args,
-#             **kwargs,
-#     ):
+# class CustomActorCriticPolicy(ActorCriticPolicy):
+#     def __init__(self, observation_space: gym.spaces.Space, action_space: gym.spaces.Space, lr_schedule, *args, **kwargs):
+#         # Filter out unexpected kwargs
 #         kwargs.pop('n_critics', None)
-#         super(CustomDDPGPolicy, self).__init__(
-#             observation_space,
-#             action_space,
-#             *args,
-#             **kwargs,
-#         )
-#
-#         # Feature extraction dimensions
+#         super(CustomActorCriticPolicy, self).__init__(observation_space, action_space, lr_schedule, *args, **kwargs)
 #         self.features_dim = observation_space.shape[0]
 #
-#         # Actor network
-#         self.actor = CustomActor(self.features_dim)
-#         self.actor_target = CustomActor(self.features_dim)
-#         # Critic network
-#         self.critic = CustomCritic(self.features_dim)
-#         self.critic_target = CustomCritic(self.features_dim)
-#
-#         # Action noise for exploration
-#         self.action_noise = NormalActionNoise(
-#             mean=th.zeros(action_space.shape), sigma=0.1 * th.ones(action_space.shape)
+#         self.actor_net_1 = nn.Sequential(
+#             nn.Linear(self.features_dim, 32),
+#             nn.ReLU(),
+#             nn.Linear(32, 32),
+#             nn.ReLU(),
+#             nn.Linear(32, 1),
+#             nn.Sigmoid()
+#         )
+#         self.actor_net_2 = nn.Sequential(
+#             nn.Linear(self.features_dim, 32),
+#             nn.ReLU(),
+#             nn.Linear(32, 32),
+#             nn.ReLU(),
+#             nn.Linear(32, 1),
+#             nn.Sigmoid()
 #         )
 #
-#         # Initialize optimizers
-#         self.actor_optimizer = th.optim.Adam(self.actor.parameters(), lr=lr_schedule(1))
-#         self.critic_optimizer = th.optim.Adam(self.critic.parameters(), lr=lr_schedule(1))
+#         self.critic_net = nn.Sequential(
+#             nn.Linear(self.features_dim, 32),
+#             nn.ReLU(),
+#             nn.Linear(32, 32),
+#             nn.ReLU(),
+#             nn.Linear(32, 1),
+#         )
 #
-#     def forward(self, obs: th.Tensor) -> th.Tensor:
-#         return self.actor(obs)
+#     def _predict(self, observations, deterministic=False):
+#         features = self.extract_features(observations)
+#         action1 = self.actor_net_1(features)
+#         action2 = (self.actor_net_2(features) - 0.5) * 0.2
+#         return th.cat((action1, action2), dim=-1)
 #
-#     def critic_value(self, obs: th.Tensor, actions: th.Tensor) -> th.Tensor:
-#         return self.critic(th.cat([obs, actions], dim=1))
+#     def forward(self, observations, deterministic=False):
+#         return self._predict(observations, deterministic)
 #
-#     def _predict(self, observation: th.Tensor, deterministic: bool = True) -> th.Tensor:
-#         """
-#         Predict actions for the given observation.
-#         :param observation: (th.Tensor) Observations from the environment.
-#         :param deterministic: (bool) Whether to use deterministic or stochastic actions.
-#         :return: (th.Tensor) Predicted actions.
-#         """
-#         actions = self.forward(observation).detach()
-#         if deterministic:
-#             return actions, None
-#         else:
-#             # Apply noise for exploration in non-deterministic settings
-#             return actions.cpu().numpy() + self.action_noise(), None
+#     def _get_constructor_parameters(self):
+#         data = super()._get_constructor_parameters()
+#         data.update(dict(
+#             features_dim=self.features_dim
+#         ))
+#         return data
 #
-#     def predict(self, observation: th.Tensor, state, start, deterministic: bool = True) -> th.Tensor:
-#         return self._predict(observation, deterministic)
+#     def extract_features(self, observations):
+#         # Implement feature extraction if needed
+#         return observations
 
-class TrainerFollowLaneDDPGCarla:
+class TrainerFollowLanePPOCarla:
     """
     Mode: training
     Task: Follow Line
-    Algorithm: DDPG
+    Algorithm: PPO
     Agent: F1
     Simulator: Gazebo
     Framework: TensorFlow
@@ -300,7 +243,7 @@ class TrainerFollowLaneDDPGCarla:
         self.algoritmhs_params = LoadAlgorithmParams(config)
         self.env_params = LoadEnvParams(config)
         self.global_params = LoadGlobalParams(config)
-        self.environment = LoadEnvVariablesDDPGCarla(config)
+        self.environment = LoadEnvVariablesPPOCarla(config)
         self.environment.environment["debug_waypoints"] = False
         self.environment.environment["estimated_steps"] = 5000
         logs_dir = f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
@@ -323,7 +266,8 @@ class TrainerFollowLaneDDPGCarla:
         # CarlaEnv.__init__(self)
 
         self.environment.environment["entropy_factor"] = config["settings"]["entropy_factor"]
-        self.environment.environment["use_curves_state"] = config["settings"]["use_curves_state"]
+        self.environment.environment["debug_waypoints"] = False
+        self.environment.environment["estimated_steps"] = 5000
         self.env = gym.make(self.env_params.env_name, **self.environment.environment)
         self.all_steps = 0
         self.current_max_reward = 0
@@ -347,49 +291,49 @@ class TrainerFollowLaneDDPGCarla:
 
         self.exploration = self.algoritmhs_params.std_dev if self.global_params.mode != "inference" else 0
 
+        # TODO This must come from config states in yaml
+        state_size = len(self.environment.environment["x_row"]) + 2
+        type(self.env.action_space)
+
         self.params = {
-            "policy": "CustomPolicy",
-            "learning_rate": 0.00035,
-            "buffer_size": 100000,
-            "batch_size": 256,
-            "gamma": 0.90,
-            "tau": 0.005,
+            "policy": "MlpPolicy",
+            "learning_rate": self.environment.environment["critic_lr"],
+            "gamma": self.algoritmhs_params.gamma,
+            "epsilon": self.algoritmhs_params.epsilon,
             "total_timesteps": 5000000
         }
-
         n_actions = self.env.action_space.shape[-1]
-        action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=self.exploration * np.ones(n_actions))
+        action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.2 * np.ones(n_actions))
 
         # Init Agents
         if self.environment.environment["mode"] in ["inference", "retraining"]:
-            actor_retrained_model = self.environment.environment['retrain_ddpg_tf_model_name']
-            self.ddpg_agent = DDPG.load(actor_retrained_model)
+            actor_retrained_model = self.environment.environment['retrain_ppo_tf_model_name']
+            self.ppo_agent = PPO.load(actor_retrained_model)
             # Set the environment on the loaded model
-            self.ddpg_agent.set_env(self.env)
+            self.ppo_agent.set_env(self.env)
 
         else:
             # Assuming `self.params` and `self.global_params` are defined properly
-            self.ddpg_agent = DDPG(
-                # CustomDDPGPolicy,
+            self.ppo_agent = PPO(
                 "MlpPolicy",
                 self.env,
                 policy_kwargs=dict(net_arch=dict(pi=[256, 256, 256, 256, 256], qf=[256, 256, 256, 256, 256])),
                 learning_rate=self.params["learning_rate"],
-                buffer_size=self.params["buffer_size"],
-                batch_size=self.params["batch_size"],
-                tau=self.params["tau"],
                 gamma=self.params["gamma"],
+                # add replay memory size here
+                clip_range=self.params["epsilon"],
                 verbose=1,
                 # tensorboard_log=f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
             )
 
-        print(self.ddpg_agent.actor)
+        print(self.ppo_agent.policy)
+
         # Set the action noise on the loaded model
-        self.ddpg_agent.action_noise = action_noise
+        self.ppo_agent.action_noise = action_noise
 
         agent_logger = configure(agent_log_file, ["stdout", "csv", "tensorboard"])
 
-        self.ddpg_agent.set_logger(agent_logger)
+        self.ppo_agent.set_logger(agent_logger)
         random.seed(1)
         np.random.seed(1)
         tf.compat.v1.random.set_random_seed(1)
@@ -406,47 +350,23 @@ class TrainerFollowLaneDDPGCarla:
                                                             decay_steps=self.global_params.steps_to_decrease,
                                                             exploration_min=self.global_params.decrease_min,
                                                             verbose=1)
-
-        # Assuming `self.env` is your original environment
-        self.eval_env = Monitor(self.env)
-
         # wandb_callback = WandbCallback(gradient_save_freq=100, verbose=2)
-        eval_callback = EvalCallback(
-            self.eval_env,
-            best_model_save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
-            eval_freq=5000,
-            deterministic=True,
-            render=False
-        )
-
+        # eval_callback = EvalCallback(
+        #     self.env,
+        #     best_model_save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
+        #     eval_freq=5000,
+        #     deterministic=True,
+        #     render=False
+        # )
         periodic_save_callback = PeriodicSaveCallback(
             save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
             verbose=1
         )
 
-        callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
+        callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
 
-        self.ddpg_agent.learn(total_timesteps=self.params["total_timesteps"],
+        self.ppo_agent.learn(total_timesteps=self.params["total_timesteps"],
                               callback=callback_list)
-
-        if self.environment.environment["mode"] == "inference":
-            self.evaluate_ddpg_agent(self.env, self.ddpg_agent, 10000)
-
-    def evaluate_ddpg_agent(self, env, agent, num_episodes):
-        for episode in range(num_episodes):
-            obs = env.reset()
-            done = False
-            episode_reward = 0
-
-            while not done:
-                # Use the agent to predict the action without learning (no training)
-                action, _states = agent.predict(obs, deterministic=True)
-
-                # Take the action in the environment
-                obs, reward, done, info = env.step(action)
-                episode_reward += reward
-
-            print(f"Episode {episode + 1}: Total Reward = {episode_reward}")
 
         # self.env.close()
 
