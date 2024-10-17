@@ -1,0 +1,312 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{Autonomous Driving with Deep Reinforcement Learning: visual Follow Lane*\\
+{\footnotesize \textsuperscript{*}Note: Sub-titles are not captured in Xplore and
+should not be used}
+}
+
+\author{\IEEEauthorblockN{1\textsuperscript{st} Rubén Lucas}
+\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
+\textit{name of organization (of Aff.)}\\
+City, Country \\
+email address or ORCID}
+\and
+\IEEEauthorblockN{2\textsuperscript{nd} Given Name Surname}
+\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
+\textit{name of organization (of Aff.)}\\
+City, Country \\
+email address or ORCID}
+\and
+\IEEEauthorblockN{3\textsuperscript{rd} Given Name Surname}
+\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
+\textit{name of organization (of Aff.)}\\
+City, Country \\
+email address or ORCID}
+\and
+\IEEEauthorblockN{4\textsuperscript{th} Given Name Surname}
+\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
+\textit{name of organization (of Aff.)}\\
+City, Country \\
+email address or ORCID}
+\and
+\IEEEauthorblockN{5\textsuperscript{th} Given Name Surname}
+\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
+\textit{name of organization (of Aff.)}\\
+City, Country \\
+email address or ORCID}
+\and
+\IEEEauthorblockN{6\textsuperscript{th} Given Name Surname}
+\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
+\textit{name of organization (of Aff.)}\\
+City, Country \\
+email address or ORCID}
+}
+
+\maketitle
+
+\begin{abstract}
+
+As we get closer to 2050, the ascent of autonomous vehicles (AVs) promises a radical transformation in urban transportation, where safety and efficiency are a must. This paper explores into the realm of autonomous driving algorithms, comparing and refining advanced methodologies crucial for robust and reliable AV systems. Pioneering companies such as Waymo, Tesla, General Motors (GM), Ford, and Uber are heading this transformation, investing significantly in research and development to drive innovation. Leveraging the fusion of deep learning (DL) and reinforcement learning (RL) techniques, considerable progress has been made. DRL empowers AVs to learn optimal decision-making policies through iterative interactions with their environment. Central to this evolution is the pivotal role of perception, where accurate environment sensing informs intelligent decision-making agents. This paper underscores the criticality of benchmarking perception solutions like YOLOP and MobileV3Small to traditional methods such as thresholding with linear regression. Furthermore, it conducts a performance comparison of DRL algorithms, including Proximal Policy Optimization (PPO), Deep Deterministic Policy Gradient (DDPG), and Soft Actor-Critic (SAC), making use of YOLOP perception, CARLA simulator and the development frameworks RL-Studio and BehaviorMetrics to conduct our analysis on the lane-following problem. This study aims to uncover insights, drive advancements, and strengthen the groundwork of autonomous driving technology, guiding it toward safer and more efficient pathways.
+
+\end{abstract}
+
+\begin{IEEEkeywords}
+DDPG
+PPO
+SAC
+CARLA
+RL-Studio
+Behavior Metrics
+YOLOP
+LANE DETECTOR
+%DQN
+%TPRO
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+By 2050, it is anticipated that autonomous vehicles (AVs) will surpass the number of traditional vehicles on the roads, fundamentally transforming urban mobility and transportation. This evolution underscores the critical need to optimize the performance of autonomous driving systems, ensuring they operate with maximum efficiency and safety. In this context, the development and comparison of advanced algorithms for autonomous driving are essential tasks. These comparisons provide a framework to identify the most promising approaches to achieve robust and reliable autonomous systems.
+
+Currently, several companies are at the forefront of the autonomous driving race, including Waymo, Tesla, General Motors (GM), Ford, and Uber. These companies have made significant investments in research and development to advance autonomous technologies and bring self-driving vehicles to the market.
+
+Autonomous driving systems are classified into different levels based on their level of automation, as defined by the Society of Automotive Engineers (SAE). These levels range from Level 0 (no automation) to Level 5 (full automation). Companies like Waymo and Tesla have made significant progress, with some vehicles reaching Level 4 automation, where the vehicle can operate without human intervention in certain conditions.
+
+The integration of DL and reinforcement learning (RL) techniques has paved the way for substantial advancements in autonomous driving. DRL combines the principles of RL with deep neural networks (DNNs) to learn optimal policies through trial and error interactions with the environment. This approach is highly suitable for the decision-making tasks in autonomous driving, where the agent must continuously adapt to dynamic and complex scenarios. 
+
+In order to achieve that goal, autonomous driving relies heavily on the ability of a vehicle to accurately perceive its environment and make intelligent decisions based on that perception. Therefore, accurately capturing and representing the relevant information in the surroundings of the vehicle is one of the most critical areas of investigation in AD.
+
+Several challenges persist in the field of autonomous driving, including navigating through adverse weather conditions, negotiating complex intersections and crossings, and ensuring safe interactions with pedestrians and cyclists. Successfully addressing these challenges demands continuous advancements in sensor technology, algorithmic development, and rigorous real-world testing. Benchmarking the perception capabilities of autonomous vehicles and comparing different Deep Reinforcement Learning (DRL) algorithms, as conducted in this paper, is essential for the progression of autonomous driving technology. By evaluating and comparing these key components, researchers and engineers can identify strengths, weaknesses, and areas for improvement, ultimately driving the innovation needed to overcome the remaining obstacles and advance autonomous driving technology towards safer and more efficient solutions.
+
+\section{Related work}
+
+In our study of literature, we've discovered a constant pattern on lane detection and following lane strategies:
+
+\begin{itemize}
+\item \textbf{Features Extraction:} This crucial phase involves the identification and extraction of pertinent features from the vehicle's surroundings.
+
+\item \textbf{Path Planning:} The path planning stage is dedicated to computing a safe trajectory for the vehicle to navigate through its environment. By analyzing sensor data and environmental constraints, the autonomous system determines an optimal path that avoids obstacles, adheres to traffic regulations, and reaches the desired destination efficiently. Path planning algorithms play a critical role in ensuring the vehicle's smooth and collision-free movement within complex road networks.
+
+\item \textbf{Decision Making:} The decision-making phase encompasses the process of selecting appropriate actions based on the perceived environment and the vehicle's objectives. In autonomous driving, this involves determining factors such as acceleration, braking, steering, and lane changes to navigate safely and efficiently.
+\end{itemize}
+
+In this article, our focus lies on the features extraction and decision-making stages of autonomous driving, with the assumption that path planning algorithms ensure the vehicle's trajectory remains within the designated lane.
+
+\subsection{AD Perception for feature extraction}
+
+Recent advancements in sensor fusion methodologies 
+which integrate data from various sources such as cameras, LIDAR, GPS, and inertial measurement units (IMUs), have sparked considerable interest among researchers and practitioners for their ability to enhance perception accuracy and robustness. By combining information from multiple sensors. These approaches mitigate the limitations of individual sensors, thereby improving the overall reliability of autonomous systems. Notably, recent studies by Li et al. (2023) and Zhang et al. (2022) have demonstrated the efficacy of sensor fusion techniques in real-world driving scenarios, showcasing significant improvements in object detection and localization accuracy.
+
+In addition to sensor fusion, the integration of multiple cameras offers valuable insights into the surrounding environment. By deploying cameras at strategic points, autonomous vehicles can capture comprehensive visual data, facilitating robust perception and decision-making. Recent advancements in multi-camera systems, as highlighted by Wang et al. (2023), have shown promise in enhancing object detection accuracy and improving situational awareness in challenging driving scenarios.
+
+In any ase, the utilization of front-facing cameras stands out as a cost-effective and efficient solution for perception tasks. The recurrence of research focusing on front-facing cameras in autonomous driving underscores their pivotal role in perception tasks. Recent studies by Chen et al. (2023) and Kim et al. (2022) have emphasized the efficacy of front-facing camera-based systems in enabling real-time object detection and lane detection, showcasing their practical utility in autonomous navigation. However, despite their widespread adoption, challenges persist, as evidenced by competitions like the AWS DeepRacer Championship, which tasks participants with developing autonomous driving algorithms using only front-facing camera data. 
+
+To effectively make use of the front-facing camera we need for robust techniques to extract relevant features for effective decision-making. State-of-the-art approaches such as Faster R-CNN, RetinaNet, YOLOP and MobileV3Small neural networks offer advanced capabilities for object detection and lane detection, also manifested in perception benchmarks like Feng, Di et.al (2021).
+
+\subsection{AD Algorithms for decision-making}
+
+The decision-making phase in autonomous driving often relies on advanced algorithms to determine the vehicle's actions based on the extracted features. Various approaches have been proposed:
+
+\textbf{Rule-Based Systems (RBS):} Utilize a predefined set of rules to govern the vehicle’s decisions. While straightforward to implement, RBS can be rigid and may struggle in handling complex or unforeseen scenarios.
+
+\textbf{Finite State Machines (FSM):} Model the decision-making process as a series of states and transitions. FSMs offer greater adaptability compared to RBS but can become unwieldy as complexity increases.
+
+\textbf{Machine Learning (ML) and Deep Learning (DL):} ML and DL techniques enable vehicles to learn from data and make decisions based on patterns and experiences. They provide adaptability and excel in handling complex environments, albeit requiring significant data and computational resources, especially in DL systems.
+
+\textbf{Reinforcement Learning (RL):} RL, a subset of ML, focuses on training an agent through interactions with its environment. RL is particularly effective in addressing the uncertainty and dynamism inherent in driving environments.
+
+\textbf{Imitation Learning (IL):} IL involves learning policies by mimicking expert behavior rather than through trial and error. This approach can accelerate learning but may suffer from limited generalization to new scenarios.
+
+\textbf{Curriculum Learning (CL):} CL entails gradually increasing the difficulty of training tasks to facilitate more effective learning. This method can improve the robustness of learned policies but requires careful task selection and progression.
+
+\textbf{Glass Models:} Glass models decompose the decision-making process into transparent and interpretable components. They enhance explainability and ease of debugging but may sacrifice some performance compared to black-box approaches.
+
+Among these approaches, RL stands out as a promising method for tackling the challenges of decision-making in uncertain and complex environments.
+
+\subsection{Simulators}
+
+Simulators play a critical role in developing and testing autonomous driving systems, offering a safe and efficient way to train agents before deploying them in the real world. Several simulators are widely used in the industry, including SUMO, GAZEBO, and CARLA. CARLA, in particular, stands out for its high level of realism, which helps bridge the gap between simulated environments and real-world scenarios.
+
+CARLA provides realistic urban environments and diverse weather conditions, allowing researchers to rigorously test and refine their autonomous driving algorithms. This paper leverages CARLA to evaluate the performance of the aforementioned perception and decision-making algorithms, contributing valuable insights into their real-world applicability. 
+Furthermore, knowledge transfer techniques such as domain adaptation and curriculum reinforcement learning have shown promise in enhancing the robustness of autonomous systems when transitioning from simulated to real-world environments.
+
+...
+
+\section{Research Tools}
+
+\textbf{Brief explanation and versions of used framweroks (RLStudio, TensorBoard, opencv, tensorflow, GYM, ROS and CARLA)}
+\begin{itemize}
+    \item TensorBoard: ...
+    \item OpenCv: ...
+    \item Tensorflow: ...
+    \item ROS: ...
+    \item GYM: ...
+    \item RLStudio: ...
+    \item CARLA: ...
+\end{itemize}
+
+\section{Solution desgin}
+\textbf{ explicación de la arquitectura y estratgia, similar to Rodrigo thesis section. Features extractor module explanation and the postporcessing to aleviate some missing perceptions, DRL algorithm module explanation, rewards, inputs received by the agent (center lane points, velocity, wheel angle, ...) and actions the DRL algorithm provides (throttle and steering) }
+
+\section{Image-Based Lane Detection}
+\textbf{Emphasise on how important is a good perception and mention the evaluated alternatives that will be explained in subsections}
+
+\subsection{Image perception}
+
+\subsubsection{RGB Thresholding}
+\textbf{What it is and high-level implementation details}
+
+\href{https://tjosh.medium.com/finding-lane-lines-with-colour-thresholds-beb542e0d839}{implementation reference}
+
+\subsubsection{YOLOP}
+\textbf{What it is and high-level implementation details}
+
+\href{https://pytorch.org/hub/hustvl_yolop/}{yolop implementation reference}
+
+\href{https://arxiv.org/abs/2108.11250}{paper reference}
+
+\subsubsection{Lane Detector}
+\textbf{What it is and high-level implementation details}
+
+\href{https://github.com/RoboticsLabURJC/carla_lane_detector/blob/main/examples/lane_detection_inference.py }{implementation reference}
+
+\subsection{Features Extractor}
+\textbf{Brief explanation of how we are processing those perceptions to calculate the lane center points}
+
+% Better call it benchmarking?
+\subsection{Comparison}
+\textbf{Comparison procedure explanation}
+
+To compare the perceptions alternatives performance, a set of XXX images were retrieved from CARLA autopilot subjective view recording on Town04, Town05 and Town07 ...
+
+The carla autopilot is implemented to always follow the lane in the exact center. Therefore, we assume that all the center points in our dataset are close to 0 with an error of +-5\%  ...
+
+Considering this, \% of detected images and average error were measured on each perception tool, pointing out the Town04 as the best scenario to train our agent and YOLOP as the best perception tool
+
+\textsc{Display comparison in bar plots and remove this items list}
+\begin{itemize}
+    \item Town04
+    \begin{itemize}
+        \item \% detected:
+        \begin{itemize}
+            \item YOLOP: ...
+            \item LaneDetector: ...
+            \item RGB: ...
+        \end{itemize}
+        \item avg error:
+        \begin{itemize}
+            \item YOLOP: ...
+            \item LaneDetector: ...
+            \item RGB: ...
+        \end{itemize}
+    \end{itemize}
+    \item Town05
+    \begin{itemize}
+        \item \% detected:
+        \begin{itemize}
+            \item YOLOP: ...
+            \item LaneDetector: ...
+            \item RGB: ...
+        \end{itemize}
+        \item avg error:
+        \begin{itemize}
+            \item YOLOP: ...
+            \item LaneDetector: ...
+            \item RGB: ...
+        \end{itemize}
+    \end{itemize}
+    \item Town07
+    \begin{itemize}
+        \item \% detected:
+        \begin{itemize}
+            \item YOLOP:
+            \item LaneDetector: 
+            \item RGB: 
+        \end{itemize}
+        \item avg error:
+        \begin{itemize}
+            \item YOLOP:
+            \item LaneDetector: 
+            \item RGB: 
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+
+Additionally we tagged the portions of the different towns in which the perception is poor (red) to select where the agent could train without being harmed by the perception, being the results shown on image [1] \textsc{Display conducted analysis on the 3 cities}
+ 
+\section{Agent Decision}
+
+\subsection{Algorithms}
+
+\textbf{Explanation of evaluated algorithms with definitions, layers architecture and hyperparameters}
+
+\subsubsection{DDPG}
+\subsubsection{SAC}
+\subsubsection{PPO}
+
+\subsection{Comparison}
+\subsubsection{Training}
+
+\textbf{Explanation and comparison of training metrics on rl studio}
+
+\textsc{Display comparison in bar plots and remove this items list}
+\begin{itemize}
+    \item cumulated reward: ...
+    \item training time: ...
+    \item GPU and CPU consumption: ...
+\end{itemize}
+
+\subsubsection{Inference}
+
+\textbf{Explanation and comparison of training metrics on CARLA}
+
+\textsc{Display comparison in bar plots and remove this items list}
+\begin{itemize}
+    \item Completed circuit \%: ...
+    \item Avg deviation from the lane center : ...
+    \item Avg velocity: ...
+    \item number of Crashes: ...
+    \item line crossings: ...
+\end{itemize}
+
+\section{Conclusions}
+
+\subsection{Future Work}
+
+\section{Bibliography}
+
+\begin{thebibliography}{00}
+
+\bibitem{b1} G. Eason, B. Noble, and I. N. Sneddon, ``On certain integrals of Lipschitz-Hankel type involving products of Bessel functions,'' Phil. Trans. Roy. Soc. London, vol. A247, pp. 529--551, April 1955.
+\bibitem{b2} J. Clerk Maxwell, A Treatise on Electricity and Magnetism, 3rd ed., vol. 2. Oxford: Clarendon, 1892, pp.68--73.
+\bibitem He, K., Zhang, X., Ren, S. and Sun, J. (2016). Deep Residual Learning for Image Recognition. In \textit{Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}.
+\bibitem Ronneberger, O., Fischer, P. and Brox, T. (2015). U-Net: Convolutional Networks for Biomedical Image Segmentation. In \textit{International Conference on Medical Image Computing and Computer-Assisted Intervention (MICCAI)}.
+\bibitem Chen, L.-C., Papandreou, G., Kokkinos, I., Murphy, K. and Yuille, A. L. (2017). Deeplab: Semantic Image Segmentation with Deep Convolutional Nets, Atrous Convolution, and Fully Connected CRFs. \textit{IEEE Transactions on Pattern Analysis and Machine Intelligence}.
+\bibitem Neven, D., Brabandere, B. D., Proesmans, M., and Van Gool, L. (2018). Towards End-to-End Lane Detection: An Instance Segmentation Approach. In \textit{IEEE Intelligent Vehicles Symposium (IV)}.
+\bibitem Xu, H., Gao, Y., Yu, F., and Darrell, T. (2017). End-to-end Learning of Driving Models from Large-scale Video Datasets. In \textit{IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}.
+\bibitem Geiger, A., Lenz, P., and Urtasun, R. (2012). Are We Ready for Autonomous Driving? The KITTI Vision Benchmark Suite. In \textit{IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}.
+\bibitem Dosovitskiy, A., Ros, G., Codevilla, F., Lopez, A., and Koltun, V. (2017). CARLA: An Open Urban Driving Simulator. In \textit{Proceedings of the 1st Annual Conference on Robot Learning (CoRL)}.
+\bibitem Silver, D., Huang, A., Maddison, C. J., Guez, A., Sifre, L., Van Den Driessche, G., ... and Hassabis, D. (2016). Mastering the game of Go with deep neural networks and tree search. \textit{Nature}, 529(7587), 484-489.
+\bibitem Mnih, V., Kavukcuoglu, K., Silver, D., Rusu, A. A., Veness, J., Bellemare, M. G., ... and Hassabis, D. (2015). Human-level control through deep reinforcement learning. \textit{Nature}, 518(7540), 529-533.
+\bibitem Schulman, J., Levine, S., Abbeel, P., Jordan, M., and Moritz, P. (2015). Trust Region Policy Optimization. In \textit{Proceedings of the 32nd International Conference on Machine Learning (ICML)}.
+\bibitem Lillicrap, T. P., Hunt, J. J., Pritzel, A., Heess, N., Erez, T., Tassa, Y., ... and Wierstra, D. (2015). Continuous control with deep reinforcement learning. In \textit{International Conference on Learning Representations (ICLR)}.
+\bibitem Sutton, R. S., and Barto, A. G. (2018). \textit{Reinforcement Learning: An Introduction}. MIT Press.
+\bibitem LeCun, Y., Bengio, Y., and Hinton, G. (2015). Deep learning. \textit{Nature}, 521(7553), 436-444.
+\bibitem Feng, D., Harakeh, A., Waslander, S., and Dietmayer, K. (2021). A Review and Comparative Study on Probabilistic Object Detection in Autonomous Driving. \textit{IEEE Transactions on Intelligent Transportation Systems}, PP, 1-20. doi:10.1109/TITS.2021.3096854
+
+\end{thebibliography}
+\vspace{12pt}
+
+\end{document}
+
