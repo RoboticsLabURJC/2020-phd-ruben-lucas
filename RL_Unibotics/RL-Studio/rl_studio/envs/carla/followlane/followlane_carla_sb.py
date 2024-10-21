@@ -27,6 +27,18 @@ from rl_studio.envs.carla.utils.visualize_multiple_sensors import (
 )
 import pygame
 
+from rl_studio.envs.carla.utils.ground_truth.camera_geometry import (
+    get_intrinsic_matrix,
+    project_polyline,
+    check_inside_image,
+    create_lane_lines,
+    get_matrix_global,
+    CameraGeometry,
+)
+
+
+from PIL import Image, ImageTk, ImageDraw
+
 
 NO_DETECTED = 0
 
@@ -222,9 +234,10 @@ def is_curve(ll_segment):
     else:
         return True
 
-
 class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def __init__(self, **config):
+
+        self.dashboard = config.get("dashboard")
 
         self.episode_d_reward = 0
         self.episode_v_eff_reward = 0
@@ -283,6 +296,17 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.lane_model = torch.load(
                 'envs/carla/utils/lane_det/best_model_torch.pth').to(self.device)
             self.lane_model.eval()
+        else:
+            camera_transform = carla.Transform(carla.Location(x=0.14852, y=0.0, z=2.1292),
+                                               carla.Rotation(pitch=-3.248, yaw=-0.982, roll=0.0))
+
+            # Translation matrix, convert vehicle reference system to camera reference system
+
+            self.trafo_matrix_vehicle_to_cam = np.array(
+                camera_transform.get_inverse_matrix()
+            )
+            self.k = None
+
         # self.display_manager = None
         # self.vehicle = None
         # self.actor_list = []
@@ -328,8 +352,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.perfect_distance_pixels = None
         self.perfect_distance_normalized = None
-        # TODO Actions just 2 now for experiment with sac
-        self.action_space = spaces.Box(low=np.array([0.0, -0.5]), high=np.array([1.0, 0.5]), dtype=np.float32)
+        # TODO Actions just 3 now for experiment with sac
+        self.action_space = spaces.Box(low=np.array([0.0, -0.2, 0.0]), high=np.array([1.0, 0.2, 1.0]), dtype=np.float32)
         self.observation_space = spaces.Box(low=0, high=50, shape=(7,), dtype=np.float32)
 
     def setup_car_fix_pose(self, init):
@@ -404,8 +428,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         segmentated_image = self.get_resized_image(self.front_camera_1_5_segmentated.front_camera)
 
         curve = False
-        if self.detection_mode == 'carla_perfect':
+        if self.detection_mode == 'carla_segmentated':
             ll_segment_post_process = self.detect_lines_from_segmentated(segmentated_image)
+        elif self.detection_mode == 'carla_perfect':
+            ll_segment_post_process = self.detect_lines_perfect(raw_image)
         else:
             ll_segment_post_process, curve = self.detect_lines(raw_image)
 
@@ -661,8 +687,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     ################################################################################
     def step(self, action):
-
-        action[1] *= 0.2
         # print(f"=============== STEP ===================")
         self.all_steps+=1
         # action = [0, 0]
@@ -696,8 +720,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         segmentated_image = self.get_resized_image(self.front_camera_1_5_segmentated.front_camera)
 
         curve = False
-        if self.detection_mode == 'carla_perfect':
+        if self.detection_mode == 'carla_segmentated':
             ll_segment = self.detect_lines_from_segmentated(segmentated_image)
+        elif self.detection_mode == 'carla_perfect':
+            ll_segment = self.detect_lines_perfect(raw_image)
         else:
             ll_segment, curve = self.detect_lines(raw_image)
 
@@ -762,10 +788,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         if params["bad_perception"] and not params["crash"]:
             if self.failures < 6:
-                self.failures += 1
-                return self.step([0.1, 0.05 * random.choice([1, -1])])
+               self.failures += 1
+               return self.step([0.1, 0.05 * random.choice([1, -1]), 0])
             else:
-                reward = 0
+               reward = 0
         self.failures = 0
 
 
@@ -775,7 +801,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if self.use_curves_state:
             states.append(curve)
 
-        self.display_manager.render()
+        self.display_manager.render(vehicle=self.car)
 
         self.cumulated_reward = self.cumulated_reward + reward
 
@@ -796,12 +822,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def control(self, action):
 
-        # if action[0] >= 0:
-        #     self.car.apply_control(carla.VehicleControl(throttle=float(action[0]), steer=float(action[1])))
-        # else:
-        #     self.car.apply_control(carla.VehicleControl(throttle=0.0, brake=float(abs(action[0])), steer=float(action[1])))
-
         brake = 0.0
+
+        if float(action[2]) > 0.5:
+            brake = float(action[2])
 
         self.car.apply_control(carla.VehicleControl(throttle=float(action[0]), brake=brake,
                                                     steer=float(action[1])))
@@ -842,7 +866,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return math.log(1 + velocity) / math.log(1 + v_max)
 
     def rewards_easy(self, error, action, params):
-
         # distance_error = error[2:] # We are just rewarding the 3 lowest points!
         distance_error = error
         ## EARLY RETURNS
@@ -862,7 +885,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold, len(distance_error)//2)
 
         if done:
-            return -1, done, crash
+            return -2, done, crash
 
         # REWARD CALCULATION
         low_vel_factor=1
@@ -877,7 +900,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # DISTANCE REWARD CALCULCATION
         d_rewards = []
         for _, error in enumerate(distance_error):
-            d_rewards.append(math.pow(1 - error, 1))
+            d_rewards.append(math.pow(1 - error, 2))
 
         # TODO ignore non detected centers
         d_reward = sum(d_rewards) / len(d_rewards)
@@ -888,13 +911,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         v = params["velocity"]
 
-        v_eff_reward = (np.log1p(v) / np.log1p(3)) * math.pow(d_reward, (v / 8) + 1)
+        v_eff_reward = (np.log1p(v) / np.log1p(2)) * math.pow(d_reward, (v / 2) + 1)
         self.episode_v_eff_reward = self.episode_v_eff_reward + (v_eff_reward - self.episode_v_eff_reward) / self.step_count
         params["v_eff_reward"] = v_eff_reward
 
         # TOTAL REWARD CALCULATION
         d_reward_component = low_vel_factor * self.beta * d_reward
-        v_reward_component = (1-self.beta) * math.pow(v_eff_reward, 2)
+        v_reward_component = (1-self.beta) * v_eff_reward
 
         function_reward = d_reward_component + v_reward_component
         #function_reward = d_reward * v_reward
@@ -980,6 +1003,46 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         return green_mask
 
+    def draw_line_through_points(self, points, image):
+        # Convert the points list to a format compatible with OpenCV (a numpy array)
+        points = np.array(points, dtype=np.int32)  # Make sure points are integers
+
+        # Draw a polyline through the points
+        cv2.polylines(image, [points], isClosed=False, color=(255, 0, 0), thickness=2)
+
+        return image
+
+    def detect_lines_perfect(self, ll_segment):
+        ll_segment = cv2.cvtColor(ll_segment, cv2.COLOR_BGR2GRAY)
+
+        heigth = ll_segment.shape[0]
+        width = ll_segment.shape[1]
+
+        trafo_matrix_global_to_camera = get_matrix_global(self.car, self.trafo_matrix_vehicle_to_cam)
+        if self.k is None:
+            self.K = get_intrinsic_matrix(110, width, heigth)
+
+        waypoint = self.world.get_map().get_waypoint(
+            self.car.get_transform().location,
+            project_to_road=True,
+            lane_type=carla.LaneType.Driving,
+        )
+
+        center_list, left_boundary, right_boundary, type_lane = create_lane_lines(waypoint, self.car)
+
+        projected_left_boundary = project_polyline(
+            left_boundary, trafo_matrix_global_to_camera, self.K).astype(np.int32)
+        projected_right_boundary = project_polyline(
+            right_boundary, trafo_matrix_global_to_camera, self.K).astype(np.int32)
+
+        if (not check_inside_image(projected_right_boundary, width, heigth)
+                or not check_inside_image(projected_right_boundary, width, heigth)):
+            return ll_segment
+        image = np.zeros_like(ll_segment, dtype=np.uint8)
+        self.draw_line_through_points(projected_left_boundary, image)
+        self.draw_line_through_points(projected_right_boundary, image)
+        return image
+
     def detect_lines_from_segmentated(self, ll_segment):
         cv2.imshow('raw', ll_segment)
 
@@ -1025,7 +1088,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             cv2.imshow("raw", ll_segment) if self.sync_mode and self.show_images else None
             # processed = self.post_process(ll_segment)
             lines = self.post_process_hough_yolop(ll_segment)
-        else:
+        elif self.detection_mode == 'lane_detector_v2':
             with torch.no_grad():
                 ll_segment, left_mask, right_mask = self.detect_lane_detector(raw_image)[0]
             ll_segment = np.zeros_like(raw_image)
@@ -1047,6 +1110,23 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 lines.append([right_line])
             ll_segment = 0.5 * blue_channel + 0.5 * red_channel
             ll_segment = cv2.convertScaleAbs(ll_segment)
+        elif self.detection_mode == 'lane_detector_v2_poly':
+            with torch.no_grad():
+                ll_segment, left_mask, right_mask = self.detect_lane_detector(raw_image)[0]
+            ll_segment = np.zeros_like(raw_image)
+            ll_segment = self.lane_detection_overlay(ll_segment, left_mask, right_mask)
+            cv2.imshow("raw", ll_segment) if self.sync_mode and self.show_images else None
+            # Extract blue and red channels
+            blue_channel = ll_segment[:, :, 0]  # Blue channel
+            red_channel = ll_segment[:, :, 2]  # Red channel
+
+            ll_segment_left = self.post_process_hough_lane_det_poly(blue_channel)
+            ll_segment_right = self.post_process_hough_lane_det_poly(red_channel)
+            ll_segment = 0.5 * ll_segment_left if ll_segment_left is not None else np.zeros_like(blue_channel)
+            ll_segment = ll_segment + 0.5 * ll_segment_right if ll_segment_right is not None else ll_segment
+            ll_segment = cv2.convertScaleAbs(ll_segment)
+            return ll_segment.astype(np.uint8), False
+
         detected_lines = self.merge_and_extend_lines(lines, ll_segment)
 
         # line_mask = morphological_process(line_mask, kernel_size=15, func_type=cv2.MORPH_CLOSE)
@@ -1082,7 +1162,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return ll_seg_mask
 
     def show_ll_seg_image(self,dists, ll_segment, suffix="",  name='ll_seg'):
-        ll_segment_int8 = (ll_segment * 255).astype(np.uint8)
+        if self.detection_mode == "carla_perfect":
+            ll_segment_int8 = ll_segment
+        else:
+            ll_segment_int8 = (ll_segment * 255).astype(np.uint8)
         ll_segment_all = [np.copy(ll_segment_int8),np.copy(ll_segment_int8),np.copy(ll_segment_int8)]
 
         # draw the midpoint used as right center lane
@@ -1126,6 +1209,34 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         return ll_segment_masked
 
+    def post_process_hough_lane_det_poly(self, ll_segment):
+        # Step 4: Perform Hough transform to detect lines
+        # ll_segment = cv2.dilate(ll_segment, (3, 3), iterations=4)
+        # ll_segment = cv2.erode(ll_segment, (3, 3), iterations=2)
+        # edges = cv2.Canny(ll_segment, 50, 100)
+        # Extract coordinates of non-zero points
+        nonzero_points = np.argwhere(ll_segment == 255)
+        if len(nonzero_points) == 0:
+            return None
+
+        # Extract x and y coordinates
+        x = nonzero_points[:, 1].reshape(-1, 1)[:, 0]  # Reshape for scikit-learn input
+        y = nonzero_points[:, 0]
+
+        # Fit linear regression model
+        polinomio = np.polyfit(x, y, 3)
+
+        all = range(600)
+        y_pred = np.polyval(polinomio, all)
+
+        line_mask = np.zeros_like(ll_segment, dtype=np.uint8)  # Ensure dtype is uint8
+
+        # Draw the linear regression line
+        for i in all:
+            y_val = int(y_pred[i])
+            cv2.circle(line_mask, (i, y_val), 2, (255, 0, 0), -1)
+
+        return line_mask
 
     def post_process_hough_lane_det(self, ll_segment):
         # ll_segment = cv2.dilate(ll_segment, (3, 3), iterations=4)
@@ -1490,5 +1601,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         res[left_mask > 0.5, :] = [255,0,0]
         res[right_mask > 0.5,:] = [0, 0, 255]
         return res
+
 
 
