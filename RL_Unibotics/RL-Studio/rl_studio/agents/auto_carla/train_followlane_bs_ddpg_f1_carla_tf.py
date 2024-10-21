@@ -155,8 +155,8 @@ class ExplorationRateCallback(BaseCallback):
             self.exploration_rate = max(self.exploration_min, self.exploration_rate - self.decay_rate)
             # Assuming self.model is a DDPG model
             self.model.action_noise = NormalActionNoise(
-                mean=np.zeros(2),
-                sigma=self.exploration_rate * np.ones(2)
+                mean=np.zeros(3),
+                sigma=self.exploration_rate * np.ones(3)
             )
             if self.verbose > 0:
                 print(f"Step {self.current_step}: Setting exploration rate to {self.exploration_rate}")
