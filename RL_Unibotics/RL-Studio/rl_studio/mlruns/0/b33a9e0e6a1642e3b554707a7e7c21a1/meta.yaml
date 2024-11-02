@@ -1,0 +1,15 @@
+artifact_uri: file:///home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/mlruns/0/b33a9e0e6a1642e3b554707a7e7c21a1/artifacts
+end_time: 1730457754957
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: b33a9e0e6a1642e3b554707a7e7c21a1
+run_name: silent-worm-990
+run_uuid: b33a9e0e6a1642e3b554707a7e7c21a1
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1730457754938
+status: 3
+tags: []
+user_id: ruben

@@ -1,0 +1,15 @@
+artifact_uri: file:///home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/mlruns/0/fb06dcc539e44be7a72ca91bc506ee2f/artifacts
+end_time: 1730432885493
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: fb06dcc539e44be7a72ca91bc506ee2f
+run_name: agreeable-asp-26
+run_uuid: fb06dcc539e44be7a72ca91bc506ee2f
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1730432885475
+status: 3
+tags: []
+user_id: ruben

@@ -1,0 +1,15 @@
+artifact_uri: file:///home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/mlruns/0/f0257271950047c08c7c66b184666425/artifacts
+end_time: 1730437153044
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: f0257271950047c08c7c66b184666425
+run_name: orderly-shad-221
+run_uuid: f0257271950047c08c7c66b184666425
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1730437153026
+status: 3
+tags: []
+user_id: ruben

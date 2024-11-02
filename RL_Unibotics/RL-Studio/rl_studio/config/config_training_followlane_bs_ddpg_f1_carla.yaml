@@ -1,5 +1,5 @@
 settings:
-  mode: retraining # training, retraining, inference
+  mode: training # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: ddpg # qlearn, dqn, ddpg, ppo
   simulator: carla # openai, carla, gazebo, sumo
@@ -18,7 +18,7 @@ settings:
   metrics_dir: "./metrics"
   debug_stats: false
   show_monitoring: false
-  steps_to_decrease: 15000
+  steps_to_decrease: 5000
   decrease_substraction: 0.003
   decrease_min: 0.003
   entropy_factor: 0
@@ -35,16 +35,16 @@ ros:
 
 retraining:
   ddpg:
-    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20241021-084416/best_model.zip
+    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20241030-081436/best_model.zip
 inference:
   ddpg:
     retrain_ddpg_tf_model_name: /whatever
 
 algorithm:
   ddpg:
-    gamma: 0.98
-    tau: 0.008
-    std_dev: 0.07
+    gamma: 0.95
+    tau: 0.005
+    std_dev: 0.08
     model_name: DDPG_Actor_conv2d32x64_Critic_conv2d32x64
     replay_memory_size: 10_000
     memory_fraction: 0.20
@@ -80,7 +80,7 @@ states:
     0: [10]
 
 actions:
-  continuous: # OJO! Esto hace nada en este agente
+  continuous:
     v: [0, 1]
     w: [-0.2, 0.2]
     b: [0, 1]
@@ -109,8 +109,8 @@ carla_environments:
     rolename: "hero" #name
     gamma: 2.2 #for camera
     sync: True #syncronous mode or async
-    detection_mode: carla_perfect
-    fixed_delta_seconds: 0.1
+    detection_mode: carla_perfect  # carla_perfect
+    fixed_delta_seconds: 0.05
     async_forced_delta_seconds: 0
     reset_threshold: 0.3
     alternate_pose: True

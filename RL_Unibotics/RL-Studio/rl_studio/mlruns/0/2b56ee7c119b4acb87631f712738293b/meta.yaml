@@ -1,0 +1,15 @@
+artifact_uri: file:///home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/mlruns/0/2b56ee7c119b4acb87631f712738293b/artifacts
+end_time: 1730420246779
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 2b56ee7c119b4acb87631f712738293b
+run_name: bemused-elk-120
+run_uuid: 2b56ee7c119b4acb87631f712738293b
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1730420246761
+status: 3
+tags: []
+user_id: ruben

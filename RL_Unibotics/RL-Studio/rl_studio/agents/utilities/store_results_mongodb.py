@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
 
-yaml_file = '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/config/config_training_followlane_bs_ddpg_f1_carla.yaml'  # Replace with your YAML file path
+yaml_file = '/rl_studio/config/config_training_followlane_bs_ddpg_f1_carla_retrain_perfect.yaml'  # Replace with your YAML file path
 
 reward_filename = '/home/ruben/Desktop/RL-Studio/rl_studio/envs/carla/followlane/followlane_carla_sb.py'
 reward_method = 'rewards_easy'

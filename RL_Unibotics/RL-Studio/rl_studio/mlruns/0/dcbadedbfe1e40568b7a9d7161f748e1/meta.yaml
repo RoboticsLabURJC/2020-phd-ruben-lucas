@@ -1,0 +1,16 @@
+artifact_uri: file:///home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/mlruns/0/dcbadedbfe1e40568b7a9d7161f748e1/artifacts
+deleted_time: 1730397445823
+end_time: 1730397115210
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: deleted
+run_id: dcbadedbfe1e40568b7a9d7161f748e1
+run_name: chill-owl-867
+run_uuid: dcbadedbfe1e40568b7a9d7161f748e1
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1730397111258
+status: 3
+tags: []
+user_id: ruben

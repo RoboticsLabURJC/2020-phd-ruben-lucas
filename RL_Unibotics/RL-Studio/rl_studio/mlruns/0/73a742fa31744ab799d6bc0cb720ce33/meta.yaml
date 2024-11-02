@@ -1,0 +1,15 @@
+artifact_uri: file:///home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/mlruns/0/73a742fa31744ab799d6bc0cb720ce33/artifacts
+end_time: 1730415287744
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 73a742fa31744ab799d6bc0cb720ce33
+run_name: abundant-sheep-456
+run_uuid: 73a742fa31744ab799d6bc0cb720ce33
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1730415287727
+status: 3
+tags: []
+user_id: ruben

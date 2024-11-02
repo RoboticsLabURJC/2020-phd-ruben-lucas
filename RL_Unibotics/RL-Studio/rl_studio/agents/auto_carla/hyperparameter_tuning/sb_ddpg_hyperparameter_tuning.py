@@ -50,8 +50,8 @@ class ExplorationRateCallback(BaseCallback):
             self.exploration_rate = max(self.exploration_min, self.exploration_rate - self.decay_rate)
             # Assuming self.model is a DDPG model
             self.model.action_noise = OrnsteinUhlenbeckActionNoise(
-                mean=np.zeros(2),
-                sigma=self.exploration_rate * np.ones(2)
+                mean=np.zeros(3),
+                sigma=self.exploration_rate * np.ones(3)
             )
             if self.verbose > 0:
                 print(f"Step {self.current_step}: Setting exploration rate to {self.exploration_rate}")
@@ -69,13 +69,13 @@ def objective(trial):
     exploration_params = LoadGlobalParams(config_file)
     algorithm_params = LoadAlgorithmParams(config_file)
 
-    env = gym.make(env_params.env_name, **environment.environment)
-    eval_env = gym.make(env_params.env_name, **environment.environment)
-
     environment.environment["debug_waypoints"] = False
     environment.environment["estimated_steps"] = 5000
-    environment.environment["entropy_factor"] = trial.suggest_uniform('entropy_factor', 0, 0.1)
-    environment.environment["punish_zig_zag_value"] = trial.suggest_uniform('punish_zig_zag_value', 0, 3)
+    environment.environment["entropy_factor"] = 0
+    environment.environment["punish_zig_zag_value"] = trial.suggest_uniform('punish_zig_zag_value', 0, 5)
+
+    env = gym.make(env_params.env_name, **environment.environment)
+    eval_env = gym.make(env_params.env_name, **environment.environment)
 
     # Define the search space for hyperparameters
     learning_rate = trial.suggest_loguniform('learning_rate', 1e-5, 1e-3)
@@ -83,11 +83,10 @@ def objective(trial):
     batch_size = trial.suggest_int('batch_size', 64, 512)
     tau = trial.suggest_uniform('tau', 0.001, 0.01)
     gamma = trial.suggest_uniform('gamma', 0.8, 0.99)
-    environment.environment["beta_1"] = trial.suggest_uniform('beta', 0, 0.7)
 
     # Policy network architecture
-    net_arch_pi = trial.suggest_categorical('net_arch_pi', [[32, 32], [64, 64, 64], [128, 128]])
-    net_arch_qf = trial.suggest_categorical('net_arch_qf', [[32, 32, 32], [64, 64, 64], [128, 128, 128]])
+    net_arch_pi = trial.suggest_categorical('net_arch_pi', [[32, 32, 32], [64, 64, 64], [128, 128, 128], [128, 128, 128, 128]])
+    net_arch_qf = trial.suggest_categorical('net_arch_qf', [[32, 32, 32], [64, 64, 64], [128, 128, 128], [128, 128, 128, 128]])
 
     model = DDPG(
         "MlpPolicy",

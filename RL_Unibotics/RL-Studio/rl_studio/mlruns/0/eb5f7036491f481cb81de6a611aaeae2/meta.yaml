@@ -1,0 +1,15 @@
+artifact_uri: file:///home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/mlruns/0/eb5f7036491f481cb81de6a611aaeae2/artifacts
+end_time: 1730434780181
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: eb5f7036491f481cb81de6a611aaeae2
+run_name: thundering-ape-961
+run_uuid: eb5f7036491f481cb81de6a611aaeae2
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1730434780163
+status: 3
+tags: []
+user_id: ruben

@@ -1,0 +1,15 @@
+artifact_uri: file:///home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/mlruns/0/9398f3e5722845b1935a5f2f8531d144/artifacts
+end_time: 1730413208307
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 9398f3e5722845b1935a5f2f8531d144
+run_name: peaceful-jay-622
+run_uuid: 9398f3e5722845b1935a5f2f8531d144
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1730413208290
+status: 3
+tags: []
+user_id: ruben
