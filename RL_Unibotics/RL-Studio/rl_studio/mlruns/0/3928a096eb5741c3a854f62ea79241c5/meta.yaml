@@ -1,0 +1,15 @@
+artifact_uri: file:///home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/mlruns/0/3928a096eb5741c3a854f62ea79241c5/artifacts
+end_time: 1730424088742
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 3928a096eb5741c3a854f62ea79241c5
+run_name: flawless-carp-499
+run_uuid: 3928a096eb5741c3a854f62ea79241c5
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1730424088719
+status: 3
+tags: []
+user_id: ruben

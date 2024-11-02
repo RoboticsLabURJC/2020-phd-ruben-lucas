@@ -1,0 +1,15 @@
+artifact_uri: file:///home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/mlruns/0/50185dc4034142bfb4328d484f643db3/artifacts
+end_time: 1730417426394
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 50185dc4034142bfb4328d484f643db3
+run_name: gentle-penguin-967
+run_uuid: 50185dc4034142bfb4328d484f643db3
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1730417426376
+status: 3
+tags: []
+user_id: ruben

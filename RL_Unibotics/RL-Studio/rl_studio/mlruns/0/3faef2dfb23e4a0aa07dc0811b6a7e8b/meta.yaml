@@ -1,0 +1,15 @@
+artifact_uri: file:///home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/mlruns/0/3faef2dfb23e4a0aa07dc0811b6a7e8b/artifacts
+end_time: 1730404129188
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 3faef2dfb23e4a0aa07dc0811b6a7e8b
+run_name: sincere-slug-460
+run_uuid: 3faef2dfb23e4a0aa07dc0811b6a7e8b
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1730404129170
+status: 3
+tags: []
+user_id: ruben

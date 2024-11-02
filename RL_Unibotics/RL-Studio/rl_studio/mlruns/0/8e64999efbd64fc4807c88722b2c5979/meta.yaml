@@ -1,0 +1,15 @@
+artifact_uri: file:///home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/mlruns/0/8e64999efbd64fc4807c88722b2c5979/artifacts
+end_time: 1730425273516
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 8e64999efbd64fc4807c88722b2c5979
+run_name: agreeable-turtle-855
+run_uuid: 8e64999efbd64fc4807c88722b2c5979
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1730425273498
+status: 3
+tags: []
+user_id: ruben

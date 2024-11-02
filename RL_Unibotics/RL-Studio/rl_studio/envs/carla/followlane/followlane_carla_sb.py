@@ -240,6 +240,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.dashboard = config.get("dashboard")
 
         self.episode_d_reward = 0
+        self.episode_d_deviation = 0
         self.episode_v_eff_reward = 0
         self.location_actions = {}
         self.location_rewards = {}
@@ -249,6 +250,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.show_all_points = False
         self.debug_waypoints = config.get("debug_waypoints")
         self.estimated_steps = config.get("estimated_steps")
+
+        self.actions = config.get("actions")
 
         self.entropy_factor = config.get("entropy_factor")
         self.entropy_calculator = EntropyCalculator()
@@ -260,6 +263,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.actor_list = []
         self.episodes_speed = []
+        self.last_avg_speed = 0
+        self.last_max_speed = 0
 
         ###### init class variables
         FollowLaneCarlaConfig.__init__(self, **config)
@@ -293,6 +298,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.lane_model = torch.load('/home/ruben/Desktop/RL-Studio/rl_studio/envs/carla/utils/lane_det/fastai_torch_lane_detector_model.pth', map_location=self.device)
             self.lane_model.eval()
         elif self.detection_mode == "lane_detector":
+            self.lane_model = torch.load(
+                'envs/carla/utils/lane_det/best_model_torch.pth').to(self.device)
+            self.lane_model.eval()
+        elif self.detection_mode == "lane_detector_v2_poly":
             self.lane_model = torch.load(
                 'envs/carla/utils/lane_det/best_model_torch.pth').to(self.device)
             self.lane_model.eval()
@@ -352,8 +361,21 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.perfect_distance_pixels = None
         self.perfect_distance_normalized = None
-        # TODO Actions just 3 now for experiment with sac
-        self.action_space = spaces.Box(low=np.array([0.0, -0.2, 0.0]), high=np.array([1.0, 0.2, 1.0]), dtype=np.float32)
+
+        if self.actions.get("b") is not None:
+            self.action_space = spaces.Box(low=np.array([self.actions["v"][0],
+                                                         self.actions["w"][0],
+                                                         self.actions["b"][0]]),
+                                           high=np.array([self.actions["v"][1],
+                                                         self.actions["w"][1],
+                                                         self.actions["b"][1]]),
+                                           dtype=np.float32)
+        else:
+            self.action_space = spaces.Box(low=np.array([self.actions["v"][0],
+                                                         self.actions["w"][0]]),
+                                           high=np.array([self.actions["v"][1],
+                                                         self.actions["w"][1]]),
+                                           dtype=np.float32)
         self.observation_space = spaces.Box(low=0, high=50, shape=(7,), dtype=np.float32)
 
     def setup_car_fix_pose(self, init):
@@ -455,35 +477,36 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         state_size = len(states)
 
         if self.tensorboard is not None:
-            self.calculate_and_report_episode_stats()
+            self.calculate_ad_report_episode_stats()
 
         self.cumulated_reward = 0
         self.step_count = 1
-
+        self.episodes_speed = []
+        self.episode_d_deviation = 0
         return np.array(states), state_size
 
     def calculate_and_report_episode_stats(self):
         if len(self.episodes_speed) == 0:
             return
         episode_time = self.step_count * self.fixed_delta_seconds
-        avg_speed = np.mean(self.episodes_speed)
-        max_speed = np.max(self.episodes_speed)
+        self.avg_speed = np.mean(self.episodes_speed)
+        self.max_speed = np.max(self.episodes_speed)
         # cum_d_reward = np.sum(self.episodes_d_reward)
         # max_reward = np.max(self.episodes_reward)
         # steering_std_dev = np.std(self.episodes_steer)
-        advanced_meters = avg_speed * episode_time
+        self.advanced_meters = self.avg_speed * episode_time
         # completed = 1 if self.step_count >= self.env_params.estimated_steps else 0
         self.tensorboard.update_stats(
             steps_episode=self.step_count,
             cum_rewards=self.cumulated_reward,
             d_reward=self.episode_d_reward,
             v_reward=self.episode_v_eff_reward,
-            avg_speed=avg_speed,
-            max_speed=max_speed,
+            avg_speed=self.avg_speed,
+            max_speed=self.max_speed,
             # cum_d_reward=cum_d_reward,
             # max_reward=max_reward,
             # steering_std_dev=steering_std_dev,
-            advanced_meters=advanced_meters,
+            advanced_meters=self.advanced_meters,
             # actor_loss=self.actor_loss,
             # critic_loss=self.critic_loss,
             # cpu=self.cpu_usages,
@@ -491,14 +514,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             # collisions = self.crash,
             # completed = completed
         )
+        self.last_avg_speed = self.avg_speed
+        self.last_max_speed = self.max_speed
         # self.tensorboard.update_fps(self.step_fps)
-        # self.episodes_speed = []
-        # self.episodes_d_reward = []
-        # self.episodes_steer = []
-        # self.episodes_reward = []
-        # self.step_fps = []
-        # self.bad_perceptions = 0
-        # self.crash = 0
 
 
     ####################################################
@@ -645,7 +663,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if self.spawn_points is not None:
             spawn_point_index = random.randint(0, len(self.spawn_points))
             spawn_point = self.spawn_points[spawn_point_index]
-            if random.random() <= 1: # TODO make it configurable
+            if random.random() <= 0.5: # TODO make it configurable
                 location = getTransformFromPoints(spawn_point)
             else:
                 location = random.choice(self.world.get_map().get_spawn_points())
@@ -824,7 +842,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         brake = 0.0
 
-        if float(action[2]) > 0.5:
+        if self.actions.get("b") is not None and float(action[2]) > 0.5:
             brake = float(action[2])
 
         self.car.apply_control(carla.VehicleControl(throttle=float(action[0]), brake=brake,
@@ -904,14 +922,16 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         # TODO ignore non detected centers
         d_reward = sum(d_rewards) / len(d_rewards)
+        avg_error = sum(distance_error) / len(distance_error)
 
         self.episode_d_reward = self.episode_d_reward + (d_reward - self.episode_d_reward) / self.step_count
+        self.episode_d_deviation = self.episode_d_deviation + (avg_error - self.episode_d_deviation) / self.step_count
 
         # VELOCITY REWARD CALCULCATION
 
         v = params["velocity"]
 
-        v_eff_reward = (np.log1p(v) / np.log1p(2)) * math.pow(d_reward, (v / 2) + 1)
+        v_eff_reward = (np.log1p(v) / np.log1p(5)) * math.pow(d_reward, (v / 5) + 1)
         self.episode_v_eff_reward = self.episode_v_eff_reward + (v_eff_reward - self.episode_v_eff_reward) / self.step_count
         params["v_eff_reward"] = v_eff_reward
 
@@ -1224,7 +1244,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         y = nonzero_points[:, 0]
 
         # Fit linear regression model
-        polinomio = np.polyfit(x, y, 3)
+        polinomio = np.polyfit(x, y, 2)
 
         all = range(600)
         y_pred = np.polyval(polinomio, all)
