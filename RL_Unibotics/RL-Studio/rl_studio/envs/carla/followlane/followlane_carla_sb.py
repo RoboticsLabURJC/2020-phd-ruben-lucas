@@ -241,6 +241,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.episode_d_reward = 0
         self.episode_d_deviation = 0
+        self.episode_last_d_deviation = 0
+        self.last_cum_reward = 0
         self.episode_v_eff_reward = 0
         self.location_actions = {}
         self.location_rewards = {}
@@ -265,6 +267,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.episodes_speed = []
         self.last_avg_speed = 0
         self.last_max_speed = 0
+        self.last_steps = 0
 
         ###### init class variables
         FollowLaneCarlaConfig.__init__(self, **config)
@@ -306,8 +309,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 'envs/carla/utils/lane_det/best_model_torch.pth').to(self.device)
             self.lane_model.eval()
         else:
-            camera_transform = carla.Transform(carla.Location(x=0.14852, y=0.0, z=2.1292),
-                                               carla.Rotation(pitch=-3.248, yaw=-0.982, roll=0.0))
+            camera_transform = carla.Transform(
+                carla.Location(x=0.14852, y=0.0, z=2.5),
+                carla.Rotation(pitch=-3.248, yaw=-0.982, roll=0.0)
+            )
 
             # Translation matrix, convert vehicle reference system to camera reference system
 
@@ -477,7 +482,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         state_size = len(states)
 
         if self.tensorboard is not None:
-            self.calculate_ad_report_episode_stats()
+            self.calculate_and_report_episode_stats()
 
         self.cumulated_reward = 0
         self.step_count = 1
@@ -516,6 +521,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         )
         self.last_avg_speed = self.avg_speed
         self.last_max_speed = self.max_speed
+        self.last_steps = self.step_count
+        self.episode_last_d_deviation = self.episode_d_deviation
+        self.last_cum_reward = self.cumulated_reward
         # self.tensorboard.update_fps(self.step_fps)
 
 
@@ -679,6 +687,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # initial_velocity = carla.Vector3D(x=random.randint(0, 15), y=0, z=0)  # 5 m/s in the x direction
         # self.car.set_target_velocity(initial_velocity)
         time.sleep(1)
+        self.car.reward = 0
+        self.car.error = 0
 
     def setup_col_sensor(self):
         colsensor = self.world.get_blueprint_library().find("sensor.other.collision")
@@ -804,13 +814,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params["bad_perception"], _ = self.has_bad_perception(right_lane_normalized_distances, threshold=0.999)
         params["crash"] = crash
 
-        if params["bad_perception"] and not params["crash"]:
-            if self.failures < 6:
-               self.failures += 1
-               return self.step([0.1, 0.05 * random.choice([1, -1]), 0])
-            else:
-               reward = 0
-        self.failures = 0
+        #if params["bad_perception"] and not params["crash"]:
+        #    if self.failures < 6:
+        #       self.failures += 1
+        #       return self.step([0.1, 0.05 * random.choice([1, -1]), 0])
+        #    else:
+        #       reward = 0
+        #self.failures = 0
 
 
         states = right_lane_normalized_distances
@@ -843,6 +853,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         brake = 0.0
 
         if self.actions.get("b") is not None and float(action[2]) > 0.5:
+            # brake = 0.3
             brake = float(action[2])
 
         self.car.apply_control(carla.VehicleControl(throttle=float(action[0]), brake=brake,
@@ -887,8 +898,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # distance_error = error[2:] # We are just rewarding the 3 lowest points!
         distance_error = error
         ## EARLY RETURNS
-        done = self.has_crashed(distance_error, threshold=self.reset_threshold,
-                                min_conf_states=len(distance_error)//2)
+        done = self.has_crashed()
         params["d_reward"] = 0
         params["v_reward"] = 0
         params["v_eff_reward"] = 0
@@ -896,11 +906,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if done:
             print("car deviated")
             crash = True
-            return 0, done, crash
+            return -2, done, crash
 
         crash = False
 
-        done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold, len(distance_error)//2)
+        # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
+        #  En curvas
+        done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold, len(distance_error))
 
         if done:
             return -2, done, crash
@@ -909,20 +921,22 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         low_vel_factor=1
         if params["velocity"] < self.punish_ineffective_vel:
             self.steps_stopped += 1
-            if self.steps_stopped > 100:
-                done = True
+            if self.steps_stopped > 500:
+                return -2, True, False
                 print("too much time stopped")
             low_vel_factor=0
-        self.steps_stopped = 0
+        else:
+            self.steps_stopped = 0
 
         # DISTANCE REWARD CALCULCATION
         d_rewards = []
         for _, error in enumerate(distance_error):
-            d_rewards.append(math.pow(1 - error, 2))
+            d_rewards.append(math.pow(1 - error, 1))
 
         # TODO ignore non detected centers
         d_reward = sum(d_rewards) / len(d_rewards)
         avg_error = sum(distance_error) / len(distance_error)
+        self.car.error = avg_error
 
         self.episode_d_reward = self.episode_d_reward + (d_reward - self.episode_d_reward) / self.step_count
         self.episode_d_deviation = self.episode_d_deviation + (avg_error - self.episode_d_deviation) / self.step_count
@@ -931,7 +945,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         v = params["velocity"]
 
-        v_eff_reward = (np.log1p(v) / np.log1p(5)) * math.pow(d_reward, (v / 5) + 1)
+        v_eff_reward =  np.log(v)/np.log(20) * math.pow(d_reward, (v/5) + 1)
         self.episode_v_eff_reward = self.episode_v_eff_reward + (v_eff_reward - self.episode_v_eff_reward) / self.step_count
         params["v_eff_reward"] = v_eff_reward
 
@@ -964,6 +978,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             entropy = self.entropy_calculator.calculate_entropy(state, action)
             function_reward += self.entropy_factor * entropy
 
+        self.car.reward = function_reward
         return function_reward, done, crash
 
     def rewards_followlane_center_v_w(self):
@@ -1441,7 +1456,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 extended_lines.append([(x1_extended, y1_extended, x2_extended, y2_extended)])
         return extended_lines
 
-    def has_crashed(self, distances_error, threshold=0.3, min_conf_states=3):
+    def has_crashed(self):
         if len(self.collision_hist) > 0:  # te has chocado, baby
             return True
 
