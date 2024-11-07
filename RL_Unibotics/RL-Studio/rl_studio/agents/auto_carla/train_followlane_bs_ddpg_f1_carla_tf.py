@@ -140,16 +140,19 @@ class PeriodicSaveCallback(BaseCallback):
             self.model.save(model_save_path)
             date_time = time.strftime('%Y%m%d-%H%M%S')
 
+            mlflow.set_experiment("followlane_carla")
             with mlflow.start_run(nested=True):
                 mlflow.log_param("model_type", "ddpg_bs")
                 mlflow.log_metric("avg_speed", self.env.last_avg_speed)
                 mlflow.log_metric("max_speed", self.env.last_max_speed)
-                mlflow.log_metric("deviation", self.env.episode_d_deviation)
+                mlflow.log_metric("deviation", self.env.episode_last_d_deviation)
+                mlflow.log_metric("cum_reward", self.env.last_cum_reward)
                 mlflow.set_tag("detection_mode", self.params["detection_mode"])
                 mlflow.log_param("actions", self.params["actions"])
                 mlflow.log_param("zig_zag_punish", self.params["zig_zag_punish"])
                 mlflow.set_tag("running_mode", self.params["running_mode"])
                 mlflow.log_param("datetime", date_time)
+                mlflow.log_metric("last_episode_steps", self.env.last_steps)
                 mlflow.log_metric("steps", self.step_count)
                 mlflow.log_artifact(model_save_path + ".zip", artifact_path="saved_models")
             # mlflow.log_metric("gamma", self.env.episode_d_deviation)
@@ -281,7 +284,7 @@ class TrainerFollowLaneDDPGCarla:
                 # CustomDDPGPolicy,
                 "MlpPolicy",
                 self.env,
-                policy_kwargs=dict(net_arch=dict(pi=[256, 256, 256, 256, 256], qf=[256, 256, 256, 256, 256])),
+                policy_kwargs=dict(net_arch=dict(pi=[32, 32, 32], qf=[32, 32, 32])),
                 learning_rate=self.params["learning_rate"],
                 buffer_size=self.params["buffer_size"],
                 batch_size=self.params["batch_size"],
@@ -319,11 +322,12 @@ class TrainerFollowLaneDDPGCarla:
         # Assuming `self.env` is your original environment
         self.eval_env = Monitor(self.env)
 
+        # TODO Note that evalCallback is useful, but it slow down training getting stucked. To refine
         # wandb_callback = WandbCallback(gradient_save_freq=100, verbose=2)
         eval_callback = EvalCallback(
             self.eval_env,
             best_model_save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
-            eval_freq=5000,
+            eval_freq=15000,
             deterministic=True,
             render=False
         )
@@ -342,6 +346,7 @@ class TrainerFollowLaneDDPGCarla:
         )
 
         callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
+        #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
 
         self.ddpg_agent.learn(total_timesteps=self.params["total_timesteps"],
                               callback=callback_list)

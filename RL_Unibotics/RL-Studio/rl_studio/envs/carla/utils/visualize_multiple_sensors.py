@@ -104,6 +104,8 @@ class DisplayManager:
         throttle = vehicle.get_control().throttle
         brake = vehicle.get_control().brake
         acceleration = vehicle.get_acceleration()
+        reward = vehicle.reward
+        deviation = vehicle.error
 
         # Calculate speed in km/h (optional)
         speed_kmh = (speed.x ** 2 + speed.y ** 2 + speed.z ** 2)  ** 0.5 * 3.6  # converting m/s to km/h
@@ -116,6 +118,10 @@ class DisplayManager:
         brake_text = font.render(f'brake: {brake:.5f}', True, (255, 255, 255))
         acceleration_text = font.render(
             f'Acceleration: {acceleration.x:.2f}, {acceleration.y:.2f}, {acceleration.z:.2f}', True, (255, 255, 255))
+        reward_text = font.render(
+            f'Reward: {reward:.2f}', True, (255, 255, 255))
+        deviation = font.render(
+            f'Deviation: {deviation:.2f}', True, (255, 255, 255))
 
         # Blit the text onto the display
         self.display.blit(speed_text, (10, 10))  # position of the speed text
@@ -123,6 +129,8 @@ class DisplayManager:
         self.display.blit(acceleration_text, (10, 90))  # position of the acceleration text
         self.display.blit(brake_text, (10, 130))  # position of the acceleration text
         self.display.blit(throttle_text, (10, 170))  # position of the acceleration text
+        self.display.blit(reward_text, (10, 210))  # position of the acceleration text
+        self.display.blit(deviation, (10, 250))  # position of the acceleration text
 
 
 class SensorManager:

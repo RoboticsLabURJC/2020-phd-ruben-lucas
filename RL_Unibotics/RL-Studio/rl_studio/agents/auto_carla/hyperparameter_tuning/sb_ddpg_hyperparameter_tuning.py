@@ -72,7 +72,7 @@ def objective(trial):
     environment.environment["debug_waypoints"] = False
     environment.environment["estimated_steps"] = 5000
     environment.environment["entropy_factor"] = 0
-    environment.environment["punish_zig_zag_value"] = trial.suggest_uniform('punish_zig_zag_value', 0, 5)
+    environment.environment["punish_zig_zag_value"] = trial.suggest_float('punish_zig_zag_value', 0, 5)
 
     env = gym.make(env_params.env_name, **environment.environment)
     eval_env = gym.make(env_params.env_name, **environment.environment)
@@ -81,8 +81,8 @@ def objective(trial):
     learning_rate = trial.suggest_loguniform('learning_rate', 1e-5, 1e-3)
     buffer_size = trial.suggest_int('buffer_size', 50000, 1000000)
     batch_size = trial.suggest_int('batch_size', 64, 512)
-    tau = trial.suggest_uniform('tau', 0.001, 0.01)
-    gamma = trial.suggest_uniform('gamma', 0.8, 0.99)
+    tau = trial.suggest_float('tau', 0.001, 0.01)
+    gamma = trial.suggest_float('gamma', 0.8, 0.99)
 
     # Policy network architecture
     net_arch_pi = trial.suggest_categorical('net_arch_pi', [[32, 32, 32], [64, 64, 64], [128, 128, 128], [128, 128, 128, 128]])
@@ -108,12 +108,12 @@ def objective(trial):
                                                         verbose=1)
 
     eval_callback = CustomEvalCallback(eval_env, best_model_save_path='./logs/hyp_tuning/model',
-                                 log_path='./logs/hyp_tuning', eval_freq=2000)
+                                 log_path='./logs/hyp_tuning', eval_freq=1000)
     callback_list = CallbackList([exploration_rate_callback, eval_callback])
 
     # Total number of timesteps for training
     total_timesteps = 5000
-    timesteps_per_iteration = 1000  # How many timesteps to train per iteration
+    timesteps_per_iteration = 500
 
 
     # Loop through to train the model in increments
