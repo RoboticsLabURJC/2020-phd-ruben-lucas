@@ -4,10 +4,11 @@ import glob
 import time
 import pynvml
 import psutil
+from typing import Callable
 
 from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.policies import ActorCriticPolicy
-
+from stable_baselines3.common.torch_layers import MlpExtractor
 
 import torch as th
 import torch.nn as nn
@@ -26,6 +27,7 @@ from stable_baselines3.common.callbacks import CallbackList
 
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.callbacks import EvalCallback
+import torch
 
 # from wandb.integration.sb3 import WandbCallback
 # import wandb
@@ -148,81 +150,121 @@ class PeriodicSaveCallback(BaseCallback):
         return True
 
 class ExplorationRateCallback(BaseCallback):
-    def __init__(self, tensorboard, initial_exploration_rate=0.2, decay_rate=0.01, decay_steps=10000, exploration_min=0.005, verbose=1):
+    def __init__(self, initial_log_std=-1.0, min_log_std=-5.8, decay_rate=0.01, decay_steps=1000, verbose=0):
         super(ExplorationRateCallback, self).__init__(verbose)
-        self.initial_exploration_rate = initial_exploration_rate
+        self.initial_log_std = initial_log_std
+        self.min_log_std = min_log_std
         self.decay_rate = decay_rate
         self.decay_steps = decay_steps
         self.current_step = 0
-        self.tensorboard = tensorboard
-        self.exploration_min = exploration_min
-        self.exploration_rate = initial_exploration_rate
+
+    def _on_training_start(self):
+        # Set initial log_std
+        self.model.policy.log_std.data = torch.full_like(
+            self.model.policy.log_std, self.initial_log_std
+        ).to(self.model.policy.log_std.device)
 
     def _on_step(self) -> bool:
         self.current_step += 1
         if self.current_step % self.decay_steps == 0:
-            self.exploration_rate = max(self.exploration_min, self.exploration_rate - self.decay_rate)
-            # Assuming self.model is a PPO model
-            self.model.action_noise = NormalActionNoise(
-                mean=np.zeros(2),
-                sigma=self.exploration_rate * np.ones(2)
+            # Decay log_std
+            new_log_std = torch.maximum(
+                torch.full_like(self.model.policy.log_std, self.min_log_std).to(self.model.policy.log_std.device),
+                self.model.policy.log_std - self.decay_rate
             )
+            self.model.policy.log_std.data = new_log_std
+
             if self.verbose > 0:
-                print(f"Step {self.current_step}: Setting exploration rate to {self.exploration_rate}")
-            self.tensorboard.update_stats(std_dev=self.exploration_rate)
+                print(f"Step {self.current_step}: Updated log_std to {new_log_std.cpu().numpy()}")
+
         return True
 
-# class CustomActorCriticPolicy(ActorCriticPolicy):
-#     def __init__(self, observation_space: gym.spaces.Space, action_space: gym.spaces.Space, lr_schedule, *args, **kwargs):
-#         # Filter out unexpected kwargs
-#         kwargs.pop('n_critics', None)
-#         super(CustomActorCriticPolicy, self).__init__(observation_space, action_space, lr_schedule, *args, **kwargs)
-#         self.features_dim = observation_space.shape[0]
-#
-#         self.actor_net_1 = nn.Sequential(
-#             nn.Linear(self.features_dim, 32),
-#             nn.ReLU(),
-#             nn.Linear(32, 32),
-#             nn.ReLU(),
-#             nn.Linear(32, 1),
-#             nn.Sigmoid()
-#         )
-#         self.actor_net_2 = nn.Sequential(
-#             nn.Linear(self.features_dim, 32),
-#             nn.ReLU(),
-#             nn.Linear(32, 32),
-#             nn.ReLU(),
-#             nn.Linear(32, 1),
-#             nn.Sigmoid()
-#         )
-#
-#         self.critic_net = nn.Sequential(
-#             nn.Linear(self.features_dim, 32),
-#             nn.ReLU(),
-#             nn.Linear(32, 32),
-#             nn.ReLU(),
-#             nn.Linear(32, 1),
-#         )
-#
-#     def _predict(self, observations, deterministic=False):
-#         features = self.extract_features(observations)
-#         action1 = self.actor_net_1(features)
-#         action2 = (self.actor_net_2(features) - 0.5) * 0.2
-#         return th.cat((action1, action2), dim=-1)
-#
-#     def forward(self, observations, deterministic=False):
-#         return self._predict(observations, deterministic)
-#
-#     def _get_constructor_parameters(self):
-#         data = super()._get_constructor_parameters()
-#         data.update(dict(
-#             features_dim=self.features_dim
-#         ))
-#         return data
-#
-#     def extract_features(self, observations):
-#         # Implement feature extraction if needed
-#         return observations
+
+import torch
+import torch.nn as nn
+from stable_baselines3.common.policies import ActorCriticPolicy
+from stable_baselines3.common.torch_layers import FlattenExtractor
+
+
+class CustomActorCriticPolicy(ActorCriticPolicy): # No se esta usando ahora mismo!!!!
+    def __init__(self, *args, **kwargs):
+        super(CustomActorCriticPolicy, self).__init__(*args, **kwargs)
+
+        # Define a custom flatten extractor
+        self.features_extractor = FlattenExtractor(self.observation_space)
+
+        # Ensure the feature dimension is correctly calculated
+        self.feature_dim = int(torch.prod(torch.tensor(self.observation_space.shape)))
+
+        # Optional: If feature_dim is not matching, add a linear layer to match
+        self.feature_transform = nn.Sequential(
+            nn.Linear(self.feature_dim, 256),  # Transform to the correct size
+            nn.ReLU()
+        )
+
+        # Policy network
+        self.action_net = nn.Sequential(
+            nn.Linear(256, 256),  # Hidden layer
+            nn.ReLU(),  # Intermediate activation
+            nn.Linear(256, 256),  # Hidden layer
+            nn.ReLU(),  # Intermediate activation
+            nn.Linear(256, 256),  # Hidden layer
+            nn.ReLU(),  # Intermediate activation
+            nn.Linear(256, self.action_space.shape[0]),  # Output layer
+            nn.Tanh()  # Tanh activation for output layer
+        )
+
+        # Value network
+        self.value_net = nn.Sequential(
+            nn.Linear(256, 256),  # Hidden layer for value function
+            nn.ReLU(),  # Intermediate activation
+            nn.Linear(256, 256),  # Hidden layer
+            nn.ReLU(),  # Intermediate activation
+            nn.Linear(256, 256),  # Hidden layer
+            nn.ReLU(),  # Intermediate activation
+            nn.Linear(256, 1)  # Output for value function
+        )
+
+    def calculate_log_probs(self, action_logits):
+        # Assuming you have a mean and stddev for your actions
+        # Use a normal distribution to compute log probabilities
+        mean = action_logits  # or some transformation based on your model
+        stddev = torch.exp(self.log_std)  # log_std should be a learnable parameter
+
+        # Create a normal distribution
+        dist = torch.distributions.Normal(mean, stddev)
+
+        # Calculate log probabilities
+        log_probs = dist.log_prob(action_logits)
+        return log_probs.sum(dim=-1)
+
+    def forward(self, obs):
+        features = self.features_extractor(obs)  # Extract features
+        features_transformed = self.feature_transform(features)  # Transform features to expected size
+        action_logits = self.action_net(features_transformed)  # Use the modified action_net
+        value = self.value_net(features_transformed)  # Get the value using the transformed features
+        log_probs = self.calculate_log_probs(action_logits)  # Implement this method based on your action space
+        return action_logits, value, log_probs
+
+
+def linear_schedule(initial_value: float) -> Callable[[float], float]:
+    """
+    Linear learning rate schedule.
+
+    :param initial_value: Initial learning rate.
+    :return: schedule that computes
+      current learning rate depending on remaining progress
+    """
+    def func(progress_remaining: float) -> float:
+        """
+        Progress will decrease from 1 (beginning) to 0.
+
+        :param progress_remaining:
+        :return: current learning rate
+        """
+        return progress_remaining * initial_value
+
+    return func
 
 class TrainerFollowLanePPOCarla:
     """
@@ -289,8 +331,6 @@ class TrainerFollowLanePPOCarla:
         self.cpu_usages = 0
         self.gpu_usages = 0
 
-        self.exploration = self.algoritmhs_params.std_dev if self.global_params.mode != "inference" else 0
-
         # TODO This must come from config states in yaml
         state_size = len(self.environment.environment["x_row"]) + 2
         type(self.env.action_space)
@@ -300,10 +340,9 @@ class TrainerFollowLanePPOCarla:
             "learning_rate": self.environment.environment["critic_lr"],
             "gamma": self.algoritmhs_params.gamma,
             "epsilon": self.algoritmhs_params.epsilon,
-            "total_timesteps": 5000000
+            "total_timesteps": 5000000,
+            "batch_size": 1000
         }
-        n_actions = self.env.action_space.shape[-1]
-        action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.2 * np.ones(n_actions))
 
         # Init Agents
         if self.environment.environment["mode"] in ["inference", "retraining"]:
@@ -311,25 +350,34 @@ class TrainerFollowLanePPOCarla:
             self.ppo_agent = PPO.load(actor_retrained_model)
             # Set the environment on the loaded model
             self.ppo_agent.set_env(self.env)
-
         else:
             # Assuming `self.params` and `self.global_params` are defined properly
             self.ppo_agent = PPO(
+                # CustomActorCriticPolicy,  # Use the custom policy class
                 "MlpPolicy",
                 self.env,
-                policy_kwargs=dict(net_arch=dict(pi=[256, 256, 256, 256, 256], qf=[256, 256, 256, 256, 256])),
-                learning_rate=self.params["learning_rate"],
+                policy_kwargs=dict(
+                    net_arch=dict(
+                        pi=[256, 256, 256, 256],  # The architecture for the policy network
+                        vf=[256, 256, 256, 256]  # The architecture for the value network
+                    ),
+                    activation_fn=nn.ReLU,
+                    log_std_init=-0.223,
+                    ortho_init=True,
+                ),
+                max_grad_norm=0.5,
+                learning_rate=linear_schedule(0.0001),
                 gamma=self.params["gamma"],
-                # add replay memory size here
+                gae_lambda=0.95,
+                ent_coef=0.01,
                 clip_range=self.params["epsilon"],
+                batch_size=self.params["batch_size"],
                 verbose=1,
+                # Uncomment if you want to log to TensorBoard
                 # tensorboard_log=f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
             )
 
         print(self.ppo_agent.policy)
-
-        # Set the action noise on the loaded model
-        self.ppo_agent.action_noise = action_noise
 
         agent_logger = configure(agent_log_file, ["stdout", "csv", "tensorboard"])
 
@@ -344,26 +392,26 @@ class TrainerFollowLanePPOCarla:
         #     config=self.params,
         #     sync_tensorboard=True,
         # )
-        exploration_rate_callback = ExplorationRateCallback(self.tensorboard,
-                                                            initial_exploration_rate=self.exploration,
-                                                            decay_rate= self.global_params.decrease_substraction,
-                                                            decay_steps=self.global_params.steps_to_decrease,
-                                                            exploration_min=self.global_params.decrease_min,
-                                                            verbose=1)
+
+        # log_std = -0.223 <z
+        exploration_rate_callback = ExplorationRateCallback(initial_log_std=-0.35, min_log_std=-5.8, decay_rate=0.05,
+                                                 decay_steps=1000)
         # wandb_callback = WandbCallback(gradient_save_freq=100, verbose=2)
-        # eval_callback = EvalCallback(
-        #     self.env,
-        #     best_model_save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
-        #     eval_freq=5000,
-        #     deterministic=True,
-        #     render=False
-        # )
+        eval_callback = EvalCallback(
+            self.env,
+            best_model_save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
+            eval_freq=5000,
+            deterministic=True,
+            render=False
+        )
         periodic_save_callback = PeriodicSaveCallback(
             save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
             verbose=1
         )
 
-        callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
+        #callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
+        #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
+        callback_list = CallbackList([periodic_save_callback])
 
         self.ppo_agent.learn(total_timesteps=self.params["total_timesteps"],
                               callback=callback_list)

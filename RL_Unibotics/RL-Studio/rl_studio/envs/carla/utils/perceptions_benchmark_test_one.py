@@ -1,0 +1,697 @@
+import argparse
+import math
+import os, sys
+import shutil
+import time
+from pathlib import Path
+from sklearn.linear_model import LinearRegression
+from statsmodels.distributions.empirical_distribution import ECDF
+import pickle
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
+from collections import Counter
+
+print(sys.path)
+import cv2
+import torch
+import torch.backends.cudnn as cudnn
+import numpy as np
+import torchvision.transforms as transforms
+from PIL import Image
+import matplotlib.pyplot as plt
+
+from rl_studio.envs.carla.utils.DemoDataset import LoadImages, LoadStreams
+normalize = transforms.Normalize(
+        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+    )
+
+transform=transforms.Compose([
+            transforms.ToTensor(),
+            normalize,
+        ])
+
+# detection_mode = 'yolop'
+# detection_mode = 'lane_detector'
+# detection_mode = 'programmatic'
+
+show_images = False
+apply_mask = True
+
+def select_device(logger=None, device='', batch_size=None):
+    # device = 'cpu' or '0' or '0,1,2,3'
+    cpu_request = device.lower() == 'cpu'
+    if device and not cpu_request:  # if device requested other than 'cpu'
+        os.environ['CUDA_VISIBLE_DEVICES'] = device  # set environment variable
+        assert torch.cuda.is_available(), 'CUDA unavailable, invalid device %s requested' % device  # check availablity
+
+    cuda = False if cpu_request else torch.cuda.is_available()
+    if cuda:
+        c = 1024 ** 2  # bytes to MB
+        ng = torch.cuda.device_count()
+        if ng > 1 and batch_size:  # check that batch_size is compatible with device_count
+            assert batch_size % ng == 0, 'batch-size %g not multiple of GPU count %g' % (batch_size, ng)
+        x = [torch.cuda.get_device_properties(i) for i in range(ng)]
+        s = f'Using torch {torch.__version__} '
+        for i in range(0, ng):
+            if i == 1:
+                s = ' ' * len(s)
+            if logger:
+                logger.info("%sCUDA:%g (%s, %dMB)" % (s, i, x[i].name, x[i].total_memory / c))
+    else:
+        if logger:
+            logger.info(f'Using torch {torch.__version__} CPU')
+
+    if logger:
+        logger.info('')  # skip a line
+    return torch.device('cuda:0' if cuda else 'cpu')
+
+device = select_device()
+images_high = 380
+upper_limit = 200
+x_row = [ upper_limit + 10, 270, 300, 320, images_high - 10 ]
+NO_DETECTED = 0
+THRESHOLDS_PERC = [0.1, 0.3, 0.5, 0.7, 0.9]
+PERFECT_THRESHOLD = 0.9
+
+from rl_studio.envs.carla.utils.yolop.YOLOP import get_net
+import torchvision.transforms as transforms
+
+normalize = transforms.Normalize(
+    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+)
+
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    normalize,
+])
+# INIT YOLOP
+yolop_model = get_net()
+checkpoint = torch.load("/home/ruben/Desktop/RL-Studio/rl_studio/envs/carla/utils/yolop/weights/End-to-end.pth",
+                        map_location=device)
+yolop_model.load_state_dict(checkpoint['state_dict'])
+yolop_model = yolop_model.to(device)
+
+
+lane_model = torch.load('/home/ruben/Desktop/RL-Studio/rl_studio/envs/carla/utils/lane_det/fastai_torch_lane_detector_model.pth')
+lane_model.eval()
+
+lane_model_v3 = torch.load('/home/ruben/Desktop/RL-Studio/rl_studio/envs/carla/utils/lane_det/best_model_torch.pth')
+lane_model_v3.eval()
+
+
+def post_process(ll_segment):
+    ''''
+    Lane line post-processing
+    '''
+    # ll_segment = morphological_process(ll_segment, kernel_size=5, func_type=cv2.MORPH_OPEN)
+    # ll_segment = morphological_process(ll_segment, kernel_size=20, func_type=cv2.MORPH_CLOSE)
+    # return ll_segment
+    # ll_segment = morphological_process(ll_segment, kernel_size=4, func_type=cv2.MORPH_OPEN)
+    # ll_segment = morphological_process(ll_segment, kernel_size=8, func_type=cv2.MORPH_CLOSE)
+
+    # Step 1: Create a binary mask image representing the trapeze
+    mask = np.zeros_like(ll_segment)
+    # pts = np.array([[300, 250], [-500, 600], [800, 600], [450, 260]], np.int32)
+    pts = np.array([[280, 200], [-50, 600], [630, 600], [440, 200]], np.int32)
+    cv2.fillPoly(mask, [pts], (255, 255, 255))  # Fill trapeze region with white (255)
+    cv2.imshow("applied_mask", mask) if show_images else None
+
+    # Step 2: Apply the mask to the original image
+    ll_segment_masked = cv2.bitwise_and(ll_segment, mask)
+    ll_segment_excluding_mask = cv2.bitwise_not(mask)
+    # Apply the exclusion mask to ll_segment
+    ll_segment_excluded = cv2.bitwise_and(ll_segment, ll_segment_excluding_mask)
+    cv2.imshow("discarded", ll_segment_excluded) if show_images else None
+
+    return ll_segment_masked
+
+
+# TODO It is not feasible for online. Since it is calling predict thrice. Optimize
+def post_process_hough_lane_det(ll_segment):
+    # Step 4: Perform Hough transform to detect lines
+    # ll_segment = cv2.dilate(ll_segment, (3, 3), iterations=4)
+    # ll_segment = cv2.erode(ll_segment, (3, 3), iterations=2)
+    cv2.imshow("preprocess", ll_segment) if show_images else None
+    # edges = cv2.Canny(ll_segment, 50, 100)
+    # Extract coordinates of non-zero points
+    nonzero_points = np.argwhere(ll_segment == 255)
+    if len(nonzero_points) == 0:
+        return None
+
+    # Extract x and y coordinates
+    x = nonzero_points[:, 1].reshape(-1, 1)[:, 0]  # Reshape for scikit-learn input
+    y = nonzero_points[:, 0]
+
+    # Fit linear regression model
+    polinomio = np.polyfit(x, y, 3)
+
+    all = range(600)
+    y_pred = np.polyval(polinomio, all)
+
+    line_mask = np.zeros_like(ll_segment, dtype=np.uint8)  # Ensure dtype is uint8
+
+    # Draw the linear regression line
+    for i in all:
+        y_val=int(y_pred[i])
+        cv2.circle(line_mask, (i, y_val), 2, (255, 0, 0), -1)
+
+    cv2.imshow("result", line_mask)
+    cv2.waitKey(1000)
+
+    return line_mask
+
+
+
+def detect_lane_detector_v3(raw_image):
+    image_tensor = raw_image.transpose(2, 0, 1).astype('float32') / 255
+    x_tensor = torch.from_numpy(image_tensor).to("cuda").unsqueeze(0)
+    model_output = torch.softmax(lane_model_v3.forward(x_tensor), dim=1).cpu().numpy()
+    return model_output
+
+def lane_detection_overlay(image, left_mask, right_mask):
+    res = np.copy(image)
+    # We show only points with probability higher than 0.5
+    res[left_mask > 0.5, :] = [255,0,0]
+    res[right_mask > 0.5,:] = [0, 0, 255]
+    return res
+
+def extract_green_lines(image):
+    # Convert the image to HSV color space
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    # Define the range for the green color in HSV space
+    lower_green = np.array([35, 100, 200])
+    upper_green = np.array([85, 255, 255])
+
+    # Create a mask for the green color
+    green_mask = cv2.inRange(hsv_image, lower_green, upper_green)
+
+    return green_mask
+
+def detect_lines(raw_image, detection_mode, processing_mode):
+    with torch.no_grad():
+        ll_segment, left_mask, right_mask = detect_lane_detector_v3(raw_image)[0]
+    ll_segment = np.zeros_like(raw_image)
+    ll_segment = lane_detection_overlay(ll_segment, left_mask, right_mask)
+    cv2.imshow("raw", ll_segment) if show_images else None
+    # Extract blue and red channels
+    # Display the grayscale image
+    ll_segment = post_process(ll_segment)
+    blue_channel = ll_segment[:, :, 0]  # Blue channel
+    red_channel = ll_segment[:, :, 2]  # Red channel
+
+    ll_segment_left = post_process_hough_lane_det(blue_channel)
+    ll_segment_right = post_process_hough_lane_det(red_channel)
+    ll_segment = 0.5 * ll_segment_left if ll_segment_left is not None else np.zeros_like(blue_channel)
+    ll_segment = ll_segment + 0.5 * ll_segment_right if ll_segment_right is not None else ll_segment
+    ll_segment = cv2.convertScaleAbs(ll_segment)
+    # ll_segment = (ll_segment // 255).astype(np.uint8)  # Keep the lower one-third of the image
+    return ll_segment
+
+def choose_lane(distance_to_center_normalized, center_points):
+    last_row = len(x_row) - 1
+    closest_lane_index = min(enumerate(distance_to_center_normalized[last_row]), key=lambda x: abs(x[1]))[0]
+    distances = [array[closest_lane_index] if len(array) > closest_lane_index else min(array) for array in distance_to_center_normalized]
+    centers = [array[closest_lane_index] if len(array) > closest_lane_index else min(array) for array in center_points]
+    return distances, centers
+
+def choose_lane_v1(distance_to_center_normalized, center_points):
+    close_lane_indexes = [min(enumerate(inner_array), key=lambda x: abs(x[1]))[0] for inner_array in
+                          distance_to_center_normalized]
+    distances = [array[index] for array, index in zip(distance_to_center_normalized, close_lane_indexes)]
+    centers = [array[index] for array, index in zip(center_points, close_lane_indexes)]
+    return distances, centers
+
+
+def find_lane_center(mask):
+    # Find the indices of 1s in the array
+    mask_array = np.array(mask)
+    indices = np.where(mask_array > 0.8)[0]
+
+    # If there are no 1s or only one set of 1s, return None
+    if len(indices) < 2:
+        # TODO (Ruben) For the moment we will be dealing with no detection as a fixed number
+        return [NO_DETECTED]
+
+    # Find the indices where consecutive 1s change to 0
+    diff_indices = np.where(np.diff(indices) > 1)[0]
+    # If there is only one set of 1s, return None
+    if len(diff_indices) == 0:
+        return [NO_DETECTED]
+
+    interested_line_borders = np.array([], dtype=np.int8)
+    for index in diff_indices:
+        interested_line_borders = np.append(interested_line_borders, indices[index])
+        interested_line_borders = np.append(interested_line_borders, int(indices[index+1]))
+
+    midpoints = calculate_midpoints(interested_line_borders)
+    return midpoints
+
+
+def calculate_midpoints(input_array):
+    midpoints = []
+    for i in range(0, len(input_array) - 1, 2):
+        midpoint = (input_array[i] + input_array[i + 1]) // 2
+        midpoints.append(midpoint)
+    return midpoints
+
+
+def detect_missing_points(lines):
+    num_points = len(lines)
+    max_line_points = max(len(line) for line in lines)
+    missing_line_count = sum(1 for line in lines if len(line) < max_line_points)
+
+    return missing_line_count > 0 and missing_line_count <= num_points // 2
+
+
+def interpolate_missing_points(input_lists, x_row):
+    # Find the index of the list with the maximum length
+    max_length_index = max(range(len(input_lists)), key=lambda i: len(input_lists[i]))
+
+    # Determine the length of the complete lists
+    complete_length = len(input_lists[max_length_index])
+
+    # Initialize a list to store the inferred list
+    inferred_list = []
+
+    # Iterate over each index in x_row
+    for i, x_value in enumerate(x_row):
+        # If the current index is in the list with incomplete points
+        if len(input_lists[i]) < complete_length:
+            interpolated_list = []
+            for points_i in range(complete_length):
+                # TODO calculates interpolated point of missing line and then build the interpolated_list
+                # Since it is not trivial, we just discard this point from the moment
+                interpolated_y = NO_DETECTED
+                interpolated_list.append(interpolated_y)
+            inferred_list.append(interpolated_list)
+        else:
+            # If the current list is complete, simply append the corresponding y value
+            inferred_list.append(input_lists[i])
+
+    return inferred_list
+
+
+def calculate_lines_percent(mask):
+    width = mask.shape[1]
+    center_image = width / 2
+
+    line_size = images_high - upper_limit
+    line_thresholds = np.array(mask[upper_limit: images_high]) > 0.8
+
+    # Initialize counters
+    positive_count = 0
+    negative_count = 0
+
+    # Iterate through each set of indices
+    for thresholds in line_thresholds:
+        indices = np.where(thresholds)[0]
+
+        # Check if any index is positive
+        if any(index - center_image > 0 for index in indices):
+            positive_count += 1
+        # Check if any index is negative
+        if any(index - center_image < 0 for index in indices):
+            negative_count += 1
+
+    left_lane_perc = negative_count / line_size
+    right_lane_perc = positive_count / line_size
+
+    return left_lane_perc, right_lane_perc
+
+def calculate_center_v1(mask):
+    width = mask.shape[1]
+    center_image = width / 2
+    lines = [mask[x_row[i], :] for i, _ in enumerate(x_row)]
+    center_lane_indexes = [
+        find_lane_center(lines[x]) for x, _ in enumerate(lines)
+    ]
+
+    # this part consists of checking the number of lines detected in all rows
+    # then discarding the rows (set to 1) in which more or less centers are detected
+    center_lane_indexes = discard_not_confident_centers(center_lane_indexes)
+
+    center_lane_distances = [
+        [center_image - x for x in inner_array] for inner_array in center_lane_indexes
+    ]
+
+    # Calculate the average position of the lane lines
+    ## normalized distance
+    distance_to_center_normalized = [
+        np.array(x) / (width - center_image) for x in center_lane_distances
+    ]
+    return center_lane_indexes, distance_to_center_normalized
+
+
+def calculate_center(mask):
+    width = mask.shape[1]
+    center_image = width / 2
+    lines = [mask[x_row[i], :] for i, _ in enumerate(x_row)]
+    center_lane_indexes = [
+        find_lane_center(lines[x]) for x, _ in enumerate(lines)
+    ]
+
+    if detect_missing_points(center_lane_indexes):
+        center_lane_indexes = interpolate_missing_points(center_lane_indexes, x_row)
+    # this part consists of checking the number of lines detected in all rows
+    # then discarding the rows (set to 1) in which more or less centers are detected
+    center_lane_indexes = discard_not_confident_centers(center_lane_indexes)
+
+    center_lane_distances = [
+        [center_image - x for x in inner_array] for inner_array in center_lane_indexes
+    ]
+
+    # Calculate the average position of the lane lines
+    ## normalized distance
+    distance_to_center_normalized = [
+        np.array(x) / (width - center_image) for x in center_lane_distances
+    ]
+    return center_lane_indexes, distance_to_center_normalized
+
+
+def discard_not_confident_centers(center_lane_indexes):
+    # Count the occurrences of each list size leaving out of the equation the non-detected
+    size_counter = Counter(len(inner_list) for inner_list in center_lane_indexes if NO_DETECTED not in inner_list)
+    # Check if size_counter is empty, which mean no centers found
+    if not size_counter:
+        return center_lane_indexes
+    # Find the most frequent size
+    # most_frequent_size = max(size_counter, key=size_counter.get)
+
+    # Iterate over inner lists and set elements to 1 if the size doesn't match majority
+    result = []
+    for inner_list in center_lane_indexes:
+        # if len(inner_list) != most_frequent_size:
+        if len(inner_list) < 1: # If we don't see the 2 lanes, we discard the row
+            inner_list = [NO_DETECTED] * len(inner_list)  # Set all elements to 1
+        result.append(inner_list)
+
+    return result
+
+def get_ll_seg_image(dists, ll_segment, suffix="",  name='ll_seg'):
+    ll_segment_int8 = (ll_segment * 255).astype(np.uint8)
+    ll_segment_all = [np.copy(ll_segment_int8),np.copy(ll_segment_int8),np.copy(ll_segment_int8)]
+
+    # draw the midpoint used as right center lane
+    for index, dist in zip(x_row, dists):
+        # Set the value at the specified index and distance to 1
+        add_midpoints(ll_segment_all[0], index, dist)
+
+    # draw a line for the selected perception points
+    for index in x_row:
+        for i in range(630):
+            ll_segment_all[0][index][i] = 255
+    ll_segment_stacked = np.stack(ll_segment_all, axis=-1)
+    # We now show the segmentation and center lane postprocessing
+    cv2.imshow(name + suffix, ll_segment_stacked)
+    cv2.waitKey(1)
+    return ll_segment_stacked
+
+def add_midpoints(ll_segment, index, dist):
+    # Set the value at the specified index and distance to 1
+    draw_dash(index, dist, ll_segment)
+    draw_dash(index + 2, dist, ll_segment)
+    draw_dash(index + 1, dist, ll_segment)
+    draw_dash(index - 1, dist, ll_segment)
+    draw_dash(index - 2, dist, ll_segment)
+
+def draw_dash(index, dist, ll_segment):
+    ll_segment[index, dist - 1] = 255  # <-- here is the real calculated center
+    ll_segment[index, dist - 3] = 255
+    ll_segment[index, dist - 2] = 255
+    ll_segment[index, dist - 4] = 255
+    ll_segment[index, dist - 5] = 255
+    ll_segment[index, dist - 6] = 255
+
+
+def calculate_and_plot_lines_counts_above(save_results_benchmark_path, percs, yolop_left_perc, yolop_right_perc,
+                                                lane_detector_left_perc, lane_detector_right_perc,
+                                                lane_detector_v3_left_perc, lane_detector_v3_right_perc,
+                                                programmatic_left_perc, programmatic_right_perc,
+                                                perfect_left_perc, perfect_right_perc, processing_mode):
+
+    for perc in percs:
+        yolop_counts = calculate_lines_counts_above(perc, yolop_left_perc, yolop_right_perc)
+        lane_det_counts = calculate_lines_counts_above(perc, lane_detector_left_perc,
+                                                       lane_detector_right_perc)
+        lane_det_v3_counts = calculate_lines_counts_above(perc, lane_detector_v3_left_perc,
+                                                          lane_detector_v3_right_perc)
+        prog_counts = calculate_lines_counts_above(perc, programmatic_left_perc, programmatic_right_perc)
+
+        perfect_counts = calculate_lines_counts_above(perc, perfect_left_perc, perfect_right_perc)
+
+        subplots = 5 if processing_mode != "none" else 4
+
+        fig2, axs2 = plt.subplots(1, subplots, figsize=(18, 6))
+
+        axs2[0].bar(['Just left', 'Just right', 'both', 'none'], yolop_counts, color=['blue', 'green'])
+        axs2[0].set_title('YOLOP')
+        axs2[0].set_ylabel(f'percentage of images above {perc * 100}% detected')
+        axs2[0].set_ylim(0, 100)
+
+        axs2[1].bar(['Just left', 'Just right', 'both', 'none'], lane_det_counts, color=['blue', 'green'])
+        axs2[1].set_title('Lane Detector')
+        axs2[1].set_ylabel(f'percentage of images above {perc * 100}% detected')
+        axs2[1].set_ylim(0, 100)
+
+        axs2[2].bar(['Just left', 'Just right', 'both', 'none'], lane_det_v3_counts, color=['blue', 'green'])
+        axs2[2].set_title('Lane Detector V3')
+        axs2[2].set_ylabel(f'percentage of images above {perc * 100}% detected')
+        axs2[2].set_ylim(0, 100)
+
+        axs2[3].bar(['Just left', 'Just right', 'both', 'none'], perfect_counts, color=['blue', 'green'])
+        axs2[3].set_title('Perfect')
+        axs2[3].set_ylabel(f'percentage of images above {perc * 100}% detected')
+        axs2[3].set_ylim(0, 100)
+
+        if processing_mode != "none":
+            axs2[4].bar(['Just left', 'Just right', 'both', 'none'], prog_counts, color=['blue', 'green'])
+            axs2[4].set_title('Programmatic')
+            axs2[4].set_ylabel(f'percentage of images above {perc * 100}% detected')
+            axs2[4].set_ylim(0, 100)
+
+        plt.savefig(save_results_benchmark_path / f'plot_{perc * 100}_above.png')
+        plt.close()
+    pass
+
+
+def calculate_lines_counts_above(threshold, left_perc, right_perc):
+    return [
+        (np.sum((np.array(left_perc) >= threshold) & (np.array(right_perc) < threshold)) / len(left_perc)) * 100,
+        (np.sum((np.array(left_perc) < threshold) & (np.array(right_perc) >= threshold)) / len(left_perc)) * 100,
+        (np.sum((np.array(left_perc) >= threshold) & (np.array(right_perc) >= threshold)) / len(left_perc)) * 100,
+        (np.sum((np.array(left_perc) < threshold) & (np.array(right_perc) < threshold)) / len(left_perc)) * 100,
+    ]
+
+def perform_all_benchmarking(dataset, processing_mode):
+    # Create the save directory if it doesn't exist
+    save_results_benchmark_dir = str(opt.save_dir + "/benchmark/" + processing_mode + "/")
+    save_results_benchmark_path = Path(save_results_benchmark_dir)
+    save_results_benchmark_path.mkdir(parents=True, exist_ok=True)
+
+    if os.path.exists(save_results_benchmark_dir):
+        for file_name in os.listdir(save_results_benchmark_dir):
+            file_path = os.path.join(save_results_benchmark_dir, file_name)
+            try:
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+            except Exception as e:
+                print(f"Error deleting file {save_results_benchmark_dir}: {e}")
+
+    # Benchmarking data (these would be populated by your benchmark_one function)
+    lane_det_v3_times, lane_detector_v3_errors, lane_detector_v3_left_perc, lane_detector_v3_right_perc, percentage_v3_lane = benchmark_one(
+        dataset, "lane_det_v3", processing_mode)
+
+
+def detect(opt):
+    # Set Dataloader
+    if opt.source.isnumeric():
+        cudnn.benchmark = True  # set True to speed up constant image size inference
+        dataset = LoadStreams(opt.source, img_size=opt.img_size)
+    else:
+        dataset = LoadImages(opt.source, img_size=opt.img_size)
+
+    perform_all_benchmarking(dataset, "postprocess")
+
+def benchmark_one(dataset, detection_mode, processing_mode):
+    print("running benchmarking on " + detection_mode)
+    # Run inference
+    t0 = time.time()
+
+    save_path_bad_dir = str(opt.save_dir + detection_mode + "/" + processing_mode + "/bad")
+    save_path_good_dir = str(opt.save_dir + detection_mode + "/" + processing_mode +  "/good")
+    save_path_bad_raw_dir = str(opt.save_dir + detection_mode + "/" + processing_mode +  "/bad_raw")
+    save_path_out_raw_dir = str(opt.save_dir + detection_mode + "/" + processing_mode + "/good_raw")
+    save_results_metrics_dir = str(opt.save_dir + detection_mode + "/" + processing_mode + "/metrics")
+
+    # TODO avoid this duplicated code
+    if not os.path.exists(save_path_bad_dir):
+        os.makedirs(save_path_bad_dir)
+
+    if not os.path.exists(save_path_good_dir):
+        os.makedirs(save_path_good_dir)
+
+    if not os.path.exists(save_path_bad_raw_dir):
+        os.makedirs(save_path_bad_raw_dir)
+
+    if not os.path.exists(save_path_out_raw_dir):
+        os.makedirs(save_path_out_raw_dir)
+
+    if not os.path.exists(save_results_metrics_dir):
+        os.makedirs(save_results_metrics_dir)
+
+    directories = [save_path_bad_dir, save_path_good_dir, save_path_bad_raw_dir, save_path_out_raw_dir,
+                   save_results_metrics_dir]
+    for directory_path in directories:
+        if os.path.exists(directory_path):
+            for file_name in os.listdir(directory_path):
+                file_path = os.path.join(directory_path, file_name)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                except Exception as e:
+                    print(f"Error deleting file {directory_path}: {e}")
+
+    detected = 0
+    all_images = 0
+    all_avg_errors_when_detected = []
+    all_left_perc = []
+    all_right_perc = []
+    times = []
+    for i, (path, img, img_det, vid_cap, shapes) in enumerate(dataset):
+        all_images += 1
+
+        save_path_bad = str(save_path_bad_dir + '/' + Path(path).name)
+        save_path_good = str(save_path_good_dir + '/' + Path(path).name)
+        save_path_bad_raw = str(save_path_bad_raw_dir + '/' + Path(path).name)
+        save_path_out_raw = str(save_path_out_raw_dir + '/' + Path(path).name)
+
+        height = img.shape[0]
+        width = img.shape[1]
+
+        # Calculate the new height to maintain the aspect ratio
+        new_height = int((640 / width) * height)
+
+        resized_img = Image.fromarray(img).resize((640, new_height))
+
+        # Convert back to numpy array if needed
+        # For example, if you want to return a numpy array:
+        resized_img_np = np.array(resized_img)
+        start = time.time()
+
+        ll_seg_out = detect_lines(resized_img_np, detection_mode, processing_mode)
+
+        processing_time = time.time() - start
+        times.append(processing_time)
+
+        ll_seg_out_raw = ll_seg_out
+        # TODO (Ruben) use this raw output to measure percentage of line detected
+
+        (
+            center_lanes,
+            distance_to_center_normalized,
+        ) = calculate_center_v1(ll_seg_out)
+        right_lane_normalized_distances, right_center_lane = choose_lane_v1(distance_to_center_normalized, center_lanes)
+
+        ll_segment_stacked = get_ll_seg_image(right_center_lane, ll_seg_out)
+        centers = np.array(right_lane_normalized_distances)
+        # print(centers)
+
+        left_percent, right_percent = calculate_lines_percent(ll_seg_out)
+        all_left_perc.append(left_percent)
+        all_right_perc.append(right_percent)
+
+        if dataset.mode == 'images':
+            # Resize detected_lines to match the dimensions of image
+            if processing_mode != "none":
+                detected_lines_resized = cv2.resize(ll_segment_stacked, (img.shape[1], img.shape[0]))
+                # Define the transparency level (alpha) for the overlay
+                alpha = 0.5  # You can adjust this value to change the transparency
+                # Overlay the detected lines on top of the RGB image
+                overlay = cv2.addWeighted(img, 1 - alpha, detected_lines_resized, alpha, 0)
+                cv2.imshow("perception", overlay) if show_images else None
+
+            total_error = 0
+            detected_points = 0
+            for x in right_lane_normalized_distances:
+                if abs(x) != 1:
+                    detected_points += 1
+                    total_error += abs(x)
+
+            if detected_points > 0:
+                average_abs = total_error / detected_points
+                all_avg_errors_when_detected.append(average_abs)
+
+            if processing_mode == "none":
+                if left_percent > PERFECT_THRESHOLD and right_percent > PERFECT_THRESHOLD:
+                    detected += 1
+                    cv2.imwrite(save_path_good, ll_seg_out_raw)
+                    cv2.imwrite(save_path_out_raw, img)
+                else:
+                    cv2.imwrite(save_path_bad, ll_seg_out_raw)
+                    cv2.imwrite(save_path_bad_raw, img)
+            else:
+                if wasDetected(centers.tolist()):
+                    detected += 1
+                    cv2.imwrite(save_path_good, overlay)
+                    cv2.imwrite(save_path_out_raw, img)
+                else:
+                    cv2.imwrite(save_path_bad, overlay)
+                    cv2.imwrite(save_path_bad_raw, img)
+
+        else:
+            cv2.imshow('image', ll_seg_out)
+            cv2.waitKey(1)  # 1 millisecond
+
+        cv2.waitKey(0) if show_images else None
+
+    cv2.waitKey(10000) if show_images else None
+    print('Done. (%.3fs)' % (time.time() - t0))
+    print(f"total good -> {detected} images of {all_images} were detected = {(detected/all_images) * 100}%.")
+
+    file_name = processing_mode + "_errors.pkl"
+    save_results_metrics_errors_file = save_results_metrics_dir + "/" + file_name
+    with open(save_results_metrics_errors_file, 'wb') as file:
+        pickle.dump(all_avg_errors_when_detected, file)
+
+    file_name = processing_mode + "_left.pkl"
+    save_results_metrics_left_file = save_results_metrics_dir + "/" + file_name
+    with open(save_results_metrics_left_file, 'wb') as file:
+        pickle.dump(all_left_perc, file)
+
+    file_name = processing_mode + "_right.pkl"
+    save_results_metrics_right_file = save_results_metrics_dir + "/" + file_name
+    with open(save_results_metrics_right_file, 'wb') as file:
+        pickle.dump(all_right_perc, file)
+
+    return times, all_avg_errors_when_detected, all_left_perc, all_right_perc, (detected/all_images) * 100
+
+
+def wasDetected(labels: list):
+    for i in range(len(labels)):
+        if abs(labels[i]) != 1:
+            return True
+    return False
+
+def anyDetected(labels: list):
+    for i in range(len(labels)):
+        if abs(labels[i]) < 0.8:
+            return True
+    return False
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--weights', nargs='+', type=str, default='weights/End-to-end.pth', help='model.pth path(s)')
+    parser.add_argument('--source', type=str, default='/home/ruben/Desktop/RL-Studio/rl_studio/inference/images', help='source')  # file/folder   ex:inference/images
+    parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
+    parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
+    parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
+    parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
+    parser.add_argument('--save-dir', type=str, default='/home/ruben/Desktop/RL-Studio/rl_studio/inference/output/', help='directory to save results')
+    parser.add_argument('--augment', action='store_true', help='augmented inference')
+    parser.add_argument('--update', action='store_true', help='update all models')
+    opt = parser.parse_args()
+    with torch.no_grad():
+        detect(opt)

@@ -17,8 +17,8 @@ db = client['training_db']
 collection = db['training_results']
 
 # Query by date range
-start_date = datetime(2024, 10, 1)
-end_date = datetime(2024, 10, 26)
+start_date = datetime(2024, 11, 1)
+end_date = datetime(2024, 11, 26)
 
 query = {"timestamp": {"$gte": start_date, "$lt": end_date}}
 documents = collection.find(query)

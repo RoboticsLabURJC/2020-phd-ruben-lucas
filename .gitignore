@@ -7,3 +7,5 @@ RL_Unibotics/RL-Studio/rl_studio/logs/
 RL_Unibotics/RL-Studio/condaEnv/
 RL_Unibotics/RL-Studio/rl_studio/CustomRobots/
 RL_Unibotics/RL-Studio/rl_studio/installation/
+RL_Unibotics/RL-Studio/rl_studio/mlruns/
+RL_Unibotics/RL-Studio/rl_studio/agents/auto_carla/hyperparameter_tuning/logs/
