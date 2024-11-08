@@ -10,23 +10,32 @@ import base64
 from io import BytesIO
 
 yaml_file = '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/config/config_training_followlane_bs_ddpg_f1_carla.yaml'  # Replace with your YAML file path
-
-reward_filename = '/home/ruben/Desktop/RL-Studio/rl_studio/envs/carla/followlane/followlane_carla_sb.py'
+reward_filename = '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/envs/carla/followlane/followlane_carla_sb.py'
 reward_method = 'rewards_easy'
 
 tensorboard_logs_dir = os.path.join(
-    '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/logs/retraining/follow_lane_carla_ddpg_auto_carla_baselines/TensorBoard/DDPG_Actor_conv2d32x64_Critic_conv2d32x64-20241008-124335',
-    'events.out.tfevents.1728384215.ruben-Alienware-Aurora-Ryzen-Edition.749605.0.v2')
+    '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/logs/retraining/follow_lane_carla_ddpg_auto_carla_baselines/TensorBoard/DDPG_Actor_conv2d32x64_Critic_conv2d32x64-20241106-085923',
+    'events.out.tfevents.1730879963.ruben-Alienware-Aurora-Ryzen-Edition.1310161.0.v2')
 
 lesson_learned = '''
-it is important to fine tune parameters, choose the right architectures and implement 
-a conservative catastrophic strategy so the agent does not learn from missing lines states and recover from that state in the same way than inference. 
-However, the most important thing is the reward, making it simple and guiding the agent to the behavior you want. 
-In this case: 
-1. dont stop, velocity is always important 
-2. position is more important 
-3. if you get out the lane you are punished 
-4. if you start deviating you can center the car or, if difficult, brake alittle, which will make it easier
+When using a perfect perception we dont have to worry about many things that were harming the training
+- Specific locations where perception is fine. Now can start at any random position, making the training richer.
+- Overcomplicating reward. Now there is no need to indicate that many things. It will learn even better with simpler reward. 
+- Not perceived image scenario. Now we dont need specific manual actions when image not perceived
+
+However new challenges had to be faced:
+- Reward not need to be complicated, but need to be precise, since now the agent learn to exploit it optimally.
+  As an example, in previous reward we were not punishing some car deviations and velocity was highly rewarded
+  so agent learned to drive fast when perception was totally centered and not missed. Now that perception is
+  always perfect, it learned that it was preferable to accelerate A LOT though it provoked some crashes.
+  With new reward, all bad consequences are highly punished and balanced with rewards. Additionally, we are
+  not that focused on staying in the exact center to avoid some zig-zag the agent was performing to retrieve some
+  optimal rewards.
+- Now that perception is stable, hyperparameter tuning is more useful. With this we found out that smaller network
+  and lower learning rate was achieving a better performance.
+
+Finally and unrelated to perception, we implemented mlflow to record the saved models explicit and implicit metrics to
+better catch suboptimal models reached before network get out from the local (or even optimal) minima 
 '''
 
 def load_hyperparameters(yaml_file):

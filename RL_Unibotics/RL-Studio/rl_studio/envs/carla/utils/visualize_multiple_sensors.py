@@ -76,12 +76,15 @@ class DisplayManager:
     def get_sensor_list(self):
         return self.sensor_list
 
-    def render(self):
+    def render(self, vehicle=None):
         if not self.render_enabled():
             return
 
         for s in self.sensor_list:
             s.render()
+
+        if vehicle is not None:
+            self.render_vehicle_info(vehicle)
 
         pygame.display.flip()
 
@@ -93,6 +96,41 @@ class DisplayManager:
 
     def render_enabled(self):
         return self.display != None
+
+    def render_vehicle_info(self, vehicle):
+        # Get the vehicle speed, steering angle, and acceleration
+        speed = vehicle.get_velocity()
+        steering = vehicle.get_control().steer
+        throttle = vehicle.get_control().throttle
+        brake = vehicle.get_control().brake
+        acceleration = vehicle.get_acceleration()
+        reward = vehicle.reward
+        deviation = vehicle.error
+
+        # Calculate speed in km/h (optional)
+        speed_kmh = (speed.x ** 2 + speed.y ** 2 + speed.z ** 2)  ** 0.5 * 3.6  # converting m/s to km/h
+
+        # Prepare text surface
+        font = pygame.font.Font(None, 36)
+        speed_text = font.render(f'Speed: {speed_kmh:.2f} km/h', True, (255, 255, 255))
+        steering_text = font.render(f'Steering: {steering:.2f}', True, (255, 255, 255))
+        throttle_text = font.render(f'throttle: {throttle:.2f}', True, (255, 255, 255))
+        brake_text = font.render(f'brake: {brake:.5f}', True, (255, 255, 255))
+        acceleration_text = font.render(
+            f'Acceleration: {acceleration.x:.2f}, {acceleration.y:.2f}, {acceleration.z:.2f}', True, (255, 255, 255))
+        reward_text = font.render(
+            f'Reward: {reward:.2f}', True, (255, 255, 255))
+        deviation = font.render(
+            f'Deviation: {deviation:.2f}', True, (255, 255, 255))
+
+        # Blit the text onto the display
+        self.display.blit(speed_text, (10, 10))  # position of the speed text
+        self.display.blit(steering_text, (10, 50))  # position of the steering text
+        self.display.blit(acceleration_text, (10, 90))  # position of the acceleration text
+        self.display.blit(brake_text, (10, 130))  # position of the acceleration text
+        self.display.blit(throttle_text, (10, 170))  # position of the acceleration text
+        self.display.blit(reward_text, (10, 210))  # position of the acceleration text
+        self.display.blit(deviation, (10, 250))  # position of the acceleration text
 
 
 class SensorManager:

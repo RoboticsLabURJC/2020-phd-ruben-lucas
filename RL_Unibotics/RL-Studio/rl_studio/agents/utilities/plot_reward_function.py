@@ -70,8 +70,7 @@ def rewards_easy(v, pos):
         return 0
 
     d_reward = math.pow(1 - abs(pos), 1)
-    base_reward = (np.log1p(v) / np.log1p(3)) * math.pow(d_reward, (v/8) + 1)
-    v_eff_reward = math.pow(base_reward, 2)
+    v_eff_reward = np.log(v)/np.log(20) * math.pow(d_reward, (v/5) + 1)
 
     beta = 0
     # TODO Ver que valores toma la velocity para compensarlo mejor
