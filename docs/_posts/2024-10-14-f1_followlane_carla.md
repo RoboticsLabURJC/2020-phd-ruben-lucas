@@ -24,7 +24,7 @@ pinned: false
 
 # Next goal
 
-Now that we managed gazebo follow line. Lets jump into carla follow lane problem.
+Now that we managed gazebo follow line. Lets jump into carla follow lane.
 Progress and next steps are documented in the following drive folders
 
 * [2023-2024 progress](https://drive.google.com/drive/u/1/folders/1prYZ8jAtRd0fX_TQh4PISXOVFcKoCfuc)
