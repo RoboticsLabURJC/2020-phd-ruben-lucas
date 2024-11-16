@@ -850,13 +850,17 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def control(self, action):
 
-        brake = 0.0
+        # brake = 0.0
+        # brake = float(action[2])
 
-        if self.actions.get("b") is not None and float(action[2]) > 0.5:
-            # brake = 0.3
-            brake = float(action[2])
+        if float(action[0]) < 0:
+            brake = - float(action[0])
+            throttle = 0
+        else :
+            brake = 0
+            throttle = float(action[0])
 
-        self.car.apply_control(carla.VehicleControl(throttle=float(action[0]), brake=brake,
+        self.car.apply_control(carla.VehicleControl(throttle=throttle, brake=brake,
                                                     steer=float(action[1])))
 
         params = {}
@@ -964,6 +968,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # PUNISH CALCULATION
         punish = 0
         punish += self.punish_zig_zag_value * abs(params["steering_angle"])
+        # punish += 1 if action[0] > 0 and action[2] > 0 else 0
         # punish += (1-self.beta) * v_reward * math.pow((1-d_reward), 2)
         if function_reward > punish: # to avoid negative rewards
             function_reward -= punish

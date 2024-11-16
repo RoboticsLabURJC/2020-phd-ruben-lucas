@@ -168,7 +168,6 @@ class PeriodicSaveCallback(BaseCallback):
 class ExplorationRateCallback(BaseCallback):
     def __init__(self, tensorboard, n_actions, initial_exploration_rate=0.2, decay_rate=0.01, decay_steps=10000, exploration_min=0.005, verbose=1):
         super(ExplorationRateCallback, self).__init__(verbose)
-        self.initial_exploration_rate = initial_exploration_rate
         self.decay_rate = decay_rate
         self.decay_steps = decay_steps
         self.current_step = 0
@@ -184,7 +183,8 @@ class ExplorationRateCallback(BaseCallback):
             # Assuming self.model is a DDPG model
             self.model.action_noise = NormalActionNoise(
                 mean=np.zeros(self.n_actions),
-                sigma=self.exploration_rate * np.ones(self.n_actions)
+                # sigma=self.exploration_rate * np.ones(self.n_actions)
+                sigma=np.array([self.exploration_rate] + [0.0] * (self.n_actions - 1))
             )
             if self.verbose > 0:
                 print(f"Step {self.current_step}: Setting exploration rate to {self.exploration_rate}")
@@ -345,8 +345,8 @@ class TrainerFollowLaneDDPGCarla:
             verbose=1
         )
 
-        callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
-        #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
+        #callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
+        callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
 
         self.ddpg_agent.learn(total_timesteps=self.params["total_timesteps"],
                               callback=callback_list)
