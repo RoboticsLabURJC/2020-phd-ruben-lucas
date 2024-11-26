@@ -6,6 +6,8 @@ import pynvml
 import psutil
 from typing import Callable
 
+import mlflow
+import mlflow.sklearn
 from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import MlpExtractor
@@ -130,11 +132,13 @@ class CustomPolicyNetwork(BaseFeaturesExtractor):
         return self.net(observations)
 
 class PeriodicSaveCallback(BaseCallback):
-    def __init__(self, save_path, save_freq=10000, verbose=1):
+    def __init__(self, env, params, save_path, save_freq=10000, verbose=1):
         super(PeriodicSaveCallback, self).__init__(verbose)
         self.save_path = save_path
         self.save_freq = save_freq
         self.step_count = 0
+        self.env = env
+        self.params = params
 
     def _init_callback(self) -> None:
         if self.save_path is not None:
@@ -145,8 +149,31 @@ class PeriodicSaveCallback(BaseCallback):
         if self.step_count % self.save_freq == 0:
             model_save_path = os.path.join(self.save_path, f"model_{self.step_count}_steps")
             self.model.save(model_save_path)
+            date_time = time.strftime('%Y%m%d-%H%M%S')
+
+            mlflow.set_experiment("followlane_carla")
+            with mlflow.start_run(nested=True):
+                mlflow.log_param("model_type", "ppo_bs")
+                mlflow.log_metric("avg_speed", self.env.last_avg_speed)
+                mlflow.log_metric("max_speed", self.env.last_max_speed)
+                mlflow.log_metric("deviation", self.env.episode_last_d_deviation)
+                mlflow.log_metric("cum_reward", self.env.last_cum_reward)
+                mlflow.set_tag("detection_mode", self.params["detection_mode"])
+                mlflow.log_param("actions", self.params["actions"])
+                mlflow.log_param("zig_zag_punish", self.params["zig_zag_punish"])
+                mlflow.set_tag("running_mode", self.params["running_mode"])
+                mlflow.log_param("datetime", date_time)
+                mlflow.log_metric("last_episode_steps", self.env.last_steps)
+                mlflow.log_metric("steps", self.step_count)
+                mlflow.log_artifact(model_save_path + ".zip", artifact_path="saved_models")
+            # mlflow.log_metric("gamma", self.env.episode_d_deviation)
+            # mlflow.log_metric("tau", self.env.episode_d_deviation)
+            # mlflow.log_metric("lr", self.env.episode_d_deviation)
+            # mlflow.log_metric("d_importance", self.env.episode_d_deviation)
+            # mlflow.log_metric("v_importance", self.env.episode_d_deviation)
+            # mlflow.log_metric("high_vel_punish", self.env.episode_d_deviation)
             if self.verbose > 0:
-                print(f"Saved model at step {self.step_count} to {model_save_path}")
+                print(f"Saved model at step {self.step_count}")
         return True
 
 class ExplorationRateCallback(BaseCallback):
@@ -341,7 +368,7 @@ class TrainerFollowLanePPOCarla:
             "gamma": self.algoritmhs_params.gamma,
             "epsilon": self.algoritmhs_params.epsilon,
             "total_timesteps": 5000000,
-            "batch_size": 1000
+            "batch_size": 1024
         }
 
         # Init Agents
@@ -358,18 +385,18 @@ class TrainerFollowLanePPOCarla:
                 self.env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[256, 256, 256, 256],  # The architecture for the policy network
-                        vf=[256, 256, 256, 256]  # The architecture for the value network
+                        pi=[256, 256, 256],  # The architecture for the policy network
+                        vf=[256, 256, 256]  # The architecture for the value network
                     ),
                     activation_fn=nn.ReLU,
-                    log_std_init=-0.223,
+                    log_std_init=-0.9,
                     ortho_init=True,
                 ),
-                max_grad_norm=0.5,
-                learning_rate=linear_schedule(0.0001),
+                max_grad_norm=0.8,
+                learning_rate=linear_schedule(0.001),
                 gamma=self.params["gamma"],
                 gae_lambda=0.95,
-                ent_coef=0.01,
+                ent_coef=0.05,
                 clip_range=self.params["epsilon"],
                 batch_size=self.params["batch_size"],
                 verbose=1,
@@ -393,9 +420,9 @@ class TrainerFollowLanePPOCarla:
         #     sync_tensorboard=True,
         # )
 
-        # log_std = -0.223 <z
-        exploration_rate_callback = ExplorationRateCallback(initial_log_std=-0.35, min_log_std=-5.8, decay_rate=0.05,
-                                                 decay_steps=1000)
+        # log_std = -0.223 <= 0.8;  -1 <= 0.36
+        exploration_rate_callback = ExplorationRateCallback(initial_log_std=-1, min_log_std=-5.8, decay_rate=0.08,
+                                                 decay_steps=3000)
         # wandb_callback = WandbCallback(gradient_save_freq=100, verbose=2)
         eval_callback = EvalCallback(
             self.env,
@@ -404,30 +431,25 @@ class TrainerFollowLanePPOCarla:
             deterministic=True,
             render=False
         )
+
+        params = {
+            "detection_mode": self.environment.environment["detection_mode"],
+            "actions": self.global_params.actions_set,
+            "zig_zag_punish": self.environment.environment["punish_zig_zag_value"],
+            "running_mode": self.environment.environment["mode"],
+        }
         periodic_save_callback = PeriodicSaveCallback(
+            env = self.env,
+            params = params,
             save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
             verbose=1
         )
 
         #callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
-        #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
-        callback_list = CallbackList([periodic_save_callback])
+        callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
+        #callback_list = CallbackList([periodic_save_callback])
 
         self.ppo_agent.learn(total_timesteps=self.params["total_timesteps"],
                               callback=callback_list)
 
         # self.env.close()
-
-    def set_stats(self, info, prev_state):
-        self.episodes_speed.append(info["velocity"])
-        self.episodes_steer.append(info["steering_angle"])
-        self.episodes_d_reward.append(info["d_reward"])
-        self.episodes_reward.append(info["reward"])
-
-        self.all_steps_reward.append(info["reward"])
-        self.all_steps_velocity.append(info["velocity"])
-        self.all_steps_steer.append(info["steering_angle"])
-        self.all_steps_state0.append(prev_state[0])
-        self.all_steps_state11.append(prev_state[6])
-
-        pass

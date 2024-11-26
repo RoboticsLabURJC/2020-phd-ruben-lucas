@@ -14,28 +14,25 @@ reward_filename = '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Stud
 reward_method = 'rewards_easy'
 
 tensorboard_logs_dir = os.path.join(
-    '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/logs/retraining/follow_lane_carla_ddpg_auto_carla_baselines/TensorBoard/DDPG_Actor_conv2d32x64_Critic_conv2d32x64-20241106-085923',
-    'events.out.tfevents.1730879963.ruben-Alienware-Aurora-Ryzen-Edition.1310161.0.v2')
+    '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/logs/training/follow_lane_carla_ddpg_auto_carla_baselines/TensorBoard/DDPG_Actor_conv2d32x64_Critic_conv2d32x64-20241113-100011',
+    'events.out.tfevents.1731488411.ruben-Alienware-Aurora-Ryzen-Edition.226189.0.v2')
 
 lesson_learned = '''
-When using a perfect perception we dont have to worry about many things that were harming the training
-- Specific locations where perception is fine. Now can start at any random position, making the training richer.
-- Overcomplicating reward. Now there is no need to indicate that many things. It will learn even better with simpler reward. 
-- Not perceived image scenario. Now we dont need specific manual actions when image not perceived
+Now that we got a good agent and we know:
+- algorithm and reward is properly tuned
+- brake has a positive impact in performance
 
-However new challenges had to be faced:
-- Reward not need to be complicated, but need to be precise, since now the agent learn to exploit it optimally.
-  As an example, in previous reward we were not punishing some car deviations and velocity was highly rewarded
-  so agent learned to drive fast when perception was totally centered and not missed. Now that perception is
-  always perfect, it learned that it was preferable to accelerate A LOT though it provoked some crashes.
-  With new reward, all bad consequences are highly punished and balanced with rewards. Additionally, we are
-  not that focused on staying in the exact center to avoid some zig-zag the agent was performing to retrieve some
-  optimal rewards.
-- Now that perception is stable, hyperparameter tuning is more useful. With this we found out that smaller network
-  and lower learning rate was achieving a better performance.
-
-Finally and unrelated to perception, we implemented mlflow to record the saved models explicit and implicit metrics to
-better catch suboptimal models reached before network get out from the local (or even optimal) minima 
+It is time to seek for excelence and we observed that agent is often throttling and braking at the same time.
+We dont want the brakes to break and we would like a comfortable and smooth driving as a human would perform
+So we performed the following adjustments:
+- instead of having 3 actions outputed from the network, we have 2:
+   - v: If positive we apply throttle, if negative we apply break
+   - w: steering angle
+  with this we make sure the agent chose between braking or throttling
+- Stop rewarding the agent speed over 120km/h. At this speed we are not that happy because we may be fined.
+- Stop rewarding speed when brake is applied. With this we encourage stop accelerating instead of braking, which
+  is preferable.
+- Increase punish when out of lane to ensure we are not preferring not braking at the cost of crashing
 '''
 
 def load_hyperparameters(yaml_file):

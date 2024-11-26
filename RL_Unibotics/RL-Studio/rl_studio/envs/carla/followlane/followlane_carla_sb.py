@@ -850,13 +850,17 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def control(self, action):
 
-        brake = 0.0
+        # brake = 0.0
+        # brake = float(action[2])
 
-        if self.actions.get("b") is not None and float(action[2]) > 0.5:
-            # brake = 0.3
-            brake = float(action[2])
+        if float(action[0]) < 0:
+            brake = - float(action[0])
+            throttle = 0
+        else :
+            brake = 0
+            throttle = float(action[0])
 
-        self.car.apply_control(carla.VehicleControl(throttle=float(action[0]), brake=brake,
+        self.car.apply_control(carla.VehicleControl(throttle=throttle, brake=brake,
                                                     steer=float(action[1])))
 
         params = {}
@@ -906,7 +910,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if done:
             print("car deviated")
             crash = True
-            return -2, done, crash
+            return -5, done, crash
 
         crash = False
 
@@ -915,14 +919,14 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold, len(distance_error))
 
         if done:
-            return -2, done, crash
+            return -5, done, crash
 
         # REWARD CALCULATION
         low_vel_factor=1
         if params["velocity"] < self.punish_ineffective_vel:
             self.steps_stopped += 1
             if self.steps_stopped > 500:
-                return -2, True, False
+                return -5, True, False
                 print("too much time stopped")
             low_vel_factor=0
         else:
@@ -944,8 +948,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # VELOCITY REWARD CALCULCATION
 
         v = params["velocity"]
+        rewarded_v = min(params["velocity"], 34) # min to not to reward speeds over 120km/h
 
-        v_eff_reward =  np.log(v)/np.log(20) * math.pow(d_reward, (v/5) + 1)
+        v_eff_reward =  np.log(rewarded_v)/np.log(20) * math.pow(d_reward, (rewarded_v/5) + 1)
+
         self.episode_v_eff_reward = self.episode_v_eff_reward + (v_eff_reward - self.episode_v_eff_reward) / self.step_count
         params["v_eff_reward"] = v_eff_reward
 
@@ -964,6 +970,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # PUNISH CALCULATION
         punish = 0
         punish += self.punish_zig_zag_value * abs(params["steering_angle"])
+        if v > 34:
+            punish += (v - 34) / 10
+        # punish += 1 if action[0] > 0 and action[2] > 0 else 0
         # punish += (1-self.beta) * v_reward * math.pow((1-d_reward), 2)
         if function_reward > punish: # to avoid negative rewards
             function_reward -= punish
