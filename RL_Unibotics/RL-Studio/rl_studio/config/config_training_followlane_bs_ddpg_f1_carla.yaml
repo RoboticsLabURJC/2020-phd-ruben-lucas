@@ -1,5 +1,5 @@
 settings:
-  mode: inference # training, retraining, inference
+  mode: retraining # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: ddpg # qlearn, dqn, ddpg, ppo
   simulator: carla # openai, carla, gazebo, sumo
@@ -35,7 +35,7 @@ ros:
 
 retraining:
   ddpg:
-    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20241106-085932/model_750000_steps.zip
+    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20241116-185923/model_2060000_steps.zip
 inference:
   ddpg:
     retrain_ddpg_tf_model_name: /whatever
@@ -44,7 +44,7 @@ algorithm:
   ddpg:
     gamma: 0.92
     tau: 0.005
-    std_dev: 0.1 # Note this std dev is applied to normalized actions (-1, 1) and generates noise between +-2*std_dev
+    std_dev: 0.05 # Note this std dev is applied to normalized actions (-1, 1) and generates noise between +-2*std_dev
     model_name: DDPG_Actor_conv2d32x64_Critic_conv2d32x64
     replay_memory_size: 10_000
     memory_fraction: 0.20
@@ -81,9 +81,9 @@ states:
 
 actions:
   continuous:
-    v: [0, 1]
+    v: [-1, 1]
     w: [-0.2, 0.2]
-    b: [0, 1]
+#    b: [0, 1]
 
 
 rewards:
@@ -99,7 +99,7 @@ carla_environments:
     traffic_pedestrians: False
     city_lights: False
     car_lights: False
-    estimated_steps: 3000
+    estimated_steps: 2000
     save_episodes: 5 # not used in this carla ppo
     save_every_step: 100 # not used in this carla ppo
     goal_pose:
@@ -130,5 +130,5 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: 2000
+  carla_client: 4002
   manager_port: 8022
