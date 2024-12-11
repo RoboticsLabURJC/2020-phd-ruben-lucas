@@ -1,6 +1,6 @@
 ---
-title: "Carla follow lane DDPG vs PPO"
-excerpt: "Follow lane carla ppo Vs dppg"
+title: "Carla follow lane DDPG vs PPO [November 2nd half]"
+excerpt: "DDPG good performance"
 
 sidebar:
   nav: "docs"
