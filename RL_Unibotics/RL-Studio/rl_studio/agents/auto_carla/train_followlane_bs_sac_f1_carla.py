@@ -43,7 +43,7 @@ from rl_studio.algorithms.ddpg import (
 from rl_studio.agents.f1.loaders import (
     LoadAlgorithmParams,
     LoadEnvParams,
-    LoadEnvVariablesPPOCarla,
+    LoadEnvVariablesSACCarla,
     LoadGlobalParams,
 )
 from rl_studio.agents.utils import (
@@ -56,8 +56,7 @@ from rl_studio.agents.utils import (
 from rl_studio.envs.gazebo.gazebo_envs import *
 from rl_studio.envs.carla.carla_env import CarlaEnv
 
-from stable_baselines3 import PPO
-# from stable_baselines3 import PPO
+from stable_baselines3 import SAC
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.logger import configure
 
@@ -153,7 +152,7 @@ class PeriodicSaveCallback(BaseCallback):
 
             mlflow.set_experiment("followlane_carla")
             with mlflow.start_run(nested=True):
-                mlflow.log_param("model_type", "ppo_bs")
+                mlflow.log_param("model_type", "sac_bs")
                 mlflow.log_metric("avg_speed", self.env.last_avg_speed)
                 mlflow.log_metric("max_speed", self.env.last_max_speed)
                 mlflow.log_metric("deviation", self.env.episode_last_d_deviation)
@@ -294,11 +293,11 @@ def linear_schedule(initial_value: float) -> Callable[[float], float]:
 
     return func
 
-class TrainerFollowLanePPOCarla:
+class TrainerFollowLaneSACCarla:
     """
     Mode: training
     Task: Follow Line
-    Algorithm: PPO
+    Algorithm: sac
     Agent: F1
     Simulator: Gazebo
     Framework: TensorFlow
@@ -313,7 +312,7 @@ class TrainerFollowLanePPOCarla:
         self.algoritmhs_params = LoadAlgorithmParams(config)
         self.env_params = LoadEnvParams(config)
         self.global_params = LoadGlobalParams(config)
-        self.environment = LoadEnvVariablesPPOCarla(config)
+        self.environment = LoadEnvVariablesSACCarla(config)
         self.environment.environment["debug_waypoints"] = False
         self.environment.environment["estimated_steps"] = 5000
         logs_dir = f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
@@ -374,42 +373,30 @@ class TrainerFollowLanePPOCarla:
 
         # Init Agents
         if self.environment.environment["mode"] in ["inference", "retraining"]:
-            actor_retrained_model = self.environment.environment['retrain_ppo_tf_model_name']
-            self.ppo_agent = PPO.load(actor_retrained_model)
+            actor_retrained_model = self.environment.environment['retrain_sac_tf_model_name']
+            self.sac_agent = SAC.load(actor_retrained_model)
             # Set the environment on the loaded model
-            self.ppo_agent.set_env(self.env)
+            self.sac_agent.set_env(self.env)
         else:
             # Assuming `self.params` and `self.global_params` are defined properly
-            self.ppo_agent = PPO(
-                CustomActorCriticPolicy,  # Use the custom policy class
-                #"MlpPolicy",
+            self.sac_agent = SAC(
+                'MlpPolicy',
                 self.env,
-                policy_kwargs=dict(
-                    net_arch=dict(
-                        pi=[256, 256, 256],  # The architecture for the policy network
-                        vf=[256, 256, 256]  # The architecture for the value network
-                    ),
-                    activation_fn=nn.ReLU,
-                    log_std_init=-0.8,
-                    ortho_init=True,
-                ),
-                max_grad_norm=1,
-                learning_rate=linear_schedule(self.params["learning_rate"]),
-                gamma=self.params["gamma"],
-                gae_lambda=0.95,
-                ent_coef=0.02,
-                clip_range=self.params["epsilon"],
-                batch_size=self.params["batch_size"],
-                verbose=1,
-                # Uncomment if you want to log to TensorBoard
-                # tensorboard_log=f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
+                learning_rate=3e-4,
+                buffer_size=1000000,
+                batch_size=256,
+                tau=0.005,
+                gamma=0.99,
+                train_freq=1,
+                gradient_steps=1,
+                verbose=1
             )
-
-        print(self.ppo_agent.policy)
+            
+        print(self.sac_agent.policy)
 
         agent_logger = configure(agent_log_file, ["stdout", "csv", "tensorboard"])
 
-        self.ppo_agent.set_logger(agent_logger)
+        self.sac_agent.set_logger(agent_logger)
         random.seed(1)
         np.random.seed(1)
         tf.compat.v1.random.set_random_seed(1)
@@ -450,7 +437,7 @@ class TrainerFollowLanePPOCarla:
         #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
         callback_list = CallbackList([periodic_save_callback])
 
-        self.ppo_agent.learn(total_timesteps=self.params["total_timesteps"],
+        self.sac_agent.learn(total_timesteps=self.params["total_timesteps"],
                               callback=callback_list)
 
         # self.env.close()

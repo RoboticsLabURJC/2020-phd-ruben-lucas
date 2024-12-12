@@ -27,9 +27,6 @@ from rl_studio.envs.carla.utils.visualize_multiple_sensors import (
 )
 import pygame
 
-
-import mlflow
-import mlflow.sklearn
 from rl_studio.envs.carla.utils.ground_truth.camera_geometry import (
     get_intrinsic_matrix,
     project_polyline,
@@ -450,9 +447,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         time.sleep(1)
         self.episode_start = time.time()
         self.car.apply_control(carla.VehicleControl(throttle=0.0, brake=0.0))
+
         transform = self.car.get_transform()
         forward_vector = transform.get_forward_vector()
-        speed = random.random() * 32
+        speed = 33
         # Scale the forward vector by the desired speed
         target_velocity = carla.Vector3D(
             x=forward_vector.x * speed,

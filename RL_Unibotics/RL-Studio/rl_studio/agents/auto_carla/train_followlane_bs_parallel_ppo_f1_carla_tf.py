@@ -11,6 +11,8 @@ import mlflow.sklearn
 from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import MlpExtractor
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecNormalize, DummyVecEnv
+from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
 
 import torch as th
 import torch.nn as nn
@@ -166,24 +168,26 @@ class PeriodicSaveCallback(BaseCallback):
                 mlflow.log_metric("last_episode_steps", self.env.last_steps)
                 mlflow.log_metric("steps", self.step_count)
                 mlflow.log_artifact(model_save_path + ".zip", artifact_path="saved_models")
-            # mlflow.log_metric("gamma", self.env.episode_d_deviation)
-            # mlflow.log_metric("tau", self.env.episode_d_deviation)
-            # mlflow.log_metric("lr", self.env.episode_d_deviation)
-            # mlflow.log_metric("d_importance", self.env.episode_d_deviation)
-            # mlflow.log_metric("v_importance", self.env.episode_d_deviation)
-            # mlflow.log_metric("high_vel_punish", self.env.episode_d_deviation)
-            if self.verbose > 0:
-                print(f"Saved model at step {self.step_count}")
+            mlflow.log_metric("gamma", self.env.episode_d_deviation)
+            mlflow.log_metric("tau", self.env.episode_d_deviation)
+            mlflow.log_metric("lr", self.env.episode_d_deviation)
+            mlflow.log_metric("d_importance", self.env.episode_d_deviation)
+            mlflow.log_metric("v_importance", self.env.episode_d_deviation)
+            mlflow.log_metric("high_vel_punish", self.env.episode_d_deviation)
+          #  if self.verbose > 0:
+           #     print(f"Saved model at step {self.step_count}")
         return True
 
 class ExplorationRateCallback(BaseCallback):
-    def __init__(self, initial_log_std=-1.0, min_log_std=-5.8, decay_rate=0.01, decay_steps=1000, verbose=0):
+    def __init__(self, initial_log_std=-1.0, min_log_std=-5.8, decay_rate=0.01, decay_steps=1000, verbose=1):
         super(ExplorationRateCallback, self).__init__(verbose)
         self.initial_log_std = initial_log_std
         self.min_log_std = min_log_std
         self.decay_rate = decay_rate
         self.decay_steps = decay_steps
         self.current_step = 0
+        self.min_ent_coef = 0.005
+        self.ent_decay_rate = 0.005
 
     def _on_training_start(self):
         # Set initial log_std
@@ -201,8 +205,15 @@ class ExplorationRateCallback(BaseCallback):
             )
             self.model.policy.log_std.data = new_log_std
 
+            # Decay entropy coefficient
+            # new_ent_coef = max(
+            #     self.min_ent_coef,
+            #     self.model.ent_coef - self.ent_decay_rate
+            # )
+            # self.model.ent_coef = new_ent_coef
+
             if self.verbose > 0:
-                print(f"Step {self.current_step}: Updated log_std to {new_log_std.cpu().numpy()}")
+                print(f"Step {self.current_step}: Updated log_std to {new_log_std.cpu().detach().numpy()}")
 
         return True
 
@@ -212,46 +223,44 @@ import torch.nn as nn
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import FlattenExtractor
 
-
-class CustomActorCriticPolicy(ActorCriticPolicy): # No se esta usando ahora mismo!!!!
+class CustomActorCriticPolicy(ActorCriticPolicy):
     def __init__(self, *args, **kwargs):
         super(CustomActorCriticPolicy, self).__init__(*args, **kwargs)
 
         # Define a custom flatten extractor
-        #self.features_extractor = FlattenExtractor(self.observation_space)
+        self.features_extractor = FlattenExtractor(self.observation_space)
 
         # Ensure the feature dimension is correctly calculated
-        # self.feature_dim = int(torch.prod(torch.tensor(self.observation_space.shape)))
+        self.feature_dim = int(torch.prod(torch.tensor(self.observation_space.shape)))
 
-        # Optional: If feature_dim is not matching, add a linear layer to match
-        # self.feature_transform = nn.Sequential(
-        #    nn.Linear(self.feature_dim, 256),  # Transform to the correct size
-        #    nn.ReLU()
-        # )
-
-        # Policy network
-        self.action_net = nn.Sequential(
-            #nn.Linear(256, 256),  # Hidden layer
-            #nn.ReLU(),  # Intermediate activation
-            #nn.Linear(256, 256),  # Hidden layer
-            #nn.ReLU(),  # Intermediate activation
-            #nn.Linear(256, 256),  # Hidden layer
-            #nn.ReLU(),  # Intermediate activation
-            #nn.Linear(256, self.action_space.shape[0]),  # Output layer
-            self.action_net,
-            nn.Tanh()  # Tanh activation for output layer
+        # Optional: Transform features if dimension mismatch
+        self.feature_transform = nn.Sequential(
+            nn.Linear(self.feature_dim, 256),  # Transform to the correct size
+            nn.ReLU()
         )
 
-        # Value network
-        # self.value_net = nn.Sequential(
-        #     nn.Linear(256, 256),  # Hidden layer for value function
-        #     nn.ReLU(),  # Intermediate activation
-        #     nn.Linear(256, 256),  # Hidden layer
-        #     nn.ReLU(),  # Intermediate activation
-        #     nn.Linear(256, 256),  # Hidden layer
-        #     nn.ReLU(),  # Intermediate activation
-        #     nn.Linear(256, 1)  # Output for value function
-        # )
+        # Policy network with Dropout
+        self.action_net = nn.Sequential(
+            nn.Linear(64, 256),  # Hidden layer
+            nn.ReLU(),
+            nn.Dropout(p=0.2),  # Dropout layer
+            nn.Linear(256, 256),  # Hidden layer
+            nn.ReLU(),
+            nn.Dropout(p=0.2),  # Dropout layer
+            nn.Linear(256, self.action_space.shape[0]),  # Output layer
+            nn.Tanh()
+        )
+
+        # Value network with Dropout
+        self.value_net = nn.Sequential(
+            nn.Linear(64, 256),  # Hidden layer for value function
+            nn.ReLU(),
+            nn.Dropout(p=0.2),  # Dropout layer
+            nn.Linear(256, 256),  # Hidden layer
+            nn.ReLU(),
+            nn.Dropout(p=0.2),  # Dropout layer
+            nn.Linear(256, 1)  # Output for value function
+        )
 
     # def calculate_log_probs(self, action_logits):
     #     # Assuming you have a mean and stddev for your actions
@@ -265,7 +274,7 @@ class CustomActorCriticPolicy(ActorCriticPolicy): # No se esta usando ahora mism
     #     # Calculate log probabilities
     #     log_probs = dist.log_prob(action_logits)
     #     return log_probs.sum(dim=-1)
-
+    #
     # def forward(self, obs):
     #     features = self.features_extractor(obs)  # Extract features
     #     features_transformed = self.feature_transform(features)  # Transform features to expected size
@@ -307,6 +316,10 @@ class TrainerFollowLanePPOCarla:
     def __init__(self, config):
 
         pynvml.nvmlInit()
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress some TensorFlow warnings
+        os.environ['OMP_NUM_THREADS'] = '1'
+        os.environ['TF_NUM_INTEROP_THREADS'] = '1'
+        os.environ['TF_NUM_INTRAOP_THREADS'] = '1'
 
         self.actor_loss = 0
         self.critic_loss = 0
@@ -314,8 +327,6 @@ class TrainerFollowLanePPOCarla:
         self.env_params = LoadEnvParams(config)
         self.global_params = LoadGlobalParams(config)
         self.environment = LoadEnvVariablesPPOCarla(config)
-        self.environment.environment["debug_waypoints"] = False
-        self.environment.environment["estimated_steps"] = 5000
         logs_dir = f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
         self.tensorboard = ModifiedTensorBoard(
             log_dir=logs_dir
@@ -338,7 +349,14 @@ class TrainerFollowLanePPOCarla:
         self.environment.environment["entropy_factor"] = config["settings"]["entropy_factor"]
         self.environment.environment["debug_waypoints"] = False
         self.environment.environment["estimated_steps"] = 5000
-        self.env = gym.make(self.env_params.env_name, **self.environment.environment)
+
+        num_envs = 1
+        # envs = SubprocVecEnv(
+        #     [lambda: gym.make(self.env_params.env_name, **self.environment.environment) for _ in range(num_envs)])
+        envs = DummyVecEnv( [lambda: gym.make(self.env_params.env_name, **self.environment.environment) for _ in range(num_envs)])
+        self.env = VecNormalize(envs, norm_obs=False, norm_reward=True, clip_obs=40.)
+        self.base_env = self.env.envs[0].unwrapped
+
         self.all_steps = 0
         self.current_max_reward = 0
         self.best_epoch = 0
@@ -369,7 +387,7 @@ class TrainerFollowLanePPOCarla:
             "gamma": self.algoritmhs_params.gamma,
             "epsilon": self.algoritmhs_params.epsilon,
             "total_timesteps": 5000000,
-            "batch_size": 1024
+            "batch_size": 256
         }
 
         # Init Agents
@@ -384,22 +402,23 @@ class TrainerFollowLanePPOCarla:
                 CustomActorCriticPolicy,  # Use the custom policy class
                 #"MlpPolicy",
                 self.env,
-                policy_kwargs=dict(
-                    net_arch=dict(
-                        pi=[256, 256, 256],  # The architecture for the policy network
-                        vf=[256, 256, 256]  # The architecture for the value network
-                    ),
-                    activation_fn=nn.ReLU,
-                    log_std_init=-0.8,
-                    ortho_init=True,
-                ),
-                max_grad_norm=1,
-                learning_rate=linear_schedule(self.params["learning_rate"]),
+                # policy_kwargs=dict(
+                    # net_arch=dict(
+                    #     pi=[256, 256, 256],  # The architecture for the policy network
+                    #     vf=[256, 256, 256]  # The architecture for the value network
+                    # ),
+                    #activation_fn=nn.Tanh,
+                    # log_std_init=-0.9,
+                    #ortho_init=True,
+                # ),
+               # max_grad_norm=0.8,
+               # learning_rate=linear_schedule(0.001),
+                learning_rate=self.params["learning_rate"],
                 gamma=self.params["gamma"],
-                gae_lambda=0.95,
-                ent_coef=0.02,
+               # gae_lambda=0.95,
+                ent_coef=0.01,
                 clip_range=self.params["epsilon"],
-                batch_size=self.params["batch_size"],
+                batch_size=self.params["batch_size"] * num_envs,
                 verbose=1,
                 # Uncomment if you want to log to TensorBoard
                 # tensorboard_log=f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
@@ -422,8 +441,8 @@ class TrainerFollowLanePPOCarla:
         # )
 
         # log_std = -0.223 <= 0.8;  -1 <= 0.36
-        exploration_rate_callback = ExplorationRateCallback(initial_log_std=-1, min_log_std=-3, decay_rate=0.08,
-                                                 decay_steps=9000)
+        exploration_rate_callback = ExplorationRateCallback(initial_log_std=-1.5, min_log_std=-5.8, decay_rate=0.08,
+                                                 decay_steps=13000)
         # wandb_callback = WandbCallback(gradient_save_freq=100, verbose=2)
         eval_callback = EvalCallback(
             self.env,
@@ -440,15 +459,22 @@ class TrainerFollowLanePPOCarla:
             "running_mode": self.environment.environment["mode"],
         }
         periodic_save_callback = PeriodicSaveCallback(
-            env = self.env,
+            env = self.base_env,
             params = params,
             save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
             verbose=1
         )
 
         #callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
-        #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
-        callback_list = CallbackList([periodic_save_callback])
+        callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
+        #callback_list = CallbackList([periodic_save_callback])
+
+        if self.environment.environment["mode"] in ["inference"]:
+            done = False
+            state = self.env.reset()
+            while not done:
+                [action, _] = self.ppo_agent.predict(observation=state, deterministic=True)
+                state, reward, done, params = self.env.step(action)
 
         self.ppo_agent.learn(total_timesteps=self.params["total_timesteps"],
                               callback=callback_list)

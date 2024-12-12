@@ -1,5 +1,5 @@
 settings:
-  mode: inference # training, retraining, inference
+  mode: retraining # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: ppo_continuous # qlearn, dqn, ddpg, ppo
   simulator: carla # openai, carla, gazebo, sumo
@@ -9,7 +9,7 @@ settings:
   actions: slow # slow, fast
   states: sp5 #image, sp1 (simplified perception with 1 point), sp3 (simplified perception with 3 points), spn (simplified perception with n points)
   rewards: followline_center # followline_center, followline_center_v_w_linear
-  framework: baselines # TensorFlow, Pytorch
+  framework: parallel_baselines # TensorFlow, Pytorch
   total_episodes: 500000
   training_time: 72
   models_dir: "./checkpoints"
@@ -35,7 +35,7 @@ ros:
 
 retraining:
   ppo:
-    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/best_checkpoints/ppo_bs/12_12_model_4830000_steps.zip
+    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_parallel_baselines/20241210-213901/model_710000_steps.zip
 inference:
   ppo:
     inference_ppo_tf_actor_model_name:
@@ -43,14 +43,14 @@ inference:
 
 algorithm:
   ppo:
-    gamma: 0.85
-    epsilon: 0.15
+    gamma: 0.9
+    epsilon: 0.2
     std_dev: 0.1
     episodes_update: 50 # dooing nothing here
     replay_memory_size: 50_000
     memory_fraction: 0.20
     critic_lr: 0.0003 # This is the only one applying to both now
-    actor_lr: 0.0001
+    actor_lr: 0.0003
     model_name: PPO_Actor_conv2d32x64_Critic_conv2d32x64
 
 agents:
@@ -83,7 +83,7 @@ actions:
   slow:
     v: [-1, 1]
     w: [-1, 1]
-   # b: [0, 1]
+    #b: [0, 1]
 
 rewards:
   followline_center:
@@ -108,7 +108,7 @@ carla_environments:
     traffic_pedestrians: False
     city_lights: False
     car_lights: False
-    estimated_steps: 1000
+    estimated_steps: 5000
     save_episodes: 5 # not used in this carla ppo
     save_every_step: 100 # not used in this carla ppo
     init_pose:
@@ -121,7 +121,7 @@ carla_environments:
     detection_mode: carla_perfect
     fixed_delta_seconds: 0.1
     async_forced_delta_seconds: 0
-    reset_threshold: 0.35
+    reset_threshold: 0.25
     alternate_pose: True
     spawn_points: [
       [ -475.506342, 352.208710, 0.807793, 0.051254, 55.662395, 0.072115 ],
