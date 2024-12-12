@@ -8,6 +8,8 @@ import psutil
 import torch as th
 import torch.nn as nn
 
+import mlflow
+import mlflow.sklearn
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import gymnasium as gym
@@ -18,6 +20,8 @@ from rl_studio.agents.utilities.push_git_repo import git_add_commit_push
 from rl_studio.algorithms.utils import (
     save_actorcritic_baselines_model,
 )
+from stable_baselines3.common.callbacks import CallbackList
+from stable_baselines3.common.callbacks import BaseCallback
 
 from rl_studio.agents.f1.loaders import (
     LoadAlgorithmParams,
@@ -147,6 +151,53 @@ class CustomActorCriticPolicy(SAC):
     def forward(self, observations, deterministic=False):
         return self._predict(observations, deterministic)
 
+
+class PeriodicSaveCallback(BaseCallback):
+    def __init__(self, env, params, save_path, save_freq=10000, verbose=1):
+        super(PeriodicSaveCallback, self).__init__(verbose)
+        self.save_path = save_path
+        self.save_freq = save_freq
+        self.step_count = 0
+        self.env = env
+        self.params = params
+
+    def _init_callback(self) -> None:
+        if self.save_path is not None:
+            os.makedirs(self.save_path, exist_ok=True)
+
+    def _on_step(self) -> bool:
+        self.step_count += 1
+        if self.step_count % self.save_freq == 0:
+            model_save_path = os.path.join(self.save_path, f"model_{self.step_count}_steps")
+            self.model.save(model_save_path)
+            date_time = time.strftime('%Y%m%d-%H%M%S')
+
+            mlflow.set_experiment("followlane_carla")
+            with mlflow.start_run(nested=True):
+                mlflow.log_param("model_type", "ppo_bs")
+                mlflow.log_metric("avg_speed", self.env.last_avg_speed)
+                mlflow.log_metric("max_speed", self.env.last_max_speed)
+                mlflow.log_metric("deviation", self.env.episode_last_d_deviation)
+                mlflow.log_metric("cum_reward", self.env.last_cum_reward)
+                mlflow.set_tag("detection_mode", self.params["detection_mode"])
+                mlflow.log_param("actions", self.params["actions"])
+                mlflow.log_param("zig_zag_punish", self.params["zig_zag_punish"])
+                mlflow.set_tag("running_mode", self.params["running_mode"])
+                mlflow.log_param("datetime", date_time)
+                mlflow.log_metric("last_episode_steps", self.env.last_steps)
+                mlflow.log_metric("steps", self.step_count)
+                mlflow.log_artifact(model_save_path + ".zip", artifact_path="saved_models")
+            # mlflow.log_metric("gamma", self.env.episode_d_deviation)
+            # mlflow.log_metric("tau", self.env.episode_d_deviation)
+            # mlflow.log_metric("lr", self.env.episode_d_deviation)
+            # mlflow.log_metric("d_importance", self.env.episode_d_deviation)
+            # mlflow.log_metric("v_importance", self.env.episode_d_deviation)
+            # mlflow.log_metric("high_vel_punish", self.env.episode_d_deviation)
+            if self.verbose > 0:
+                print(f"Saved model at step {self.step_count}")
+        return True
+
+
 class TrainerFollowLaneSACCarla:
     """
     Mode: training
@@ -169,10 +220,22 @@ class TrainerFollowLaneSACCarla:
         self.environment = LoadEnvVariablesSACCarla(config)
         self.environment.environment["debug_waypoints"] = False
         self.loss = 0
+        self.environment.environment["estimated_steps"] = 5000
 
         self.tensorboard = ModifiedTensorBoard(
             log_dir=f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
         )
+        self.environment.environment["tensorboard"] = self.tensorboard
+
+
+        self.params = {
+            "policy": "MlpPolicy",
+            "learning_rate": self.environment.environment["critic_lr"],
+            "gamma": self.algoritmhs_params.gamma,
+            "epsilon": self.algoritmhs_params.epsilon,
+            "total_timesteps": 5000000,
+            "batch_size": 1024
+        }
 
         os.makedirs(f"{self.global_params.models_dir}", exist_ok=True)
         os.makedirs(f"{self.global_params.logs_dir}", exist_ok=True)
@@ -316,7 +379,7 @@ class TrainerFollowLaneSACCarla:
 
         self.tensorboard.update_actions(act, self.all_steps)
 
-        state, reward, done, info = self.env.step(act)
+        state, reward, done, done, info = self.env.step(act)
         self.step_fps.append(info["fps"])
         # in case perception was bad, we keep the previous frame
         if info["bad_perception"]:
@@ -358,21 +421,21 @@ class TrainerFollowLaneSACCarla:
                 f"cumulated_reward = {cumulated_reward}\n"
                 f"done = {done}\n"
             )
-            render_params(
-                task=self.global_params.task,
-                v=action[0],  # for continuous actions
-                w=action[1],  # for continuous actions
-                episode=episode,
-                step=step,
-                state=state,
-                reward_in_step=reward,
-                cumulated_reward_in_this_episode=cumulated_reward,
-                _="--------------------------",
-                exploration=self.exploration,
-                # fps=fps,
-                # best_episode_until_now=best_epoch,
-                # with_highest_reward=int(current_max_reward),
-            )
+            # render_params(
+            #     task=self.global_params.task,
+            #     v=action[0],  # for continuous actions
+            #     w=action[1],  # for continuous actions
+            #     episode=episode,
+            #     step=step,
+            #     state=state,
+            #     reward_in_step=reward,
+            #     cumulated_reward_in_this_episode=cumulated_reward,
+            #     _="--------------------------",
+            #     exploration=self.exploration,
+            #     # fps=fps,
+            #     # best_episode_until_now=best_epoch,
+            #     # with_highest_reward=int(current_max_reward),
+            # )
         # if not self.all_steps % 10000:
         #     # Update scatter plot
         #     update_scatter_plot(self.ax1, self.all_steps_velocity, self.all_steps_state0, self.all_steps_reward,
@@ -384,9 +447,26 @@ class TrainerFollowLaneSACCarla:
         #     update_scatter_plot(self.ax4, self.all_steps_steer, self.all_steps_state11, self.all_steps_reward, "Steer",
         #                         "State[9]", "Reward")
 
-        if not self.all_steps % 100 and self.environment.environment["mode"] != "inference" and not info["bad_perception"]:
-            self.sac_agent.replay_buffer.add(prev_state, state, action, reward, float(done), [{}])
-            self.sac_agent.train(100)
+        # if not self.all_steps % 100 and self.environment.environment["mode"] != "inference" and not info["bad_perception"]:
+        #     self.sac_agent.replay_buffer.add(prev_state, state, action, reward, float(done), [{}])
+        #     self.sac_agent.train(100)
+
+        params = {
+            "detection_mode": self.environment.environment["detection_mode"],
+            "actions": self.global_params.actions_set,
+            "zig_zag_punish": self.environment.environment["punish_zig_zag_value"],
+            "running_mode": self.environment.environment["mode"],
+        }
+        periodic_save_callback = PeriodicSaveCallback(
+            env = self.env,
+            params = params,
+            save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
+            verbose=1
+        )
+        callback_list = CallbackList([periodic_save_callback])
+
+        self.sac_agent.learn(total_timesteps=self.params["total_timesteps"],
+                              callback=callback_list)
 
         return state, cumulated_reward, done, info["bad_perception"]
 
@@ -436,15 +516,15 @@ class TrainerFollowLaneSACCarla:
 
                 if step >= self.env_params.estimated_steps:
                     break
-                self.env.display_manager.render()
+                # self.env.display_manager.render()
             episode_time = step * self.environment.environment["fixed_delta_seconds"]
             self.log.logger.info("finished in step " + str(step))
 
             since_last_perception = step - last_bad_perception
             self.save_if_best_epoch(episode, step, cumulated_reward)
             self.calculate_and_report_episode_stats(episode_time, step, cumulated_reward, since_last_perception)
-            self.env.destroy_all_actors()
-            self.env.display_manager.destroy()
+            # self.env.destroy_all_actors()
+            # self.env.display_manager.destroy()
         # self.env.close()
 
     def set_stats(self, info, prev_state):
