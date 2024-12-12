@@ -310,6 +310,19 @@ class TrainerFactory:
 
             return TrainerFollowLaneDQNF1GazeboTF(config)
 
+        elif (
+            task == TasksType.FOLLOWLANECARLA.value
+            and agent == AgentsType.AUTOCARLA.value
+            and algorithm == AlgorithmsType.SAC.value
+            and simulator == EnvsType.CARLA.value
+            and framework == FrameworksType.BASELINES.value
+        ):
+            from rl_studio.agents.auto_carla.train_followlane_bs_sac_f1_carla_tf import (
+                TrainerFollowLaneSACCarla,
+            )
+
+            return TrainerFollowLaneSACCarla(config)
+
         # =============================
         # Robot Mesh - Qlearn - Gazebo
         # =============================
@@ -658,6 +671,19 @@ class InferencerFactory:
             )
 
             return TrainerFollowLanePPOCarla(config)
+
+        elif (
+            task == TasksType.FOLLOWLANECARLA.value
+            and agent == AgentsType.AUTOCARLA.value
+            and algorithm == AlgorithmsType.SAC.value
+            and simulator == EnvsType.CARLA.value
+            and framework == FrameworksType.BASELINES.value
+        ):
+            from rl_studio.agents.auto_carla.train_followlane_bs_sac_carla import (
+                TrainerFollowLaneSACCarla,
+            )
+
+            return TrainerFollowLaneSACCarla(config)
 
         # =============================
         # CartPole
