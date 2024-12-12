@@ -39,7 +39,9 @@ class Carla:
             and weather != "dynamic"
             and traffic_pedestrians is False
         ):
-            from rl_studio.envs.carla.followlane.followlane_carla import (
+            #TODO OJO! Modified for testing ppo auto carla follow lane
+            # from rl_studio.envs.carla.followlane.followlane_carla import (
+            from rl_studio.envs.carla.followlane.followlane_carla_sb import (
                 FollowLaneStaticWeatherNoTraffic,
             )
 

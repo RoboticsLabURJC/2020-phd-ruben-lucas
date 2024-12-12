@@ -9,7 +9,7 @@ settings:
   actions: continuous # slow, fast
   states: sp5 #image, sp1 (simplified perception with 1 point), sp3 (simplified perception with 3 points), spn (simplified perception with n points)
   rewards: followlane_center # followline_center, followline_center_v_w_linear
-  framework: TensorFlow # TensorFlow, Pytorch
+  framework: baselines # TensorFlow, Pytorch
   total_episodes: 500000
   training_time: 72
   models_dir: "./checkpoints"
