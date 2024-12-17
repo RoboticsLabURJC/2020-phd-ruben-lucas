@@ -176,34 +176,31 @@ class PeriodicSaveCallback(BaseCallback):
         return True
 
 class ExplorationRateCallback(BaseCallback):
-    def __init__(self, initial_log_std=-1.0, min_log_std=-5.8, decay_rate=0.01, decay_steps=1000, verbose=0):
+    def __init__(self, tensorboard, n_actions, initial_exploration_rate=0.2, decay_rate=0.01, decay_steps=10000, exploration_min=0.005, verbose=1):
         super(ExplorationRateCallback, self).__init__(verbose)
-        self.initial_log_std = initial_log_std
-        self.min_log_std = min_log_std
         self.decay_rate = decay_rate
         self.decay_steps = decay_steps
         self.current_step = 0
-
-    def _on_training_start(self):
-        # Set initial log_std
-        self.model.policy.log_std.data = torch.full_like(
-            self.model.policy.log_std, self.initial_log_std
-        ).to(self.model.policy.log_std.device)
+        self.tensorboard = tensorboard
+        self.exploration_min = exploration_min
+        self.exploration_rate = initial_exploration_rate
+        self.n_actions = n_actions
 
     def _on_step(self) -> bool:
         self.current_step += 1
-        if self.current_step % self.decay_steps == 0:
-            # Decay log_std
-            new_log_std = torch.maximum(
-                torch.full_like(self.model.policy.log_std, self.min_log_std).to(self.model.policy.log_std.device),
-                self.model.policy.log_std - self.decay_rate
+        if self.current_step % self.decay_steps == 1:
+            self.exploration_rate = max(self.exploration_min, self.exploration_rate - self.decay_rate)
+            # Assuming self.model is a DDPG model
+            self.model.action_noise = NormalActionNoise(
+                mean=np.zeros(self.n_actions),
+                # sigma=self.exploration_rate * np.ones(self.n_actions)
+                sigma=np.array([self.exploration_rate] + [0.0] * (self.n_actions - 1))
             )
-            self.model.policy.log_std.data = new_log_std
-
             if self.verbose > 0:
-                print(f"Step {self.current_step}: Updated log_std to {new_log_std.cpu().numpy()}")
-
+                print(f"Step {self.current_step}: Setting exploration rate to {self.exploration_rate}")
+            self.tensorboard.update_stats(std_dev=self.exploration_rate)
         return True
+
 
 
 import torch
@@ -338,6 +335,9 @@ class TrainerFollowLaneSACCarla:
         self.environment.environment["debug_waypoints"] = False
         self.environment.environment["estimated_steps"] = 5000
         self.env = gym.make(self.env_params.env_name, **self.environment.environment)
+
+        self.exploration = self.algoritmhs_params.std_dev if self.global_params.mode != "inference" else 0
+        self.n_actions = self.env.action_space.shape[-1]
         self.all_steps = 0
         self.current_max_reward = 0
         self.best_epoch = 0
@@ -409,8 +409,13 @@ class TrainerFollowLaneSACCarla:
         # )
 
         # log_std = -0.223 <= 0.8;  -1 <= 0.36
-        exploration_rate_callback = ExplorationRateCallback(initial_log_std=-1, min_log_std=-3, decay_rate=0.08,
-                                                 decay_steps=9000)
+        exploration_rate_callback = ExplorationRateCallback(self.tensorboard,
+                                                            self.n_actions,
+                                                            initial_exploration_rate=self.exploration,
+                                                            decay_rate= self.global_params.decrease_substraction,
+                                                            decay_steps=self.global_params.steps_to_decrease,
+                                                            exploration_min=self.global_params.decrease_min,
+                                                            verbose=1)
         # wandb_callback = WandbCallback(gradient_save_freq=100, verbose=2)
         eval_callback = EvalCallback(
             self.env,
@@ -433,9 +438,16 @@ class TrainerFollowLaneSACCarla:
             verbose=1
         )
 
+        if self.environment.environment["mode"] in ["inference"]:
+            done = False
+            state, length = self.env.reset()
+            while not done:
+                [action, _] = self.sac_agent.predict(observation=state, deterministic=True)
+                state, reward, done, done, params = self.env.step(action)
+
         #callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
-        #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
-        callback_list = CallbackList([periodic_save_callback])
+        callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
+        #callback_list = CallbackList([periodic_save_callback])
 
         self.sac_agent.learn(total_timesteps=self.params["total_timesteps"],
                               callback=callback_list)
