@@ -422,7 +422,7 @@ class TrainerFollowLanePPOCarla:
         # )
 
         # log_std = -0.223 <= 0.8;  -1 <= 0.36
-        exploration_rate_callback = ExplorationRateCallback(initial_log_std=-1, min_log_std=-3, decay_rate=0.08,
+        exploration_rate_callback = ExplorationRateCallback(initial_log_std=-1, min_log_std=-5.5, decay_rate=0.08,
                                                  decay_steps=9000)
         # wandb_callback = WandbCallback(gradient_save_freq=100, verbose=2)
         eval_callback = EvalCallback(
@@ -446,9 +446,10 @@ class TrainerFollowLanePPOCarla:
             verbose=1
         )
 
-        #callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
+        # callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
         #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
-        callback_list = CallbackList([periodic_save_callback])
+        #callback_list = CallbackList([periodic_save_callback])
+        callback_list = CallbackList([periodic_save_callback, eval_callback])
 
         self.ppo_agent.learn(total_timesteps=self.params["total_timesteps"],
                               callback=callback_list)
