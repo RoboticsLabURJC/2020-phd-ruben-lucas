@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import gymnasium as gym
 import tensorflow as tf
+from torch.fx.experimental.unification.multipledispatch import restart_ordering
 from tqdm import tqdm
 from rl_studio.agents.utilities.plot_npy_dataset import plot_rewards
 from rl_studio.agents.utilities.push_git_repo import git_add_commit_push
@@ -60,7 +61,9 @@ from stable_baselines3 import PPO
 # from stable_baselines3 import PPO
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.logger import configure
-
+import torch
+import torch.nn as nn
+from stable_baselines3.common.policies import ActorCriticPolicy
 
 try:
     sys.path.append(
@@ -176,42 +179,211 @@ class PeriodicSaveCallback(BaseCallback):
                 print(f"Saved model at step {self.step_count}")
         return True
 
+class SetClipRangeCallback(BaseCallback):
+    def __init__(self, clip_range, verbose=0):
+        """
+        Callback to set the clip_range once at the start of training.
+
+        :param clip_range: (float or callable) The new clip range value or function.
+        :param verbose: (int) Verbosity level.
+        """
+        super(SetClipRangeCallback, self).__init__(verbose)
+        self.clip_range = clip_range
+
+    def _on_training_start(self) -> None:
+        self.model.clip_range = self.clip_range
+
+    def _on_step(self):
+        return True
+
+class DynamicClipRange:
+    def __init__(self, initial_clip_range, min_clip_range):
+        self.initial_clip_range = initial_clip_range
+        self.min_clip_range = min_clip_range
+
+    def __call__(self, progress_remaining):
+        return max(self.min_clip_range, self.initial_clip_range * progress_remaining)
+
 class ExplorationRateCallback(BaseCallback):
-    def __init__(self, initial_log_std=-1.0, min_log_std=-5.8, decay_rate=0.01, decay_steps=1000, verbose=0):
+    def __init__(self, initial_log_std=-1.0,
+                 min_log_std=-5.8, decay_rate=0.01, decay_steps=1000, verbose=1):
         super(ExplorationRateCallback, self).__init__(verbose)
         self.initial_log_std = initial_log_std
         self.min_log_std = min_log_std
         self.decay_rate = decay_rate
         self.decay_steps = decay_steps
+        self.w_initial = -4.5
+        self.v_initial = initial_log_std
         self.current_step = 0
 
     def _on_training_start(self):
         # Set initial log_std
-        self.model.policy.log_std.data = torch.full_like(
-            self.model.policy.log_std, self.initial_log_std
+        #self.model.policy.log_std.data = torch.full_like(
+        #    self.model.policy.log_std, self.initial_log_std
+        #).to(self.model.policy.log_std.device)
+        self.model.policy.log_std.data[1:2] = torch.full_like(
+            self.model.policy.log_std[1:2], self.w_initial
+        ).to(self.model.policy.log_std.device)
+        self.model.policy.log_std.data[:1] = torch.full_like(
+           self.model.policy.log_std[:1], self.v_initial
         ).to(self.model.policy.log_std.device)
 
     def _on_step(self) -> bool:
         self.current_step += 1
+
+
+        # Check if both components have reached the min_log_std
+        # if (
+        #     torch.all(self.model.policy.log_std[:1] <= self.min_log_std).item() and
+        #     torch.all(self.model.policy.log_std[1:2] <= self.min_log_std).item()
+        # ):
+        #     # Reset to initial values
+        #     self.model.policy.log_std.data[1:2] = torch.full_like(
+        #         self.model.policy.log_std[1:2], self.w_initial
+        #     ).to(self.model.policy.log_std.device)
+        #     self.model.policy.log_std.data[:1] = torch.full_like(
+        #         self.model.policy.log_std[:1], self.v_initial
+        #     ).to(self.model.policy.log_std.device)
+        #
+        #     if self.verbose > 0:
+        #         print(
+        #             f"Step {self.current_step}: log_std reset to initial values "
+        #             f"v_initial={self.v_initial}, w_initial={self.w_initial}"
+        #         )
+        #     return True
+
         if self.current_step % self.decay_steps == 0:
-            # Decay log_std
-            new_log_std = torch.maximum(
-                torch.full_like(self.model.policy.log_std, self.min_log_std).to(self.model.policy.log_std.device),
-                self.model.policy.log_std - self.decay_rate
+            new_log_std = self.model.policy.log_std.clone()
+            new_log_std[1:2] =  torch.maximum(
+                 torch.full_like(self.model.policy.log_std[1:2], self.min_log_std),
+                 self.model.policy.log_std[1:2] - self.decay_rate
+            )
+            new_log_std[:1] = torch.maximum(
+                torch.full_like(self.model.policy.log_std[:1], self.min_log_std),
+                self.model.policy.log_std[:1] - self.decay_rate
             )
             self.model.policy.log_std.data = new_log_std
 
             if self.verbose > 0:
-                print(f"Step {self.current_step}: Updated log_std to {new_log_std.cpu().numpy()}")
+                print(f"Step {self.current_step}: Updated log_std to {new_log_std.detach().cpu().numpy()}")
+
+        return True
+
+class EntropyCoefficientCallback(BaseCallback):
+    def __init__(self, initial_ent_coef=0.01, min_ent_coef=0.001, decay_rate=0.0001, decay_steps=1000, verbose=0):
+        """
+        Callback to decay the entropy coefficient over training.
+
+        :param initial_ent_coef: (float) Initial entropy coefficient.
+        :param min_ent_coef: (float) Minimum entropy coefficient.
+        :param decay_rate: (float) Amount to decrease the entropy coefficient by at each decay step.
+        :param decay_steps: (int) Number of steps between each decay.
+        :param verbose: (int) Verbosity level.
+        """
+        super(EntropyCoefficientCallback, self).__init__(verbose)
+        self.initial_ent_coef = initial_ent_coef
+        self.min_ent_coef = min_ent_coef
+        self.decay_rate = decay_rate
+        self.decay_steps = decay_steps
+        self.current_step = 0
+
+    def _on_training_start(self):
+        # Set the initial entropy coefficient
+        self.model.ent_coef = self.initial_ent_coef
+        if self.verbose > 0:
+            print(f"Training started: Entropy coefficient set to {self.model.ent_coef}")
+
+    def _on_step(self) -> bool:
+        self.current_step += 1
+        if self.current_step % self.decay_steps == 0:
+            # Decay the entropy coefficient
+            new_ent_coef = max(self.min_ent_coef, self.model.ent_coef - self.decay_rate)
+            self.model.ent_coef = new_ent_coef
+
+            if self.verbose > 0:
+                print(f"Step {self.current_step}: Updated entropy coefficient to {self.model.ent_coef}")
 
         return True
 
 
-import torch
-import torch.nn as nn
-from stable_baselines3.common.policies import ActorCriticPolicy
-from stable_baselines3.common.torch_layers import FlattenExtractor
+class CustomEvalCallback(EvalCallback):
+    def __init__(self, env, tensorboard_writer, *args, **kwargs):
+        super(CustomEvalCallback, self).__init__(env, *args, **kwargs)
+        self.env = env
+        self.tensorboard_writer = tensorboard_writer
 
+    def _on_step(self) -> bool:
+        # Call the parent class's method to perform the regular evaluation
+        result = super()._on_step()
+
+        # Log the 2D histogram or scatter plot during evaluation
+        if self.n_calls % self.eval_freq == 0:
+            self.log_action_map()
+
+        return result
+
+    def log_action_map(self):
+        # Extract relevant data from the environment
+        distance_errors = []
+        velocities = []
+        throttle = []
+        steer = []
+
+        obs, _ = self.env.reset()
+        done = False
+        while not done:
+            action, _ = self.model.predict(obs, deterministic=True)
+            obs, _, done, done, info = self.env.step(action)
+
+            distance_errors.append(info["distance_error"][0])  # Adjust based on your environment
+            velocities.append(info["velocity"])  # Adjust based on your environment
+            throttle.append(action[0])  # Assuming action is scalar or index 0 for one component
+            steer.append(action[1])  # Assuming action is scalar or index 0 for one component
+
+        # Create a 2D histogram or scatter plot
+        with self.tensorboard_writer.writer.as_default():
+            # Log a custom color-coded map
+            t_data = np.array([distance_errors, velocities, throttle]).T  # Shape (N, 3)
+            tf.summary.image(
+                "distance_velocity_throttle_map",
+                plot_colormap(t_data, title="Distance vs Velocity (Color: Throttle)"),
+                step=self.num_timesteps,
+            )
+            s_data = np.array([distance_errors, velocities, steer]).T  # Shape (N, 3)
+            tf.summary.image(
+                "distance_velocity_steer_map",
+                plot_colormap(s_data, title="Distance vs Velocity (Color: steer)"),
+                step=self.num_timesteps,
+            )
+
+
+import io
+
+def plot_colormap(data, title="Colormap"):
+    """
+    Generate a scatter plot with color-coded actions.
+    :param data: numpy array of shape (N, 3), where columns represent distance, velocity, and actions.
+    :param title: Title of the plot.
+    :return: TensorFlow image tensor.
+    """
+    distances, velocities, actions = data[:, 0], data[:, 1], data[:, 2]
+
+    plt.figure(figsize=(6, 6))
+    scatter = plt.scatter(distances, velocities, c=actions, cmap="viridis", s=10)
+    plt.colorbar(scatter, label="Actions")
+    plt.xlabel("Distance Error")
+    plt.ylabel("Velocity")
+    plt.title(title)
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png")
+    buf.seek(0)
+    plt.close()
+
+    # Convert plot to TensorFlow image
+    image = tf.image.decode_png(buf.getvalue(), channels=4)
+    image = tf.expand_dims(image, 0)  # Add batch dimension
+    return image
 
 class CustomActorCriticPolicy(ActorCriticPolicy): # No se esta usando ahora mismo!!!!
     def __init__(self, *args, **kwargs):
@@ -314,8 +486,6 @@ class TrainerFollowLanePPOCarla:
         self.env_params = LoadEnvParams(config)
         self.global_params = LoadGlobalParams(config)
         self.environment = LoadEnvVariablesPPOCarla(config)
-        self.environment.environment["debug_waypoints"] = False
-        self.environment.environment["estimated_steps"] = 5000
         logs_dir = f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
         self.tensorboard = ModifiedTensorBoard(
             log_dir=logs_dir
@@ -337,8 +507,8 @@ class TrainerFollowLanePPOCarla:
 
         self.environment.environment["entropy_factor"] = config["settings"]["entropy_factor"]
         self.environment.environment["debug_waypoints"] = False
-        self.environment.environment["estimated_steps"] = 5000
-        self.env = gym.make(self.env_params.env_name, **self.environment.environment)
+        self.environment.environment["estimated_steps"] = 500
+        self.rebuild_env()
         self.all_steps = 0
         self.current_max_reward = 0
         self.best_epoch = 0
@@ -359,18 +529,6 @@ class TrainerFollowLanePPOCarla:
         self.cpu_usages = 0
         self.gpu_usages = 0
 
-        # TODO This must come from config states in yaml
-        state_size = len(self.environment.environment["x_row"]) + 2
-        type(self.env.action_space)
-
-        self.params = {
-            "policy": "MlpPolicy",
-            "learning_rate": self.environment.environment["critic_lr"],
-            "gamma": self.algoritmhs_params.gamma,
-            "epsilon": self.algoritmhs_params.epsilon,
-            "total_timesteps": 5000000,
-            "batch_size": 1024
-        }
 
         # Init Agents
         if self.environment.environment["mode"] in ["inference", "retraining"]:
@@ -386,20 +544,19 @@ class TrainerFollowLanePPOCarla:
                 self.env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[256, 256, 256],  # The architecture for the policy network
-                        vf=[256, 256, 256]  # The architecture for the value network
+                        pi=[32, 32],  # The architecture for the policy network
+                        vf=[32, 32]  # The architecture for the value network
                     ),
                     activation_fn=nn.ReLU,
-                    log_std_init=-0.8,
-                    ortho_init=True,
+                    log_std_init=-1.5,
                 ),
                 max_grad_norm=1,
-                learning_rate=linear_schedule(self.params["learning_rate"]),
-                gamma=self.params["gamma"],
-                gae_lambda=0.95,
+                learning_rate=linear_schedule(self.environment.environment["critic_lr"]),
+                gamma=self.algoritmhs_params.gamma,
+                # gae_lambda=0.9,
                 ent_coef=0.02,
-                clip_range=self.params["epsilon"],
-                batch_size=self.params["batch_size"],
+                clip_range=self.algoritmhs_params.epsilon,
+                batch_size=1024,
                 verbose=1,
                 # Uncomment if you want to log to TensorBoard
                 # tensorboard_log=f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
@@ -422,13 +579,27 @@ class TrainerFollowLanePPOCarla:
         # )
 
         # log_std = -0.223 <= 0.8;  -1 <= 0.36
-        exploration_rate_callback = ExplorationRateCallback(initial_log_std=-1, min_log_std=-5.5, decay_rate=0.08,
-                                                 decay_steps=9000)
+        exploration_rate_callback = ExplorationRateCallback(initial_log_std=-0.5,
+                                                            min_log_std=-4.5, decay_rate=0.05,
+                                                 decay_steps=10000)
+        entropy_callback = EntropyCoefficientCallback(
+            initial_ent_coef=0.03,  # Starting entropy coefficient
+            min_ent_coef=0.02,  # Minimum entropy coefficient
+            decay_rate=0.0001,  # Decay amount per step
+            decay_steps=2000,  # Decay every 1000 steps
+            verbose=1
+        )
+
+        # Instantiate the dynamic clip range
+        dynamic_clip_range = DynamicClipRange(initial_clip_range=0.15, min_clip_range=0.05)
+        epsilon_callback = SetClipRangeCallback(clip_range=dynamic_clip_range)
+
         # wandb_callback = WandbCallback(gradient_save_freq=100, verbose=2)
-        eval_callback = EvalCallback(
+        eval_callback = CustomEvalCallback(
             self.env,
+            tensorboard_writer=self.tensorboard,
             best_model_save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
-            eval_freq=5000,
+            eval_freq=20000,
             deterministic=True,
             render=False
         )
@@ -439,19 +610,77 @@ class TrainerFollowLanePPOCarla:
             "zig_zag_punish": self.environment.environment["punish_zig_zag_value"],
             "running_mode": self.environment.environment["mode"],
         }
+        self.checkpoints_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}"
         periodic_save_callback = PeriodicSaveCallback(
             env = self.env,
             params = params,
-            save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
+            save_path=self.checkpoints_path,
             verbose=1
         )
 
-        # callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
+        #callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
         #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
         #callback_list = CallbackList([periodic_save_callback])
-        callback_list = CallbackList([periodic_save_callback, eval_callback])
+        #callback_list = CallbackList([periodic_save_callback, eval_callback])
+        callback_list = CallbackList([
+            exploration_rate_callback,
+            entropy_callback,
+            periodic_save_callback,
+            epsilon_callback,
+            eval_callback])
 
-        self.ppo_agent.learn(total_timesteps=self.params["total_timesteps"],
+        if self.environment.environment["mode"] in ["inference"]:
+            self.evaluate_ddpg_agent(self.env, self.ppo_agent, 10000)
+
+        self.ppo_agent.learn(total_timesteps=500000,
                               callback=callback_list)
 
+    # self.restart_training(callback_list)
+
         # self.env.close()
+
+    def evaluate_ddpg_agent(self, env, agent, num_episodes):
+        for episode in range(num_episodes):
+            obs, _ = env.reset()
+            done = False
+            episode_reward = 0
+
+            while not done:
+                # Use the agent to predict the action without learning (no training)
+                action, _states = agent.predict(obs, deterministic=True)
+
+                # Take the action in the environment
+                obs, reward, done, done, info = env.step(action)
+                episode_reward += reward
+
+            print(f"Episode {episode + 1}: Total Reward = {episode_reward}")
+
+
+    def restart_training(self, callback_list):
+        try:
+            with open("/tmp/.carlalaunch_stdout.log", "w") as out, open("/tmp/.carlalaunch_stderr.log", "w") as err:
+                print("carla broken. Restarting Carla")
+                subprocess.Popen([os.environ["CARLA_ROOT"] + "CarlaUE4.sh",
+                                  f"--world-port={self.environment.environment['carla_client']}", "-RenderOffScreen",
+                                  "-quality-level=Low"], stdout=out, stderr=err)
+                self.ppo_agent = PPO.load(f"{self.checkpoints_path}/best_model.zip")
+                # Set the environment on the loaded model
+                self.ppo_agent.set_env(self.env)
+                self.ppo_agent.learn(total_timesteps=self.params["total_timesteps"],
+                                     callback=callback_list)
+        except Exception:  # TODO better control the exception type
+            self.restart_training(callback_list)
+
+    def rebuild_env(self):
+        try:
+            self.env = gym.make(self.env_params.env_name, **self.environment.environment)
+        except Exception:  # TODO better control the exception type
+            print("error")
+
+    # with open("/tmp/.carlalaunch_stdout.log", "w") as out, open("/tmp/.carlalaunch_stderr.log", "w") as err:
+            #     print("carla broken. Restarting Carla")
+            #     subprocess.Popen([os.environ["CARLA_ROOT"] + "CarlaUE4.sh",
+            #                       f"--world-port={self.environment.environment['carla_client']}",
+            #                       "-RenderOffScreen",
+            #                       "-quality-level=Low"], stdout=out, stderr=err)
+            # self.rebuild_env()
