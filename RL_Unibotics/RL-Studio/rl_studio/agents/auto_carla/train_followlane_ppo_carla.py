@@ -97,10 +97,14 @@ class TrainerFollowLanePPOCarla:
         self.loss = 0
         self.cpu_usages = 0
         self.gpu_usages = 0
+        self.environment.environment["estimated_steps"] = 5000
+        self.environment.environment["debug_waypoints"] = False
+        self.environment.environment["entropy_factor"] = 0
 
         self.tensorboard = ModifiedTensorBoard(
             log_dir=f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
         )
+        self.environment.environment["tensorboard"] = self.tensorboard
 
         os.makedirs(f"{self.global_params.models_dir}", exist_ok=True)
         os.makedirs(f"{self.global_params.logs_dir}", exist_ok=True)
@@ -130,9 +134,9 @@ class TrainerFollowLanePPOCarla:
              self.algoritmhs_params.critic_lr, self.algoritmhs_params.gamma,
              K_epochs, self.algoritmhs_params.epsilon, True, std_init)
 
-        random.seed(1)
-        np.random.seed(1)
-        tf.compat.v1.random.set_random_seed(1)
+        random.seed(2)
+        np.random.seed(2)
+        tf.compat.v1.random.set_random_seed(2)
 
 
     def save_if_best_epoch(self, episode, step, cumulated_reward):
@@ -198,11 +202,11 @@ class TrainerFollowLanePPOCarla:
         tf_prev_state = tf.expand_dims(tf.convert_to_tensor(prev_state_fl), 0)
 
         action = self.ppo_agent.select_action(tf_prev_state)
-        # action[0] = action[0]  # TODO scale it propperly (now between 0 and 1)
+        action[0] = action[0]  # TODO scale it propperly (now between -1 and 1)
         action[1] = action[1] - 0.5  # TODO scale it propperly (now between -0.5 and 0.5)
-        self.tensorboard.update_actions(action, self.all_steps)
 
-        state, reward, done, info = self.env.step(action)
+        state, reward, done, done, info = self.env.step(action)
+
         self.set_stats(info)
         fps = info["fps"]
         self.step_fps.append(fps)
@@ -294,7 +298,7 @@ class TrainerFollowLanePPOCarla:
 
             prev_state, _ = self.env.reset()
             start_time = time.time()
-            while failures < 3:
+            while failures < 2:
                 state, cumulated_reward, done, bad_perception = self.one_step_iteration(episode, step, prev_state, cumulated_reward, done)
                 prev_state = state
                 step += 1
@@ -304,16 +308,17 @@ class TrainerFollowLanePPOCarla:
                 else:
                     failures = 0
 
-                self.env.display_manager.render()
+                #self.env.display_manager.render()
                 if step >= self.env_params.estimated_steps:
                     break
             episode_time = time.time() - start_time
 
             if self.environment.environment["mode"] != "inference":
                 self.save_if_best_epoch(episode, step, cumulated_reward)
+
             self.calculate_and_report_episode_stats(episode_time, step, cumulated_reward)
-            self.env.destroy_all_actors()
-            self.env.display_manager.destroy()
+            # self.env.destroy_all_actors()
+            # self.env.display_manager.destroy()
 
         # self.env.close()
 
@@ -327,6 +332,9 @@ class TrainerFollowLanePPOCarla:
         pass
 
     def calculate_and_report_episode_stats(self, episode_time, step, cumulated_reward):
+        if len(self.episodes_speed) == 0:
+            print("zero episodes speed")
+            return
         avg_speed = np.mean(self.episodes_speed)
         max_speed = np.max(self.episodes_speed)
         cum_d_reward = np.sum(self.episodes_d_reward)
