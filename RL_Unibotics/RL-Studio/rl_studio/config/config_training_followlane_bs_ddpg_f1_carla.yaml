@@ -1,5 +1,5 @@
 settings:
-  mode: retraining # training, retraining, inference
+  mode: inference # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: ddpg # qlearn, dqn, ddpg, ppo
   simulator: carla # openai, carla, gazebo, sumo
@@ -27,7 +27,7 @@ settings:
     function: pow
     punish_zig_zag_value: 3
     punish_ineffective_vel: 1
-    beta_1: 0
+    beta_1: 0.2
 
 ros:
   ros_master_uri: "11311"
@@ -112,15 +112,19 @@ carla_environments:
     detection_mode: carla_perfect  # carla_perfect
     fixed_delta_seconds: 0.05
     async_forced_delta_seconds: 0
-    reset_threshold: 0.3
+    reset_threshold: 0.35
     alternate_pose: True
     spawn_points: [
-      [ -475.506342, 352.208710, 0.807793, 0.051254, 55.662395, 0.072115 ],
-      [12.493741, 157.040146, 0.809260, 0.051254, -90.375160, 0.1006703],
+#      [ -475.506342, 352.208710, 0.807793, 0.051254, 55.662395, 0.072115 ],
+#      [12.493741, 157.040146, 0.809260, 0.051254, -90.375160, 0.1006703],
       [384.381470, -46.060329, 0.607339, 0.031453, 90.310402, 0.008101],
-      [199.221252, -367.893829, 0.809260, 0.248796, 0.152361, -0.002625]
+#      [199.221252, -367.893829, 0.809260, 0.248796, 0.152361, -0.002625]
 #      [235.603699, 12.395636, 5.128042, 3.577455, 0.124573, -0.008118],
 #      [389.385938, -179.152158, 0.457793, 0.082516, 270.889893, 0.078263]
+    ]
+    front_car: none # none, fixed, stopped, driving, incoming, outgoing
+    front_car_spawn_points: [
+      [ 382.315643, -263.973114, 0.805201, -0.211087, 76.833618, -0.360352 ]
     ]
     waypoints_meters: 5 #distance between waypoints in meters
     waypoints_init: 6912 # {6912} 1471 6927 899 6294    waypoints_target: 959 #961

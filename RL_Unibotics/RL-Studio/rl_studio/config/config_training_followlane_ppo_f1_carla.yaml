@@ -1,5 +1,5 @@
 settings:
-  mode: training # training, retraining, inference
+  mode: retraining # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: ppo_continuous # qlearn, dqn, ddpg, ppo
   simulator: carla # openai, carla, gazebo, sumo
@@ -18,14 +18,14 @@ settings:
   metrics_dir: "./metrics"
   debug_stats: false
   show_monitoring: false
-  steps_to_decrease: 40000
+  steps_to_decrease: 10000
   decrease_substraction: 0.005
   decrease_min: 0.01
   reward_params:
     function: pow
-    punish_zig_zag_value: 0.5
-    punish_ineffective_vel: 2 # velocity below which reward is not calculated (0)
-    beta_1: 0.7
+    punish_zig_zag_value: 3
+    punish_ineffective_vel: 1 # velocity below which reward is not calculated (0)
+    beta_1: 0
 
 
 ros:
@@ -34,7 +34,7 @@ ros:
 
 retraining:
   ppo:
-    retrain_ppo_tf_model_name: IMPROVED/20240707-205018MaxReward-327_Epoch-256_AM-265.1696257301197_AS-3.4917897281024195
+    retrain_ppo_tf_model_name: BATCH/20241126-100344MaxReward-217_Epoch-4473_AM-546.9176835268886_AS-29.978863263914644
 inference:
   ppo:
     inference_ppo_tf_actor_model_name:
@@ -44,8 +44,8 @@ algorithm:
   ppo:
     gamma: 0.9
     epsilon: 0.1
-    std_dev: 0.1
-    episodes_update: 50 # episodes how often the algorithm is trained
+    std_dev: 0.2
+    episodes_update: 100 # episodes how often the algorithm is trained
     replay_memory_size: 50_000
     memory_fraction: 0.20
     critic_lr: 0.0003
@@ -72,7 +72,7 @@ states:
   sp3:
     0: [10, 50, 150]
   sp5:
-    0: [ 280, 340, 380, 420, 460 ]
+    0: [ 290, 340, 380, 420, 460 ]
   sp10:
     0: [370, 380, 390, 400, 410, 430, 470, 500, 530, 560]
   spn:
@@ -80,7 +80,7 @@ states:
 
 actions:
   slow:
-    v: [0, 1]
+    v: [-1, 1]
     w: [-0.5, 0.5]
 
 rewards:
@@ -116,7 +116,7 @@ carla_environments:
     rolename: "hero" #name
     gamma: 2.2 #for camera
     sync: True #syncronous mode or async
-    detection_mode: lane_detector
+    detection_mode: carla_perfect
     fixed_delta_seconds: 0.1
     async_forced_delta_seconds: 0
     reset_threshold: 0.25
@@ -140,5 +140,5 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: 4010
+  carla_client: 4002
   manager_port: 8019

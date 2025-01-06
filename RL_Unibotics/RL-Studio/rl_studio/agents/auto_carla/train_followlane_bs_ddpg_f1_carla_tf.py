@@ -176,6 +176,15 @@ class ExplorationRateCallback(BaseCallback):
         self.exploration_rate = initial_exploration_rate
         self.n_actions = n_actions
 
+    def _on_training_start(self):
+        """Set initial exploration rates for the first and second actions."""
+        # Set exploration rate for the first action to initial_exploration
+        self.model.action_noise = NormalActionNoise(
+            mean=np.zeros(self.n_actions),
+            sigma=np.array([self.exploration_rate] + [0.05] * (self.n_actions - 1))
+        )
+
+
     def _on_step(self) -> bool:
         self.current_step += 1
         if self.current_step % self.decay_steps == 1:
@@ -184,7 +193,7 @@ class ExplorationRateCallback(BaseCallback):
             self.model.action_noise = NormalActionNoise(
                 mean=np.zeros(self.n_actions),
                 # sigma=self.exploration_rate * np.ones(self.n_actions)
-                sigma=np.array([self.exploration_rate] + [0.0] * (self.n_actions - 1))
+                sigma=np.array([self.exploration_rate] + [0.05] * (self.n_actions - 1))
             )
             if self.verbose > 0:
                 print(f"Step {self.current_step}: Setting exploration rate to {self.exploration_rate}")
@@ -213,7 +222,7 @@ class TrainerFollowLaneDDPGCarla:
         self.global_params = LoadGlobalParams(config)
         self.environment = LoadEnvVariablesDDPGCarla(config)
         self.environment.environment["debug_waypoints"] = False
-        self.environment.environment["estimated_steps"] = 5000
+        self.environment.environment["estimated_steps"] = 500
         logs_dir = f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
         self.tensorboard = ModifiedTensorBoard(
             log_dir=logs_dir
@@ -348,15 +357,17 @@ class TrainerFollowLaneDDPGCarla:
         #callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
         callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
 
-        self.ddpg_agent.learn(total_timesteps=self.params["total_timesteps"],
-                              callback=callback_list)
-
         if self.environment.environment["mode"] == "inference":
             self.evaluate_ddpg_agent(self.env, self.ddpg_agent, 10000)
 
+        self.ddpg_agent.learn(total_timesteps=self.params["total_timesteps"],
+                              callback=callback_list)
+
+
+
     def evaluate_ddpg_agent(self, env, agent, num_episodes):
         for episode in range(num_episodes):
-            obs = env.reset()
+            obs, _ = env.reset()
             done = False
             episode_reward = 0
 
@@ -365,7 +376,7 @@ class TrainerFollowLaneDDPGCarla:
                 action, _states = agent.predict(obs, deterministic=True)
 
                 # Take the action in the environment
-                obs, reward, done, info = env.step(action)
+                obs, reward, done, done, info = env.step(action)
                 episode_reward += reward
 
             print(f"Episode {episode + 1}: Total Reward = {episode_reward}")

@@ -47,17 +47,17 @@ class ActorNetwork(nn.Module):
 
         # Branch for action 1
         self.branch1 = nn.Sequential(
-            nn.Linear(32, 32),
+            nn.Linear(32, 64),
             nn.ReLU(),
-            nn.Linear(32, 1),
-            nn.Sigmoid(),
+            nn.Linear(64, 1),
+            nn.Tanh(),
         )
 
         # Branch for action 2
         self.branch2 = nn.Sequential(
-            nn.Linear(32, 32),
+            nn.Linear(32, 64),
             nn.ReLU(),
-            nn.Linear(32, 1),
+            nn.Linear(64, 1),
             nn.Sigmoid(),
         )
 
@@ -123,6 +123,7 @@ class ActorCritic(nn.Module):
     def act(self, state):
         if self.has_continuous_action_space:
             action_mean = self.actor(state)
+            # self.action_var[1] = 0.01
             cov_mat = torch.diag(self.action_var).unsqueeze(dim=0)
             dist = MultivariateNormal(action_mean, cov_mat)
         else:

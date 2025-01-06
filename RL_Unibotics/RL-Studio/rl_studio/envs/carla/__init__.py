@@ -9,12 +9,22 @@ class Carla:
 
         algorithm = environment["algorithm"]
         task = environment["task"]
+        app_states = environment.get("appended_states")
         framework = environment["framework"]
         weather = environment["weather"]
         traffic_pedestrians = environment["traffic_pedestrians"]
 
-        if framework == "baselines":
+
+        if (framework == "baselines"
+            and app_states == 3):
         # if framework == FrameworksType.BASELINES:
+            from rl_studio.envs.carla.followlane.followlane_carla_sb_8 import (
+                FollowLaneStaticWeatherNoTraffic,
+            )
+
+            return FollowLaneStaticWeatherNoTraffic(**environment)
+
+        elif framework == "baselines":
             from rl_studio.envs.carla.followlane.followlane_carla_sb import (
                 FollowLaneStaticWeatherNoTraffic,
             )
@@ -39,7 +49,9 @@ class Carla:
             and weather != "dynamic"
             and traffic_pedestrians is False
         ):
-            from rl_studio.envs.carla.followlane.followlane_carla import (
+            #TODO OJO! Modified for testing ppo auto carla follow lane
+            # from rl_studio.envs.carla.followlane.followlane_carla import (
+            from rl_studio.envs.carla.followlane.followlane_carla_sb import (
                 FollowLaneStaticWeatherNoTraffic,
             )
 

@@ -17,6 +17,7 @@ from PIL import Image
 from scipy.interpolate import interp1d
 from sklearn.linear_model import LinearRegression
 from gymnasium import spaces
+import gc
 
 from rl_studio.envs.carla.utils.bounding_boxes import BasicSynchronousClient
 from rl_studio.envs.carla.utils.manual_control import CameraManager
@@ -241,6 +242,14 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.episode_d_reward = 0
         self.episode_d_deviation = 0
+        self.curves_states = 0
+        self.throttle_action_avg_no_curves = 0
+        self.throttle_action_avg_curves = 0
+        self.throttle_action_difference = 0
+        self.throttle_action_std_dev_curves = 0
+        self.throttle_action_variance_curves = 0
+        self.throttle_action_std_dev_no_curves = 0
+        self.throttle_action_variance_no_curves = 0
         self.episode_last_d_deviation = 0
         self.last_cum_reward = 0
         self.episode_v_eff_reward = 0
@@ -272,6 +281,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         ###### init class variables
         FollowLaneCarlaConfig.__init__(self, **config)
         self.sync_mode = config["sync"]
+        self.front_car = config["front_car"]
+        self.front_car_spawn_points = config["front_car_spawn_points"]
         self.reset_threshold = config["reset_threshold"] if self.sync_mode else 1
         self.spawn_points = config.get("spawn_points")
         self.detection_mode = config.get("detection_mode")
@@ -310,8 +321,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.lane_model.eval()
         else:
             camera_transform = carla.Transform(
-                carla.Location(x=0.14852, y=0.0, z=2.5),
-                carla.Rotation(pitch=-3.248, yaw=-0.982, roll=0.0)
+                carla.Location(x=0, y=0.0, z=2),
+                carla.Rotation(pitch=-2, yaw=0, roll=0.0)
             )
 
             # Translation matrix, convert vehicle reference system to camera reference system
@@ -327,6 +338,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.timer = CustomTimer()
         self.step_count = 1
         self.episode = 0
+        self.crashed=0
         self.all_steps = 0
         self.cumulated_reward = 0
         self.client = carla.Client(
@@ -398,25 +410,30 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             ),
         )
 
-        self.car = self.world.spawn_actor(car_bp, location)
-        while self.car is None:
-            self.car = self.world.spawn_actor(car_bp, location)
+        vehicle = self.world.spawn_actor(car_bp, location)
+        while vehicle is None:
+            vehicle = self.world.spawn_actor(car_bp, location)
 
-        self.actor_list.append(self.car)
-        spectator = self.world.get_spectator()
-        spectator_location = carla.Transform(
-            location.location + carla.Location(z=100),
-            carla.Rotation(-90, location.rotation.yaw, 0))
-        spectator.set_transform(spectator_location)
+        self.actor_list.append(vehicle)
+        # spectator = self.world.get_spectator()
+        # spectator_location = carla.Transform(
+        #     location.location + carla.Location(z=100),
+        #     carla.Rotation(-90, location.rotation.yaw, 0))
+        # spectator.set_transform(spectator_location)
 
         time.sleep(1)
+        return vehicle
 
     def close(self):
         self.destroy_all_actors()
         self.display_manager.destroy()
 
     def reset(self, seed=None, options=None):
+        if self.episode % 200 == 0:  # Adjust step frequency as needed
+            gc.collect()
+
         self.episode += 1
+        #print(self.episode)
         self.location_stats_episode = {
             "actions": self.location_actions,
             "rewards": self.location_rewards,
@@ -439,6 +456,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.actor_list = []
         self.previous_time = 0
         self.set_init_pose()
+
         if self.sync_mode:
             self.world.tick()
         else:
@@ -447,6 +465,19 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         time.sleep(1)
         self.episode_start = time.time()
         self.car.apply_control(carla.VehicleControl(throttle=0.0, brake=0.0))
+
+        transform = self.car.get_transform()
+        forward_vector = transform.get_forward_vector()
+        rnd = random.random()
+        self.init_speed = 32 if rnd < 0.4 else 36 if rnd < 0.7 else 28 \
+            # if rnd > 0.8 else random.randint(0, 33)
+        # Scale the forward vector by the desired speed
+        target_velocity = carla.Vector3D(
+            x=forward_vector.x * self.init_speed,
+            y=forward_vector.y * self.init_speed,
+            z=forward_vector.z * self.init_speed  # Typically 0 unless you want vertical motion
+        )
+        self.car.set_target_velocity(target_velocity)
 
         # AutoCarlaUtils.show_image("image", self.front_camera_1_5.front_camera, 1)
         # AutoCarlaUtils.show_image("bird_view", self.birds_eye_camera.front_camera, 1)
@@ -468,15 +499,16 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         ) = self.calculate_center(ll_segment_post_process)
         right_lane_normalized_distances, right_center_lane = choose_lane(distance_to_center_normalized, center_lanes)
 
-        self.show_ll_seg_image(right_center_lane, ll_segment_post_process) if self.sync_mode and self.show_images else None
+        #self.show_ll_seg_image(right_center_lane, ll_segment_post_process) if self.sync_mode and self.show_images else None
 
         # right_lane_normalized_distances = [1,1,1,1,1,1,1,1,1,1]
         # state_size = 12
-        time.sleep(1)
+        # time.sleep(1)
 
         states = right_lane_normalized_distances
         states.append(0)
-        states.append(0)
+        states.append(self.init_speed)
+        #states.append(0)
         if self.use_curves_state:
             states.append(curve)
         state_size = len(states)
@@ -488,6 +520,14 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.step_count = 1
         self.episodes_speed = []
         self.episode_d_deviation = 0
+        self.throttle_action_avg_no_curves = 0
+        self.curves_states = 0
+        self.throttle_action_avg_curves = 0
+        self.throttle_action_difference = 0
+        self.throttle_action_std_dev_curves = 0
+        self.throttle_action_variance_curves = 0
+        self.throttle_action_std_dev_no_curves = 0
+        self.throttle_action_variance_no_curves = 0
         return np.array(states), state_size
 
     def calculate_and_report_episode_stats(self):
@@ -500,14 +540,27 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # max_reward = np.max(self.episodes_reward)
         # steering_std_dev = np.std(self.episodes_steer)
         self.advanced_meters = self.avg_speed * episode_time
+        if self.curves_states > 5:
+            self.throttle_action_difference = self.throttle_action_avg_no_curves - self.throttle_action_avg_curves
+        else:
+            self.throttle_action_difference = None
+            self.throttle_action_avg_curves = None
+            self.throttle_action_std_dev_curves = None
+            self.throttle_action_variance_curves = None
         # completed = 1 if self.step_count >= self.env_params.estimated_steps else 0
         self.tensorboard.update_stats(
             steps_episode=self.step_count,
             cum_rewards=self.cumulated_reward,
+            crashed=self.crashed,
             d_reward=self.episode_d_reward,
             v_reward=self.episode_v_eff_reward,
             avg_speed=self.avg_speed,
             max_speed=self.max_speed,
+            throttle_difference=self.throttle_action_difference,
+            throttle_curves=self.throttle_action_avg_curves,
+            throttle_no_curves=self.throttle_action_avg_no_curves,
+            throttle_curves_std = self.throttle_action_std_dev_curves,
+            throttle_no_curves_std = self.throttle_action_std_dev_no_curves,
             # cum_d_reward=cum_d_reward,
             # max_reward=max_reward,
             # steering_std_dev=steering_std_dev,
@@ -666,35 +719,180 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             persistent_lines=True,
         )
 
-    def setup_car_random_pose(self):
+
+    def setup_car_random_pose(self, spawn_points):
         car_bp = self.world.get_blueprint_library().filter("vehicle.*")[0]
         if self.spawn_points is not None:
-            spawn_point_index = random.randint(0, len(self.spawn_points))
-            spawn_point = self.spawn_points[spawn_point_index]
-            if random.random() <= 0.5: # TODO make it configurable
+            spawn_point_index = random.randint(0, len(spawn_points))
+            spawn_point = spawn_points[spawn_point_index]
+            if random.random() <= 1: # TODO make it configurable
                 location = getTransformFromPoints(spawn_point)
             else:
                 location = random.choice(self.world.get_map().get_spawn_points())
-            self.car = self.world.spawn_actor(car_bp, location)
-            while self.car is None:
-                self.car = self.world.spawn_actor(car_bp, location)
+
+            vehicle = self.world.spawn_actor(car_bp, location)
+            while vehicle is None:
+                vehicle = self.world.spawn_actor(car_bp, location)
         else:
             location = random.choice(self.world.get_map().get_spawn_points())
-            self.car = self.world.try_spawn_actor(car_bp, location)
-            while self.car is None:
-                self.car = self.world.try_spawn_actor(car_bp, location)
-        self.actor_list.append(self.car)
-        # initial_velocity = carla.Vector3D(x=random.randint(0, 15), y=0, z=0)  # 5 m/s in the x direction
-        # self.car.set_target_velocity(initial_velocity)
+            vehicle = self.world.try_spawn_actor(car_bp, location)
+            while vehicle is None:
+                vehicle = self.world.try_spawn_actor(car_bp, location)
+        self.actor_list.append(vehicle)
         time.sleep(1)
-        self.car.reward = 0
-        self.car.error = 0
+        vehicle.reward = 0
+        vehicle.error = 0
+        return vehicle
 
-    def setup_col_sensor(self):
+    # Method to add the obstacle detector sensor to the vehicle
+    def add_obstacle_detector(self, vehicle, world):
+        """
+        Adds an obstacle detector to the vehicle in CARLA world and starts listening to obstacles.
+        """
+        # Get the blueprint library for the world
+        blueprint_library = world.get_blueprint_library()
+
+        # Find the obstacle detector sensor blueprint
+        obstacle_sensor_bp = blueprint_library.find('sensor.other.obstacle')
+
+        # Set the position of the sensor (front of the vehicle)
+        sensor_transform = carla.Transform(carla.Location(x=10, z=1))  # Adjust the position as needed
+
+        # Visualize the position of the obstacle sensor by spawning a sphere
+        # Get the blueprint library
+        #blueprint_library = world.get_blueprint_library()
+
+        # List all available blueprints
+        #for blueprint in blueprint_library:
+        #    print(f"Blueprint: {blueprint.id}")
+
+        # Spawn the obstacle sensor and attach it to the vehicle
+        obstacle_sensor = world.spawn_actor(obstacle_sensor_bp, sensor_transform, attach_to=vehicle)
+
+        # Listen for obstacle data
+        obstacle_sensor.listen(lambda data: self.on_obstacle_detected(data))
+
+        self.actor_list.append(obstacle_sensor)
+
+    # Callback function to handle the obstacle detection data
+    def on_obstacle_detected(self, obstacle_data):
+        """
+        Callback function to process detected obstacles.
+        """
+        # Access the obstacle data directly (not as a list)
+        print(obstacle_data.other_actor)
+        print(f"Obstacle detected at: ")
+
+    def add_lidar_to_vehicle(self, world, vehicle, lidar_range=50.0, channels=32, rotation_frequency=10.0,
+                             points_per_second=56000):
+        # Get the Lidar blueprint
+        blueprint_library = world.get_blueprint_library()
+        lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
+
+        # Configure the Lidar settings
+        lidar_bp.set_attribute('range', '100')  # Maximum range in meters
+        #lidar_bp.set_attribute('channels', str(channels))  # Number of vertical channels
+        #lidar_bp.set_attribute('rotation_frequency', str(rotation_frequency))  # Rotations per second
+        #lidar_bp.set_attribute('points_per_second', str(points_per_second))  # Points per second
+        lidar_bp.set_attribute('upper_fov', '5')  # Top angle of vertical FOV (fixed direction)
+        lidar_bp.set_attribute('lower_fov', '1')  # Bottom angle of vertical FOV (fixed direction)
+        lidar_bp.set_attribute('horizontal_fov', '0')  # Single horizontal line
+        lidar_bp.set_attribute('channels', '30')  # Single vertical line
+        lidar_bp.set_attribute('channels', '20')  # Single vertical line
+        lidar_bp.set_attribute('rotation_frequency', '20')  # Keep as is for 10 Hz
+        lidar_bp.set_attribute('points_per_second', '5000')  # Fewer points for a narrow horizontal sweep
+
+        # Set the Lidar sensor's position relative to the vehicle
+        lidar_transform = carla.Transform(
+            carla.Location(x=1.5, z=0),  # x is forward, z is height
+            carla.Rotation(pitch=0, yaw=5, roll=0)
+        )
+
+        # Spawn the Lidar sensor and attach it to the vehicle
+        self.lidar_sensor = world.spawn_actor(lidar_bp, lidar_transform, attach_to=vehicle)
+        self.actor_list.append(self.lidar_sensor)
+
+        self.lidar_sensor.listen(lambda data: self.process_lidar_data(data))
+
+    def lidar_point_to_world(self, lidar_detection):
+        # Get the sensor's transformation
+        sensor_transform = self.lidar_sensor.get_transform()
+        sensor_location = sensor_transform.location
+        sensor_rotation = sensor_transform.rotation
+
+        # Extract relative point from lidar detection
+        relative_point = lidar_detection.point  # Example: (x, y, z) in sensor's frame
+
+        # Convert sensor rotation to radians
+        yaw = math.radians(sensor_rotation.yaw)
+        pitch = math.radians(sensor_rotation.pitch)
+        roll = math.radians(sensor_rotation.roll)
+
+        # Rotation matrix for the sensor
+        rotation_matrix = np.array([
+            [
+                math.cos(yaw) * math.cos(pitch),
+                math.cos(yaw) * math.sin(pitch) * math.sin(roll) - math.sin(yaw) * math.cos(roll),
+                math.cos(yaw) * math.sin(pitch) * math.cos(roll) + math.sin(yaw) * math.sin(roll)
+            ],
+            [
+                math.sin(yaw) * math.cos(pitch),
+                math.sin(yaw) * math.sin(pitch) * math.sin(roll) + math.cos(yaw) * math.cos(roll),
+                math.sin(yaw) * math.sin(pitch) * math.cos(roll) - math.cos(yaw) * math.sin(roll)
+            ],
+            [
+                -math.sin(pitch),
+                math.cos(pitch) * math.sin(roll),
+                math.cos(pitch) * math.cos(roll)
+            ]
+        ])
+
+        # Transform the relative point to the world frame
+        relative_vector = np.array([relative_point.x, relative_point.y, relative_point.z])
+        world_vector = np.dot(rotation_matrix, relative_vector)
+
+        # Add the sensor's global location
+        world_x = sensor_location.x + world_vector[0]
+        world_y = sensor_location.y + world_vector[1]
+        world_z = sensor_location.z + world_vector[2]
+
+        return carla.Location(x=world_x, y=world_y, z=world_z)
+
+    def process_lidar_data(self, data):
+        car_location = self.car.get_location()
+        min_distance = float('inf')
+
+        # Define the range of lateral (Y) distance for "front" filtering (optional)
+        lateral_limit = 2.0  # 2 meters to the left and right of the vehicle's center
+
+        # Define the angle range for the "cone" of front-facing points
+        front_angle_limit = 30.0  # 30 degrees (left and right) from the center of the vehicle
+
+        for detection in data:
+            # Transform LiDAR point to world coordinates
+            world_point = self.lidar_point_to_world(detection)
+
+            # Get the angle of the point relative to the vehicle's forward direction
+            angle = math.degrees(math.atan2(world_point.y - car_location.y, world_point.x - car_location.x))
+
+            # Only consider points ahead of the vehicle and within the cone
+            # if world_point.x > car_location.x and abs(angle) <= front_angle_limit and abs(world_point.y) < lateral_limit:
+            if True:
+                # Compute distance to the car
+                distance = car_location.distance(world_point)
+                if distance < min_distance:
+                    min_distance = distance
+
+                # Visualize the LiDAR point in front of the vehicle
+                self.world.debug.draw_point(world_point, size=0.1, color=carla.Color(255, 0, 0), life_time=0.1)
+        self.lidar_front_distance = min_distance
+        # print(f"Closest object in front of the vehicle is {min_distance} meters away.")
+
+    def setup_col_sensor(self, vehicle):
         colsensor = self.world.get_blueprint_library().find("sensor.other.collision")
         transform = carla.Transform(carla.Location(x=2.5, z=0.7))
         self.colsensor = self.world.spawn_actor(
-            colsensor, transform, attach_to=self.car
+            colsensor, transform, attach_to=vehicle
         )
         self.actor_list.append(self.colsensor)
         self.colsensor.listen(lambda event: self.collision_data(event))
@@ -713,17 +911,38 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #    [carla.command.DestroyActor(x) for x in self.actor_list[::-1]]
         # )
 
-    ################################################################################
-    def step(self, action):
-        # print(f"=============== STEP ===================")
-        self.all_steps+=1
-        # action = [0, 0]
-        ### -------- send action
-        params = self.control(action)
-        self.episodes_speed.append(params["velocity"])
+    def show_debug_points(self, curve, right_lane_normalized_distances, distance_to_center_normalized):
+        if self.debug_waypoints:
+            average_abs = sum(abs(x) for x in right_lane_normalized_distances) / len(distance_to_center_normalized)
+            # if average_abs > 0.8:
+            #     color = carla.Color(r=255, g=0, b=0)
+            # else:
+            #     green_value = max(int((1 - average_abs * 2 ) * 255), 0 )
+            #     color = carla.Color(r=0, g=green_value, b=0)
+            if curve:
+                color = carla.Color(r=255, g=0, b=0)
+            else:
+                green_value = max(int((1 - average_abs * 2) * 255), 0)
+                color = carla.Color(r=0, g=green_value, b=0)
 
+            self.world.debug.draw_string(
+                self.car.get_transform().location,
+                "X",
+                draw_shadow=False,
+                color=color,
+                life_time=10000000,
+                persistent_lines=True,
+            )
+            if self.step_count % 10 == 1:
+                print(self.car.get_transform())
+
+    def apply_step(self, action):
+        self.all_steps += 1
         if self.tensorboard is not None:
             self.tensorboard.update_actions(action, self.all_steps)
+
+        params = self.control(action)
+        self.episodes_speed.append(params["velocity"])
 
         now = time.time()
         elapsed_time = now - self.previous_time
@@ -731,20 +950,16 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if self.sync_mode:
             self.world.tick()
         else:
-            if elapsed_time < self.forced_freq:
-                wait_time = self.forced_freq - elapsed_time
-                time.sleep(wait_time)
+            # if elapsed_time < self.forced_freq:
+            #     wait_time = self.forced_freq - elapsed_time
+            #     time.sleep(wait_time)
             self.world.wait_for_tick()
 
         now = time.time()
         params["fps"] = 1 / (now - self.previous_time)
         self.previous_time = now
 
-        ## -- states
-        # mask = self.preprocess_image(
-        #    self.front_camera_1_5_red_mask.front_camera_red_mask
-        # )
-        raw_image = self.get_resized_image(self.front_camera_1_5.front_camera) # TODO Think it is not aligned with BM
+        raw_image = self.get_resized_image(self.front_camera_1_5.front_camera)  # TODO Think it is not aligned with BM
         segmentated_image = self.get_resized_image(self.front_camera_1_5_segmentated.front_camera)
 
         curve = False
@@ -759,94 +974,52 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             center_lanes,
             distance_to_center_normalized,
         ) = self.calculate_center(ll_segment)
-        # We get the first of all calculated "center lanes" assuming it will be the right lane
-        #right_lane_normalized_distances = [inner_array[-1] for inner_array in distance_to_center_normalized]
-        #right_center_lane = [[inner_array[-1]] for inner_array in center_lanes]
         right_lane_normalized_distances, right_center_lane = choose_lane(distance_to_center_normalized, center_lanes)
-
         self.show_ll_seg_image(right_center_lane, ll_segment)
 
-        if self.debug_waypoints:
-            average_abs = sum(abs(x) for x in right_lane_normalized_distances) / len(distance_to_center_normalized)
-            # if average_abs > 0.8:
-            #     color = carla.Color(r=255, g=0, b=0)
-            # else:
-            #     green_value = max(int((1 - average_abs * 2 ) * 255), 0 )
-            #     color = carla.Color(r=0, g=green_value, b=0)
-            if curve:
-                color = carla.Color(r=255, g=0, b=0)
-            else:
-                green_value = max(int((1 - average_abs * 2 ) * 255), 0 )
-                color = carla.Color(r=0, g=green_value, b=0)
 
-            self.world.debug.draw_string(
-                self.car.get_transform().location,
-                "X",
-                draw_shadow=False,
-                color=color,
-                life_time=10000000,
-                persistent_lines=True,
-            )
-            if self.step_count % 100 == 1:
-                print(self.car.get_transform())
+        curvature = self.calculate_curvature_from(right_center_lane)
+        # print(curvature)
 
-        # self.show_ll_seg_image(center_lanes, ll_segment_post_process, name="ll_seg_all")
+        self.show_debug_points(curve, right_lane_normalized_distances, distance_to_center_normalized)
 
-        # print(f"states:{states}\n")
-        # AutoCarlaUtils.show_image_with_centrals(
-        #    "image",
-        #    self.front_camera_1_5.front_camera[ll_segment.shape[0] :],
-        #    1,
-        #    distance_center,
-        #    distance_to_center_normalized,
-        #    self.x_row,
-        # )
-
-        ## ------ calculate distance error and states
-        # print(f"{self.perfect_distance_normalized =}"
-        # right_lane_normalized goes between 1 and -1
         distance_error = [abs(x) for x in right_lane_normalized_distances]
-        ## -------- Rewards
-        reward, done, crash = self.rewards_easy(distance_error, action, params)
 
-        self.step_count += 1
+        reward, done, crash = self.rewards_easy(distance_error, action, params)
+        self.car.reward = reward
+        self.cumulated_reward = self.cumulated_reward + reward
 
         params["bad_perception"], _ = self.has_bad_perception(right_lane_normalized_distances, threshold=0.999)
         params["crash"] = crash
-
-        #if params["bad_perception"] and not params["crash"]:
+        params["distance_error"] = distance_error
+        # if params["bad_perception"] and not params["crash"]:
         #    if self.failures < 6:
         #       self.failures += 1
         #       return self.step([0.1, 0.05 * random.choice([1, -1]), 0])
         #    else:
         #       reward = 0
-        #self.failures = 0
-
+        # self.failures = 0
 
         states = right_lane_normalized_distances
         states.append(params["velocity"])
         states.append(params["steering_angle"])
-        if self.use_curves_state:
-            states.append(curve)
+        #states.append(curvature * 10)
+        # states.append(params["angular_velocity"]/100)
+        # if self.use_curves_state:
+        #     states.append(curve)
 
         self.display_manager.render(vehicle=self.car)
-
-        self.cumulated_reward = self.cumulated_reward + reward
-
-        if self.episode % 10 == 0:
-            location = (
-                self.car.get_transform().location.x,
-                self.car.get_transform().location.y,
-                self.car.get_transform().location.z
-            )
-            # TODO here we could add also a "different with different state" so we can debug
-            # TODO here we could also store the rotation to better know if actions were right
-            # locations in which we suspect the perception is causing the problem
-            self.location_next_states[location] = right_lane_normalized_distances
-            self.location_actions[location] = action
-            self.location_rewards[location] = reward
-
         return np.array(states), reward, done, done, params
+
+
+    ################################################################################
+    def step(self, action):
+        # time.sleep(0.2)
+        self.step_count += 1
+        for _ in range(1):  # Apply the action for 3 consecutive steps
+            states, reward, done, done, params = self.apply_step(action)
+
+        return states, reward, done, done, params
 
     def control(self, action):
 
@@ -854,20 +1027,33 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # brake = float(action[2])
 
         if float(action[0]) < 0:
-            brake = - float(action[0])
+            brake = -float(action[0])
             throttle = 0
-        else :
+            #throttle = 0.8
+            #brake = 0
+        else:
             brake = 0
             throttle = float(action[0])
+            #throttle = 0.8
 
         self.car.apply_control(carla.VehicleControl(throttle=throttle, brake=brake,
                                                     steer=float(action[1])))
+        transform = self.car.get_transform()
+        forward_vector = transform.get_forward_vector()
+
+        # Scale the forward vector by the desired speed
+        # target_velocity = carla.Vector3D(
+        #     x=forward_vector.x * self.speed,
+        #     y=forward_vector.y * self.speed,
+        #     z=forward_vector.z * self.speed  # Typically 0 unless you want vertical motion
+        # )
+        #self.car.set_target_velocity(target_velocity)
 
         params = {}
 
         v = self.car.get_velocity()
         params["velocity"] = math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)
-
+        params["angular_velocity"] = self.car.get_angular_velocity().z
         # w = self.car.get_angular_velocity()
         # params["angular_velocity"] = w
 
@@ -899,8 +1085,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return math.log(1 + velocity) / math.log(1 + v_max)
 
     def rewards_easy(self, error, action, params):
-        # distance_error = error[2:] # We are just rewarding the 3 lowest points!
-        distance_error = error
+        distance_error = error[1:] # We are just rewarding the 4 lowest points!
+        # distance_error = error
         ## EARLY RETURNS
         done = self.has_crashed()
         params["d_reward"] = 0
@@ -908,34 +1094,39 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params["v_eff_reward"] = 0
         params["reward"] = 0
         if done:
-            print("car deviated")
+            print("car crashed")
             crash = True
-            return -5, done, crash
+            return -50, done, crash
 
         crash = False
 
         # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
         #  En curvas
-        done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold, len(distance_error))
+        done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold,
+                                                               len(distance_error))
 
         if done:
-            return -5, done, crash
+            print("car deviated")
+            self.crashed += 1
+            return -10, done, crash
+            #return -5 * action[0], done, crash
+
+        v = params["velocity"]
 
         # REWARD CALCULATION
-        low_vel_factor=1
-        if params["velocity"] < self.punish_ineffective_vel:
+        if v < self.punish_ineffective_vel:
             self.steps_stopped += 1
             if self.steps_stopped > 500:
-                return -5, True, False
                 print("too much time stopped")
-            low_vel_factor=0
+                return -10, True, False
+            return 0, False, False
         else:
             self.steps_stopped = 0
 
         # DISTANCE REWARD CALCULCATION
         d_rewards = []
-        for _, error in enumerate(distance_error):
-            d_rewards.append(math.pow(1 - error, 1))
+        for _, error_dist in enumerate(distance_error):
+            d_rewards.append(math.pow((1 - error_dist), 2))
 
         # TODO ignore non detected centers
         d_reward = sum(d_rewards) / len(d_rewards)
@@ -944,23 +1135,65 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.episode_d_reward = self.episode_d_reward + (d_reward - self.episode_d_reward) / self.step_count
         self.episode_d_deviation = self.episode_d_deviation + (avg_error - self.episode_d_deviation) / self.step_count
+        if error[0] < 0.05:
+            self.throttle_action_avg_no_curves = self.throttle_action_avg_no_curves + (action[0] - self.throttle_action_avg_no_curves) / self.step_count
+            self.throttle_action_variance_no_curves = self.throttle_action_variance_no_curves + (
+                        (action[0] - self.throttle_action_avg_no_curves) * (
+                            action[0] - self.throttle_action_avg_no_curves - (1 / self.step_count))) / self.step_count
+            self.throttle_action_std_dev_no_curves = self.throttle_action_variance_no_curves ** 0.5
+        else:
+            self.curves_states += 1
+            self.throttle_action_avg_curves = self.throttle_action_avg_curves + (action[0] - self.throttle_action_avg_no_curves) / self.step_count
+            self.throttle_action_variance_curves = self.throttle_action_variance_curves + (
+                    (action[0] - self.throttle_action_avg_no_curves) * (
+                    action[0] - self.throttle_action_avg_no_curves - (1 / self.step_count))) / self.step_count
+            self.throttle_action_std_dev_curves = self.throttle_action_std_dev_curves ** 0.5
 
         # VELOCITY REWARD CALCULCATION
 
-        v = params["velocity"]
-        rewarded_v = min(params["velocity"], 34) # min to not to reward speeds over 120km/h
+        if v > 37:
+            return -10, True, False
 
-        v_eff_reward =  np.log(rewarded_v)/np.log(20) * math.pow(d_reward, (rewarded_v/5) + 1)
+        if v>25:
+            return -1*(v-25) , False, False
 
-        self.episode_v_eff_reward = self.episode_v_eff_reward + (v_eff_reward - self.episode_v_eff_reward) / self.step_count
+
+        #v_eff_reward = np.log1p(v) * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
+        #v_eff_reward = np.log1p(v) * max(d_reward, 0)
+        #v_eff_reward = max(action[0], 0)  * d_reward
+        #v_eff_reward = v * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
+
+        # v_kmh = v * 3.6
+        # target_speed = 40.0
+        # speed_tolerance = 5.0
+        # if target_speed - speed_tolerance <= v_kmh <= target_speed + speed_tolerance:
+        #     speed_reward = 1.0  # Full reward for staying in the target range
+        # else:
+        #     # Penalize for deviating from the target speed
+        #     speed_reward = max(0.0, -5 * abs(v_kmh - target_speed) / target_speed)
+
+        # print(f"dist {distance_error[0]}")
+        # print(f"v{v_kmh}")
+        # print(f"sRew {speed_reward}")
+        # v_reward =  max(action[0], 0) if error[0] < 0.05 else speed_reward
+        v_reward =  max(action[0], 0)
+        v_eff_reward = v_reward  * d_reward
+
+        self.episode_v_eff_reward = self.episode_v_eff_reward + (
+                    v_eff_reward - self.episode_v_eff_reward) / self.step_count
         params["v_eff_reward"] = v_eff_reward
 
+        # avg_speed = np.mean(self.episodes_speed)
+        # episode_time = self.step_count * self.fixed_delta_seconds
+        # advanced = avg_speed * episode_time
+
         # TOTAL REWARD CALCULATION
-        d_reward_component = low_vel_factor * self.beta * d_reward
-        v_reward_component = (1-self.beta) * v_eff_reward
+        d_reward_component = self.beta * d_reward
+        v_reward_component = (1 - self.beta) * v_eff_reward
+        # progress_reward_component = advanced * 0.01
 
         function_reward = d_reward_component + v_reward_component
-        #function_reward = d_reward * v_reward
+        # function_reward = d_reward * v_reward
         params["reward"] = function_reward
 
         if self.step_count > self.estimated_steps:
@@ -970,24 +1203,27 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # PUNISH CALCULATION
         punish = 0
         punish += self.punish_zig_zag_value * abs(params["steering_angle"])
-        if v > 34:
-            punish += (v - 34) / 10
-        # punish += 1 if action[0] > 0 and action[2] > 0 else 0
+        if action[0] > 0.95:
+            punish += 1
+        # if distance_error[0] > 0.05 and v > 20:
+        #     punish += 0.5 * (v - 20)
+
+        # punish += params["angular_velocity"] / 20
         # punish += (1-self.beta) * v_reward * math.pow((1-d_reward), 2)
-        if function_reward > punish: # to avoid negative rewards
+        if function_reward > punish:  # to avoid negative rewards
             function_reward -= punish
         else:
             function_reward = 0
 
         # ENTROPY CALCULATION
-        if self.entropy_factor > 0:
-            state = distance_error.copy()
-            state.append(params["velocity"])
-            state.append(params["steering_angle"])
-            entropy = self.entropy_calculator.calculate_entropy(state, action)
-            function_reward += self.entropy_factor * entropy
-
-        self.car.reward = function_reward
+        # if self.entropy_factor > 0:
+        #     state = distance_error.copy()
+        #     state.append(params["velocity"])
+        #     state.append(params["steering_angle"])
+        #     entropy = self.entropy_calculator.calculate_entropy(state, action)
+        #     function_reward += self.entropy_factor * entropy
+        # print(function_reward)
+        # print(params["angular_velocity"])
         return function_reward, done, crash
 
     def rewards_followlane_center_v_w(self):
@@ -1020,8 +1256,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         sensor_data = np.array(sensor_data, copy=True)
 
         # Get the current width and height
-        height = sensor_data.shape[0]
-        width = sensor_data.shape[1]
+        try:
+            height = sensor_data.shape[0]
+            width = sensor_data.shape[1]
+        except Exception:
+            height = 540
+            width = 640
 
         # Calculate the new height to maintain the aspect ratio
         new_height = int((new_width / width) * height)
@@ -1143,7 +1383,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             red_channel = ll_segment[:, :, 2]  # Red channel
             # print(f"left curve -> {is_curve(blue_channel)}")
             # print(f"right curve -> {is_curve(red_channel)}")
-            #curve = is_curve(blue_channel) or is_curve(red_channel)
+            curve = is_curve(blue_channel) or is_curve(red_channel)
 
             lines = []
             left_line = self.post_process_hough_lane_det(blue_channel)
@@ -1476,8 +1716,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         waypoints_town = self.world.get_map().generate_waypoints(5.0)
         init_waypoint = waypoints_town[self.waypoints_init]
 
+        # set self driving car
         if self.alternate_pose:
-            self.setup_car_random_pose()
+            self.car = self.setup_car_random_pose(self.spawn_points)
         elif self.waypoints_init is not None:
             if self.show_all_points:
                 self.draw_waypoints(
@@ -1487,7 +1728,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                    self.waypoints_lane_id,
                    2000,
                 )
-            self.setup_car_fix_pose(init_waypoint)
+            self.car = self.setup_car_fix_pose(init_waypoint)
         else:  # TODO: hacer en el caso que se quiera poner el target con .next()
             waypoints_lane = init_waypoint.next_until_lane_end(1000)
             waypoints_next = init_waypoint.next(1000)
@@ -1508,23 +1749,28 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             print(f"{counter_lanes = }")
             print(f"{counter_road = }")
 
-            self.setup_car_fix_pose(init_waypoint)
+            self.car = self.setup_car_fix_pose(init_waypoint)
 
+        # set other car
+        if self.front_car not in (None, "none"):
+            self.setup_car_random_pose(self.front_car_spawn_points)
 
         ## --- Sensor collision
-        self.setup_col_sensor()
+        self.setup_col_sensor(self.car)
+        #self.add_obstacle_detector(self.car, self.world)
+        self.add_lidar_to_vehicle(self.world, self.car)
 
         # Create a camera sensor blueprint
-        camera_bp = self.world.get_blueprint_library().find("sensor.camera.rgb")
-        camera_bp.set_attribute("image_size_x", "800")
-        camera_bp.set_attribute("image_size_y", "600")
-        camera_bp.set_attribute("fov", "90")
+        # camera_bp = self.world.get_blueprint_library().find("sensor.camera.rgb")
+        # camera_bp.set_attribute("image_size_x", "800")
+        # camera_bp.set_attribute("image_size_y", "600")
+        # camera_bp.set_attribute("fov", "90")
 
         self.front_camera_1_5 = SensorManager(
             self.world,
             self.display_manager,
             "RGBCamera",
-            carla.Transform(carla.Location(x=2, z=1.5), carla.Rotation(yaw=+00)),
+            carla.Transform(carla.Location(x=0, z=2), carla.Rotation(yaw=+00)),
             self.car,
             {},
             display_pos=[0, 0],
@@ -1534,7 +1780,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.world,
             self.display_manager,
             "BIRD_VIEW",
-            carla.Transform(carla.Location(x=0, y=0, z=60), carla.Rotation(pitch=-90)),
+            carla.Transform(carla.Location(x=0, y=0, z=100), carla.Rotation(pitch=-90)),
             self.car,
             {},
             display_pos=[1, 0],
@@ -1548,6 +1794,16 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.car,
             {},
             display_pos=[0, 1],
+        )
+
+        self.ego_camera = SensorManager(
+            self.world,
+            self.display_manager,
+            "BIRD_VIEW",
+            carla.Transform(carla.Location(x=-2, y=0, z=4), carla.Rotation(pitch=-10)),
+            self.car,
+            {},
+            display_pos=[1, 1],
         )
 
         # self.front_camera_1_5_red_mask = SensorManager(
@@ -1645,6 +1901,21 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         res[left_mask > 0.5, :] = [255,0,0]
         res[right_mask > 0.5,:] = [0, 0, 255]
         return res
+
+    def calculate_curvature_from(self, right_center_lane):
+        x = np.array(self.x_row)
+        y = np.array(right_center_lane)
+
+        coefficients = np.polyfit(x, y, 2)  # Returns [a, b, c]
+        a, b, c = coefficients
+
+        x_mid = x[2]  # Use the middle point
+        y_prime = 2 * a * x_mid + b
+        y_double_prime = 2 * a
+        curvature = abs(y_double_prime) / ((1 + y_prime ** 2) ** (3 / 2))
+        return curvature
+
+
 
 
 

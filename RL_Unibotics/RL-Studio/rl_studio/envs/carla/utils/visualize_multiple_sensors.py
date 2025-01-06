@@ -189,9 +189,6 @@ class SensorManager:
             for key in sensor_options:
                 camera_bird.set_attribute(key, sensor_options[key])
 
-            transform = carla.Transform(carla.Location(x=0, y=0, z=60),
-                                        carla.Rotation(
-                                            pitch=-90))  # Looking down (bird's-eye view)                                    )
             camera = self.world.spawn_actor(camera_bird, transform, attach_to=attached)
             camera.listen(self.save_birdview)
 

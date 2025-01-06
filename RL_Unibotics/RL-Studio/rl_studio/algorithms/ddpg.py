@@ -76,6 +76,8 @@ class ModifiedTensorBoard(TensorBoard):
     def _write_logs(self, logs, index):
         with self.writer.as_default():
             for name, value in logs.items():
+                if value is None:
+                    continue
                 tf.summary.scalar(name, value, step=index)
                 self.writer.flush()
 
@@ -98,6 +100,7 @@ class ModifiedTensorBoard(TensorBoard):
 
     def update_fps(self, fps):
         self._write_fps(fps)
+
     def update_actions(self, actions, index):
         with self.writer.as_default():
             tf.summary.histogram("actions_v", actions[0], step=index)

@@ -9,11 +9,12 @@ class LoadAlgorithmParams:
     def __init__(self, config):
         if config["settings"]["algorithm"] == "sac":
             self.gamma = config["algorithm"]["sac"]["gamma"]
-            self.tau = config["algorithm"]["sac"]["tau"]
             self.std_dev = config["algorithm"]["sac"]["std_dev"]
             self.model_name = config["algorithm"]["sac"]["model_name"]
-            self.buffer_capacity = config["algorithm"]["sac"]["buffer_capacity"]
-            self.batch_size = config["algorithm"]["sac"]["batch_size"]
+            self.episodes_update = config["algorithm"]["sac"]["episodes_update"]
+            self.actor_lr = config["algorithm"]["sac"]["actor_lr"]
+            self.critic_lr = config["algorithm"]["sac"]["critic_lr"]
+            self.epsilon = config["algorithm"]["sac"]["epsilon"]
 
         if config["settings"]["algorithm"] == "ddpg":
             self.gamma = config["algorithm"]["ddpg"]["gamma"]
@@ -587,7 +588,7 @@ class LoadEnvVariablesDDPGCarla:
         self.environment["env"] = config["settings"]["env"]
         self.environment["town"] = config[self.environment_set][self.env]["town"]
         self.environment["car"] = config[self.environment_set][self.env]["car"]
-        self.environment["weather"] = config[self.environment_set][self.env]["weather"]
+
         self.environment["weather"] = config[self.environment_set][self.env]["weather"]
         self.environment["traffic_pedestrians"] = config[self.environment_set][
             self.env
@@ -622,6 +623,9 @@ class LoadEnvVariablesDDPGCarla:
         ]
         self.environment["gamma"] = config[self.environment_set][self.env]["gamma"]
         self.environment["sync"] = config[self.environment_set][self.env]["sync"]
+        self.environment["front_car"] = config[self.environment_set][self.env].get("front_car")
+        self.environment["front_car_spawn_points"] = config[self.environment_set][self.env].get(
+            "front_car_spawn_points")
         self.environment["reset_threshold"] = config[self.environment_set][self.env].get("reset_threshold")
         self.environment["spawn_points"] = config[self.environment_set][self.env].get("spawn_points")
         self.environment["detection_mode"] = config[self.environment_set][self.env]["detection_mode"]
@@ -688,9 +692,9 @@ class LoadEnvVariablesDDPGCarla:
         self.environment["ROS_MASTER_URI"] = config["ros"]["ros_master_uri"]
         self.environment["GAZEBO_MASTER_URI"] = config["ros"]["gazebo_master_uri"]
 
-class LoadEnvVariablesPPOCarla:
+class LoadEnvVariablesSACCarla:
     """
-    ONLY FOR PPO algorithm
+    ONLY FOR sac algorithm
     Creates a new variable 'environment', which contains values to Gazebo env, Carla env ...
     """
 
@@ -708,6 +712,155 @@ class LoadEnvVariablesPPOCarla:
         self.environment["agent"] = config["settings"]["agent"]
         self.environment["algorithm"] = config["settings"]["algorithm"]
         self.environment["task"] = config["settings"]["task"]
+        self.environment["framework"] = config["settings"]["framework"]
+        self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
+        self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
+        self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
+        self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
+
+
+        # Training/inference
+        self.environment["mode"] = config["settings"]["mode"]
+        self.environment["retrain_sac_tf_model_name"] = f"{config['retraining']['sac']['retrain_sac_tf_model_name']}"
+        self.environment["inference_sac_tf_actor_model_name"] = config["inference"][
+            "sac"
+        ]["inference_sac_tf_actor_model_name"]
+        self.environment["inference_sac_tf_critic_model_name"] = config["inference"][
+            "sac"
+        ]["inference_sac_tf_critic_model_name"]
+
+        # Env
+        self.environment["env"] = config["settings"]["env"]
+        self.environment["town"] = config[self.environment_set][self.env]["town"]
+        self.environment["car"] = config[self.environment_set][self.env]["car"]
+        self.environment["weather"] = config[self.environment_set][self.env]["weather"]
+        self.environment["weather"] = config[self.environment_set][self.env]["weather"]
+        self.environment["traffic_pedestrians"] = config[self.environment_set][
+            self.env
+        ]["traffic_pedestrians"]
+        self.environment["city_lights"] = config[self.environment_set][self.env][
+            "city_lights"
+        ]
+        self.environment["car_lights"] = config[self.environment_set][self.env][
+            "car_lights"
+        ]
+        self.environment["alternate_pose"] = config[self.environment_set][self.env][
+            "alternate_pose"
+        ]
+        self.environment["save_episodes"] = config[self.environment_set][self.env][
+            "save_episodes"
+        ]
+        self.environment["save_every_step"] = config[self.environment_set][self.env][
+            "save_every_step"
+        ]
+        self.environment["init_pose"] = config[self.environment_set][self.env][
+            "init_pose"
+        ]
+        self.environment["goal_pose"] = config[self.environment_set][self.env][
+            "goal_pose"
+        ]
+        self.environment["filter"] = config[self.environment_set][self.env]["filter"]
+        self.environment["generation"] = config[self.environment_set][self.env][
+            "generation"
+        ]
+        self.environment["rolename"] = config[self.environment_set][self.env][
+            "rolename"
+        ]
+        self.environment["gamma"] = config[self.environment_set][self.env]["gamma"]
+        self.environment["sync"] = config[self.environment_set][self.env]["sync"]
+        self.environment["reset_threshold"] = config[self.environment_set][self.env].get("reset_threshold")
+        self.environment["spawn_points"] = config[self.environment_set][self.env].get("spawn_points")
+        self.environment["detection_mode"] = config[self.environment_set][self.env]["detection_mode"]
+        self.environment["fixed_delta_seconds"] = config[self.environment_set][self.env]["fixed_delta_seconds"]
+        self.environment["async_forced_delta_seconds"] = config[self.environment_set][self.env]["async_forced_delta_seconds"]
+        self.environment["waypoints_meters"] = config[self.environment_set][self.env][
+            "waypoints_meters"
+        ]
+        self.environment["waypoints_init"] = config[self.environment_set][self.env][
+            "waypoints_init"
+        ]
+        self.environment["waypoints_target"] = config[self.environment_set][self.env][
+            "waypoints_target"
+        ]
+        self.environment["waypoints_lane_id"] = config[self.environment_set][self.env][
+            "waypoints_lane_id"
+        ]
+        self.environment["waypoints_road_id"] = config[self.environment_set][self.env][
+            "waypoints_road_id"
+        ]
+
+        # --------- Image
+        self.environment["height_image"] = config["agents"][self.agent][
+            "camera_params"
+        ]["height"]
+        self.environment["width_image"] = config["agents"][self.agent]["camera_params"][
+            "width"
+        ]
+        self.environment["center_image"] = config["agents"][self.agent][
+            "camera_params"
+        ]["center_image"]
+        self.environment["image_resizing"] = config["agents"][self.agent][
+            "camera_params"
+        ]["image_resizing"]
+        self.environment["new_image_size"] = config["agents"][self.agent][
+            "camera_params"
+        ]["new_image_size"]
+        self.environment["raw_image"] = config["agents"][self.agent]["camera_params"][
+            "raw_image"
+        ]
+        self.environment["num_regions"] = config["agents"][self.agent]["camera_params"][
+            "num_regions"
+        ]
+        self.environment["lower_limit"] = config["agents"][self.agent]["camera_params"][
+            "lower_limit"
+        ]
+        # States
+        self.environment["states"] = config["settings"]["states"]
+        self.environment["x_row"] = config["states"][self.states][0]
+
+        # Actions
+        self.environment["action_space"] = config["settings"]["actions"]
+        self.environment["actions"] = config["actions"][self.actions]
+
+        # Rewards
+        self.environment["reward_function"] = config["settings"]["rewards"]
+        self.environment["rewards"] = config["rewards"][self.rewards]
+        self.environment["min_reward"] = config["rewards"][self.rewards]["min_reward"]
+
+        # CARLA
+        self.environment["carla_server"] = config["carla"]["carla_server"]
+        self.environment["carla_client"] = config["carla"]["carla_client"]
+        self.environment["manager_port"] = config["carla"]["manager_port"]
+
+        # Algorithm
+        self.environment["critic_lr"] = config["algorithm"]["sac"]["critic_lr"]
+        self.environment["actor_lr"] = config["algorithm"]["sac"]["actor_lr"]
+        self.environment["model_name"] = config["algorithm"]["sac"]["model_name"]
+
+
+
+class LoadEnvVariablesPPOCarla:
+    """
+    ONLY FOR PPO algorithm
+    Creates a new variable 'environment', which contains values to Gazebo env, Carla env ...
+    """
+
+    def __init__(self, config) -> None:
+        """environment variable for reset(), step() methods"""
+        self.environment_set = config["settings"]["environment_set"]
+        self.env = config["settings"]["env"]
+        self.agent = config["settings"]["agent"]
+        self.states = config["settings"]["states"]
+        self.appended_states = config["settings"].get("appended_states")
+        self.actions = config["settings"]["actions"]
+        self.actions_set = config["actions"][self.actions]
+        self.rewards = config["settings"]["rewards"]
+        ##### environment variable
+        self.environment = {}
+        self.environment["agent"] = config["settings"]["agent"]
+        self.environment["algorithm"] = config["settings"]["algorithm"]
+        self.environment["task"] = config["settings"]["task"]
+        self.environment["appended_states"] = config["settings"]["appended_states"]
         self.environment["framework"] = config["settings"]["framework"]
         self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
@@ -764,6 +917,8 @@ class LoadEnvVariablesPPOCarla:
         ]
         self.environment["gamma"] = config[self.environment_set][self.env]["gamma"]
         self.environment["sync"] = config[self.environment_set][self.env]["sync"]
+        self.environment["front_car"] = config[self.environment_set][self.env].get("front_car")
+        self.environment["front_car_spawn_points"] = config[self.environment_set][self.env].get("front_car_spawn_points")
         self.environment["reset_threshold"] = config[self.environment_set][self.env].get("reset_threshold")
         self.environment["spawn_points"] = config[self.environment_set][self.env].get("spawn_points")
         self.environment["detection_mode"] = config[self.environment_set][self.env]["detection_mode"]

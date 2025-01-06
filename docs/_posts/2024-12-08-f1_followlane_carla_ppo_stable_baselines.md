@@ -1,6 +1,6 @@
 ---
 title: "Carla follow lane DDPG vs PPO [December 1st half]"
-excerpt: "PPO good performance"
+excerpt: "PPO better performance but not braking when curves or illegal speed"
 
 sidebar:
   nav: "docs"
