@@ -1,6 +1,6 @@
 ---
-title: "Carla follow lane DDPG vs PPO [December 2nd half]"
-excerpt: "PPO good performance"
+title: "Carla follow lane DDPG Vs PPO Vs SAC [January]"
+excerpt: "SAC good performance"
 
 sidebar:
   nav: "docs"
@@ -22,9 +22,6 @@ author: Tony Stark
 pinned: false
 ---
 
-Follow lane ppo is getting more complicated than expected.
-We discovered that ppo is not working in the same way as ddpg using same inputs, reward and learning process.
+After getting ppo to work better, now we are implementing the lessons learned on SAC.
 
-We tried a different setup, reward and learning process explained in the [following slides](https://docs.google.com/presentation/d/1X7quLeBx2wa28VabnF1wQj9ZwCETZf7oDwSXwTVeKok/edit#slide=id.g322b1182fee_0_36)
-
-Additionally, we are already implementing the next stage => adapt speed to other cars in the road
+Reward and learning process explained in the [following slides](https://docs.google.com/presentation/d/16vlhu-28R_t8mk6iUVY8TD3zmU_kGybYokQ0THv5YqE/edit#slide=id.g324ef05b2d0_1_0)
