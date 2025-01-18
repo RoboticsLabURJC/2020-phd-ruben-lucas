@@ -8,8 +8,9 @@ settings:
   env: follow_lane # Town01, simple, nurburgring, montreal, curves, simple_laser, manual, autoparking
   agent: auto_carla # f1, autoparkingRL, auto_carla, mountain_car, robot_mesh, cartpole, turtlebot
   actions: slow # slow, fast
-  states: sp10 #image, sp1 (simplified perception with 1 point), sp3 (simplified perception with 3 points), spn (simplified perception with n points)
+  states: sp5 #image, sp1 (simplified perception with 1 point), sp3 (simplified perception with 3 points), spn (simplified perception with n points)
   appended_states: 3
+  stage: v
   rewards: followline_center # followline_center, followline_center_v_w_linear
   framework: baselines # TensorFlow, Pytorch
   total_episodes: 500000
@@ -37,7 +38,7 @@ ros:
 
 retraining:
   ppo:
-    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250106-003214/best_model.zip
+    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250117-185555/model_610000_steps.zip
 inference:
   ppo:
     inference_ppo_tf_actor_model_name:
@@ -75,7 +76,8 @@ states:
   sp3:
     0: [10, 50, 150]
   sp5:
-    0: [ 280, 310, 360, 420, 460 ]
+    0: [ 270, 275, 280, 380, 460 ]
+    projected: [50, 100, 150, 200, 250]
   sp10:
     0: [270, 280, 295, 320, 340, 360, 390, 420, 450, 480]
   spn:
@@ -110,7 +112,7 @@ carla_environments:
     traffic_pedestrians: False
     city_lights: False
     car_lights: False
-    estimated_steps: 1000
+    estimated_steps: 500
     save_episodes: 5 # not used in this carla ppo
     save_every_step: 100 # not used in this carla ppo
     init_pose:
@@ -124,14 +126,14 @@ carla_environments:
     detection_mode: carla_perfect
     fixed_delta_seconds: 0.08
     async_forced_delta_seconds: 0
-    reset_threshold: 0.35
+    reset_threshold: 1.1
     alternate_pose: True
     spawn_points: [
-#      [278.050293, -368.798950, 0.807949, 0.095828, 16.101439, -2.257110],
-#      [ -475.506342, 352.208710, 0.807793, 0.051254, 55.662395, 0.072115 ], #sliht curve to left
-#      [12.93741, 157.040146, 0.09260, 0.051254, -90.375160, 0.1006703], # straight
-#      [384.381470, -46.060329, 0.607339, 0.031453, 90.310402, 0.008101], # sharp to right
-#       [199.221252, -367.893829, 0.809260, 0.248796, 0.152361, -0.002625], # straight
+      #[278.050293, -368.798950, 0.807949, 0.095828, 16.101439, -2.257110],
+      #[ -475.506342, 352.208710, 0.807793, 0.051254, 55.662395, 0.072115 ], #sliht curve to left
+      #[12.93741, 157.040146, 0.09260, 0.051254, -90.375160, 0.1006703], # straight
+      [384.381470, -116.060329, 0.607339, 0.031453, 90.310402, 0.008101], # sharp to right
+      #[199.221252, -367.893829, 0.809260, 0.248796, 0.152361, -0.002625], # straight
       [ 334.204407,  13.815439, 0.608849, 1.506945, -179.198761, -1.299316] # long straight
       #   [235.603699, 12.395636, 5.228042, 3.577455, 0.124573, -0.008118], # straight reverse
    #   [389.385938, -179.152158, 0.457793, 0.082516, 270.889893, 0.078263] # straight reverse
