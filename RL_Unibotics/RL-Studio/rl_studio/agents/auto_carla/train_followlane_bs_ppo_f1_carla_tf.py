@@ -235,7 +235,6 @@ class ExplorationRateCallback(BaseCallback):
     def _on_step(self) -> bool:
         self.current_step += 1
 
-
         # Check if both components have reached the min_log_std
         # if (
         #     torch.all(self.model.policy.log_std[:1] <= self.min_log_std).item() and
