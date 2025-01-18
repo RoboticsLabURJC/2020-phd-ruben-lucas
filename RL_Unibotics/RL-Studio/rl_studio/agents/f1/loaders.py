@@ -704,14 +704,17 @@ class LoadEnvVariablesSACCarla:
         self.env = config["settings"]["env"]
         self.agent = config["settings"]["agent"]
         self.states = config["settings"]["states"]
+        self.appended_states = config["settings"].get("appended_states")
         self.actions = config["settings"]["actions"]
         self.actions_set = config["actions"][self.actions]
         self.rewards = config["settings"]["rewards"]
         ##### environment variable
         self.environment = {}
         self.environment["agent"] = config["settings"]["agent"]
+        self.environment["stage"] = config["settings"].get("stage")
         self.environment["algorithm"] = config["settings"]["algorithm"]
         self.environment["task"] = config["settings"]["task"]
+        self.environment["appended_states"] = config["settings"]["appended_states"]
         self.environment["framework"] = config["settings"]["framework"]
         self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
@@ -738,6 +741,9 @@ class LoadEnvVariablesSACCarla:
         self.environment["traffic_pedestrians"] = config[self.environment_set][
             self.env
         ]["traffic_pedestrians"]
+        self.environment["estimated_steps"] = config[self.environment_set][self.env][
+            "estimated_steps"
+        ]
         self.environment["city_lights"] = config[self.environment_set][self.env][
             "city_lights"
         ]
@@ -768,6 +774,8 @@ class LoadEnvVariablesSACCarla:
         ]
         self.environment["gamma"] = config[self.environment_set][self.env]["gamma"]
         self.environment["sync"] = config[self.environment_set][self.env]["sync"]
+        self.environment["front_car"] = config[self.environment_set][self.env].get("front_car")
+        self.environment["front_car_spawn_points"] = config[self.environment_set][self.env].get("front_car_spawn_points")
         self.environment["reset_threshold"] = config[self.environment_set][self.env].get("reset_threshold")
         self.environment["spawn_points"] = config[self.environment_set][self.env].get("spawn_points")
         self.environment["detection_mode"] = config[self.environment_set][self.env]["detection_mode"]
@@ -817,6 +825,7 @@ class LoadEnvVariablesSACCarla:
         # States
         self.environment["states"] = config["settings"]["states"]
         self.environment["x_row"] = config["states"][self.states][0]
+        self.environment["projected_x_row"] = config["states"][self.states].get("projected")
 
         # Actions
         self.environment["action_space"] = config["settings"]["actions"]

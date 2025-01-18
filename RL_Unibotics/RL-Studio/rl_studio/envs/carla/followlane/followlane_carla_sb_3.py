@@ -385,6 +385,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.perfect_distance_pixels = None
         self.perfect_distance_normalized = None
 
+        num_states = 0
+        num_states += len(self.x_row) if self.x_row is not None else 0
+        num_states += len(self.projected_x) if self.projected_x is not None else 0
+        num_states += 3
         if self.actions.get("b") is not None:
             self.action_space = spaces.Box(low=np.array([self.actions["v"][0],
                                                          self.actions["w"][0],
@@ -399,7 +403,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                                            high=np.array([self.actions["v"][1],
                                                          self.actions["w"][1]]),
                                            dtype=np.float32)
-        self.observation_space = spaces.Box(low=-1, high=1, shape=(13,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-1, high=1, shape=(num_states,), dtype=np.float32)
 
     def setup_car_fix_pose(self, init):
         car_bp = self.world.get_blueprint_library().filter("vehicle.*")[0]
@@ -1201,7 +1205,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # TODO ignore non detected centers
         d_reward = 0 if len(d_rewards) == 0 else sum(d_rewards) / len(d_rewards)
 
-        # VELOCITY REWARD CALCULCAION
+        # VELOCITY REWARD CALCULATION
 
         if v>27:
             return -1*(v-27) * action[0], False, False
@@ -1225,9 +1229,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # print(f"sRew {speed_reward}")
         # v_reward =  max(action[0], 0) if distance_error[0] < 0.05 else 0.3
         # v_eff_reward = v/30  * d_reward
-        throttle =  max(action[0], 0) # TODO OJO que aquí aplicas el freno indistintamente de la v!
-        v_eff_reward = throttle * pow(d_reward, ((throttle * 5) + 1))
+        # throttle =  max(action[0], 0) # TODO OJO que aquí aplicas el freno indistintamente de la v!
+        # v_eff_reward = throttle * pow(d_reward, ((throttle * 5) + 1))
         #v_eff_reward = max(action[0], 0) * d_reward
+        v_eff_reward = max(action[0], 0) * pow(d_reward, (abs(v) / 5) + 1)
 
         # TOTAL REWARD CALCULATION
         d_reward_component = beta * d_reward
@@ -2004,9 +2009,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         transform = self.car.get_transform()
         forward_vector = transform.get_forward_vector()
         rnd = random.random()
-        # self.speed = 16 if rnd < 0.25 else 30 \
-        #   if rnd < 0.5 else random.randint(5, 30)
-        self.speed = 25 if rnd < 0.5 else 35
+        self.speed = 16 if rnd < 0.25 else 30 \
+          if rnd < 0.5 else random.randint(5, 30)
+        # self.speed = 25 if rnd < 0.5 else 35
         # Scale the forward vector by the desired speed
         target_velocity = carla.Vector3D(
             x=forward_vector.x * self.speed,
