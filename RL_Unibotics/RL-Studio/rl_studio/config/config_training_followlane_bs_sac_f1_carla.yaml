@@ -1,5 +1,5 @@
 settings:
-  mode: inference # training, retraining, inference
+  mode: training # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: sac # qlearn, dqn, ddpg, sac
   simulator: carla # openai, carla, gazebo, sumo
@@ -24,7 +24,7 @@ settings:
   decrease_min: 0.003
   reward_params:
     function: pow
-    punish_zig_zag_value: 6
+    punish_zig_zag_value: 4
     punish_ineffective_vel: 1 # velocity below which reward is not calculated (0)
     beta_1: 0
 
@@ -35,7 +35,7 @@ ros:
 
 retraining:
   sac:
-    retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20241212-222501/model_2340000_steps.zip
+    retrain_sac_tf_model_name: /home/alumnos/rlucasz/Escritorio/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20241217-213002/model_680000_steps.zip
 inference:
   sac:
     inference_sac_tf_actor_model_name:
@@ -44,8 +44,8 @@ inference:
 algorithm:
   sac:
     gamma: 0.95
-    epsilon: 0.1
-    std_dev: 0.1
+    epsilon: 0.15
+    std_dev: 0.15
     episodes_update: 0 # dooing nothing here
     replay_memory_size: 50_000
     memory_fraction: 0.20
@@ -73,7 +73,7 @@ states:
   sp3:
     0: [10, 50, 150]
   sp5:
-    0: [ 290, 320, 360, 420, 460 ]
+    0: [ 280, 320, 360, 420, 460 ]
   sp10:
     0: [370, 380, 390, 400, 410, 430, 470, 500, 530, 560]
   spn:
@@ -81,8 +81,8 @@ states:
 
 actions:
   slow:
-    v: [-0.8, 0.8]
-    w: [-0.2, 0.2]
+    v: [-1, 1]
+    w: [-1, 1]
    # b: [0, 1]
 
 rewards:

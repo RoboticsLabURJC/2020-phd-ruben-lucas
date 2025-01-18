@@ -151,20 +151,20 @@ class PeriodicSaveCallback(BaseCallback):
             date_time = time.strftime('%Y%m%d-%H%M%S')
 
             mlflow.set_experiment("followlane_carla")
-            with mlflow.start_run(nested=True):
-                mlflow.log_param("model_type", "sac_bs")
-                mlflow.log_metric("avg_speed", self.env.last_avg_speed)
-                mlflow.log_metric("max_speed", self.env.last_max_speed)
-                mlflow.log_metric("deviation", self.env.episode_last_d_deviation)
-                mlflow.log_metric("cum_reward", self.env.last_cum_reward)
-                mlflow.set_tag("detection_mode", self.params["detection_mode"])
-                mlflow.log_param("actions", self.params["actions"])
-                mlflow.log_param("zig_zag_punish", self.params["zig_zag_punish"])
-                mlflow.set_tag("running_mode", self.params["running_mode"])
-                mlflow.log_param("datetime", date_time)
-                mlflow.log_metric("last_episode_steps", self.env.last_steps)
-                mlflow.log_metric("steps", self.step_count)
-                mlflow.log_artifact(model_save_path + ".zip", artifact_path="saved_models")
+            # with mlflow.start_run(nested=True):
+            #     mlflow.log_param("model_type", "sac_bs")
+            #     mlflow.log_metric("avg_speed", self.env.last_avg_speed)
+            #     mlflow.log_metric("max_speed", self.env.last_max_speed)
+            #     mlflow.log_metric("deviation", self.env.episode_last_d_deviation)
+            #     mlflow.log_metric("cum_reward", self.env.last_cum_reward)
+            #     mlflow.set_tag("detection_mode", self.params["detection_mode"])
+            #     mlflow.log_param("actions", self.params["actions"])
+            #     mlflow.log_param("zig_zag_punish", self.params["zig_zag_punish"])
+            #     mlflow.set_tag("running_mode", self.params["running_mode"])
+            #     mlflow.log_param("datetime", date_time)
+            #     mlflow.log_metric("last_episode_steps", self.env.last_steps)
+            #     mlflow.log_metric("steps", self.step_count)
+            #     mlflow.log_artifact(model_save_path + ".zip", artifact_path="saved_models")
             # mlflow.log_metric("gamma", self.env.episode_d_deviation)
             # mlflow.log_metric("tau", self.env.episode_d_deviation)
             # mlflow.log_metric("lr", self.env.episode_d_deviation)
@@ -176,7 +176,7 @@ class PeriodicSaveCallback(BaseCallback):
         return True
 
 class ExplorationRateCallback(BaseCallback):
-    def __init__(self, tensorboard, n_actions, initial_exploration_rate=0.2, decay_rate=0.01, decay_steps=10000, exploration_min=0.005, verbose=1):
+    def __init__(self, tensorboard, n_actions, initial_exploration_rate=0.2, decay_rate=0.01, decay_steps=50000, exploration_min=0.005, verbose=1):
         super(ExplorationRateCallback, self).__init__(verbose)
         self.decay_rate = decay_rate
         self.decay_steps = decay_steps
@@ -382,11 +382,19 @@ class TrainerFollowLaneSACCarla:
             self.sac_agent = SAC(
                 'MlpPolicy',
                 self.env,
+                policy_kwargs=dict(
+                    net_arch=dict(
+                        pi=[32, 32, 32],  # The architecture for the policy network
+                        qf=[32, 32, 32]  # The architecture for the value network
+                    ),
+                    # activation_fn=nn.ReLU,
+                    # ortho_init=True,
+                ),
                 learning_rate=3e-4,
-                buffer_size=1000000,
+                buffer_size=100000,
                 batch_size=256,
                 tau=0.005,
-                gamma=0.99,
+                gamma=0.95,
                 train_freq=1,
                 gradient_steps=1,
                 verbose=1
