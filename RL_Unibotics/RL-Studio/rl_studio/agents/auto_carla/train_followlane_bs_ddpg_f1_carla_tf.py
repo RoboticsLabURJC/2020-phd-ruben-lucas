@@ -165,41 +165,62 @@ class PeriodicSaveCallback(BaseCallback):
                 print(f"Saved model at step {self.step_count}")
         return True
 
+
 class ExplorationRateCallback(BaseCallback):
-    def __init__(self, tensorboard, n_actions, initial_exploration_rate=0.2, decay_rate=0.01, decay_steps=10000, exploration_min=0.005, verbose=1):
+    def __init__(self, tensorboard, stage=None, initial_exploration_rate=1.0,
+                 exploration_min=0.03, decay_rate=0.005, decay_steps=1000, verbose=1):
         super(ExplorationRateCallback, self).__init__(verbose)
+        self.min_exploration_rate = exploration_min
         self.decay_rate = decay_rate
         self.decay_steps = decay_steps
         self.current_step = 0
         self.tensorboard = tensorboard
-        self.exploration_min = exploration_min
-        self.exploration_rate = initial_exploration_rate
-        self.n_actions = n_actions
+        # Configure noise rates based on stage
+        if stage in (None, "w"):
+            self.w_initial = initial_exploration_rate
+            self.v_initial = initial_exploration_rate
+        else:
+            self.w_initial = 0.01
+            self.v_initial = initial_exploration_rate
+
+        self.w_exploration_rate = self.w_initial
+        self.v_exploration_rate = self.v_initial
+        self.n_actions = None  # Will be initialized at training start
 
     def _on_training_start(self):
-        """Set initial exploration rates for the first and second actions."""
-        # Set exploration rate for the first action to initial_exploration
+        # Initialize number of actions and set initial action noise
+        self.n_actions = self.model.action_space.shape[0]
+
         self.model.action_noise = NormalActionNoise(
             mean=np.zeros(self.n_actions),
-            sigma=np.array([self.exploration_rate] + [0.05] * (self.n_actions - 1))
+            sigma=np.array([self.v_exploration_rate] + [self.w_exploration_rate])
         )
+        self.tensorboard.update_stats(std_dev_v=self.w_exploration_rate)
+        self.tensorboard.update_stats(std_dev_w=self.v_exploration_rate)
 
+        if self.verbose > 0:
+            print(f"Training started: Initial exploration rates set to v={self.v_exploration_rate}, w={self.w_exploration_rate}")
+        return True
 
     def _on_step(self) -> bool:
         self.current_step += 1
-        if self.current_step % self.decay_steps == 1:
-            self.exploration_rate = max(self.exploration_min, self.exploration_rate - self.decay_rate)
-            # Assuming self.model is a DDPG model
+
+        if self.current_step % self.decay_steps == 0:
+            # Decay exploration rates for first and subsequent actions
+            self.v_exploration_rate = max(self.min_exploration_rate,
+                                          self.v_exploration_rate - self.decay_rate)
+            self.w_exploration_rate = max(self.min_exploration_rate,
+                                          self.w_exploration_rate - self.decay_rate)
+
+            # Update the action noise with the new exploration rates
             self.model.action_noise = NormalActionNoise(
                 mean=np.zeros(self.n_actions),
-                # sigma=self.exploration_rate * np.ones(self.n_actions)
-                sigma=np.array([self.exploration_rate] + [0.05] * (self.n_actions - 1))
+                sigma=np.array([self.v_exploration_rate] + [self.w_exploration_rate])
             )
-            if self.verbose > 0:
-                print(f"Step {self.current_step}: Setting exploration rate to {self.exploration_rate}")
-            self.tensorboard.update_stats(std_dev=self.exploration_rate)
-        return True
+            self.tensorboard.update_stats(std_dev_v=self.w_exploration_rate)
+            self.tensorboard.update_stats(std_dev_w=self.v_exploration_rate)
 
+        return True
 
 class TrainerFollowLaneDDPGCarla:
     """
@@ -222,7 +243,6 @@ class TrainerFollowLaneDDPGCarla:
         self.global_params = LoadGlobalParams(config)
         self.environment = LoadEnvVariablesDDPGCarla(config)
         self.environment.environment["debug_waypoints"] = False
-        self.environment.environment["estimated_steps"] = 500
         logs_dir = f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
         self.tensorboard = ModifiedTensorBoard(
             log_dir=logs_dir
@@ -321,7 +341,7 @@ class TrainerFollowLaneDDPGCarla:
         #     sync_tensorboard=True,
         # )
         exploration_rate_callback = ExplorationRateCallback(self.tensorboard,
-                                                            self.n_actions,
+                                                            stage=self.environment.environment.get("stage"),
                                                             initial_exploration_rate=self.exploration,
                                                             decay_rate= self.global_params.decrease_substraction,
                                                             decay_steps=self.global_params.steps_to_decrease,

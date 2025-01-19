@@ -189,7 +189,7 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = initial_exploration_rate
             self.v_initial = initial_exploration_rate
         else:
-            self.w_initial = 0.5 * initial_exploration_rate
+            self.w_initial = 0.01
             self.v_initial = initial_exploration_rate
 
         self.w_exploration_rate = self.w_initial
@@ -448,6 +448,7 @@ class TrainerFollowLaneSACCarla:
 
         # log_std = -0.223 <= 0.8;  -1 <= 0.36
         exploration_rate_callback = ExplorationRateCallback(self.tensorboard,
+                                                            stage=self.environment.environment.get("stage"),
                                                             initial_exploration_rate=self.exploration,
                                                             decay_rate= self.global_params.decrease_substraction,
                                                             decay_steps=self.global_params.steps_to_decrease,
