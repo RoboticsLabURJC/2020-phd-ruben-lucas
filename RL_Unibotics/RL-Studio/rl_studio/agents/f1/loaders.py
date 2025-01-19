@@ -565,7 +565,9 @@ class LoadEnvVariablesDDPGCarla:
         self.environment["agent"] = config["settings"]["agent"]
         self.environment["algorithm"] = config["settings"]["algorithm"]
         self.environment["task"] = config["settings"]["task"]
+        self.environment["stage"] = config["settings"].get("stage")
         self.environment["framework"] = config["settings"]["framework"]
+        self.environment["appended_states"] = config["settings"]["appended_states"]
         self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
@@ -593,6 +595,9 @@ class LoadEnvVariablesDDPGCarla:
         self.environment["traffic_pedestrians"] = config[self.environment_set][
             self.env
         ]["traffic_pedestrians"]
+        self.environment["estimated_steps"] = config[self.environment_set][self.env][
+            "estimated_steps"
+        ]
         self.environment["city_lights"] = config[self.environment_set][self.env][
             "city_lights"
         ]
@@ -675,6 +680,7 @@ class LoadEnvVariablesDDPGCarla:
         # States
         self.environment["states"] = config["settings"]["states"]
         self.environment["x_row"] = config["states"][self.states][0]
+        self.environment["projected_x_row"] = config["states"][self.states].get("projected")
 
         # Actions
         self.environment["action_space"] = config["settings"]["actions"]

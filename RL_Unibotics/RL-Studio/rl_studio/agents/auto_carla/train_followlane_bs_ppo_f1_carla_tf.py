@@ -582,9 +582,9 @@ class TrainerFollowLanePPOCarla:
 
         # log_std = -0.223 <= 0.8;  -1 <= 0.36
         exploration_rate_callback = ExplorationRateCallback(
-            stage=self.environment.environment.get("stage"), initial_log_std=-0,
-            min_log_std=-4.5, decay_rate=0.05,
-            decay_steps=5000)
+            stage=self.environment.environment.get("stage"), initial_log_std=-0.5,
+            min_log_std=-4.5, decay_rate=0.03,
+            decay_steps=2000)
         entropy_callback = EntropyCoefficientCallback(
             initial_ent_coef=0.02,  # Starting entropy coefficient
             min_ent_coef=0.02,  # Minimum entropy coefficient
@@ -594,7 +594,7 @@ class TrainerFollowLanePPOCarla:
         )
 
         # Instantiate the dynamic clip range
-        dynamic_clip_range = DynamicClipRange(initial_clip_range=0.1, min_clip_range=0.1)
+        dynamic_clip_range = DynamicClipRange(initial_clip_range=0.2, min_clip_range=0.1)
         epsilon_callback = SetClipRangeCallback(clip_range=dynamic_clip_range)
 
         # wandb_callback = WandbCallback(gradient_save_freq=100, verbose=2)
