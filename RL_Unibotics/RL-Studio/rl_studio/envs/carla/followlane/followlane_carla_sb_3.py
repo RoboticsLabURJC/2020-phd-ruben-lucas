@@ -325,8 +325,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.lane_model.eval()
         else:
             camera_transform = carla.Transform(
-                carla.Location(x=0, y=0, z=1.8),
-                carla.Rotation(pitch=0, yaw=0, roll=0.0)
+                carla.Location(x=2, y=-0.1, z=2),
+                carla.Rotation(pitch=-0.1, yaw=0, roll=0.0)
             )
 
             # Translation matrix, convert vehicle reference system to camera reference system
@@ -1024,7 +1024,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         right_lane_normalized_distances, right_center_lane = choose_lane(distance_to_center_normalized, center_lanes)
         if self.projected_x is not None:
             right_center_lane, right_lane_normalized_distances = self.project_line(self.x_row, right_center_lane, right_lane_normalized_distances, self.projected_x)
-        # self.show_ll_seg_image(right_center_lane, ll_segment)
+        self.show_ll_seg_image(right_center_lane, ll_segment)
 
 
         # curvature = self.calculate_curvature_from(right_center_lane)
@@ -1107,17 +1107,17 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 throttle=0.8,
                 steer=float(action[1])))
 
-            if self.step_count % 20 == 0:
-                transform = self.car.get_transform()
-                forward_vector = transform.get_forward_vector()
-
-                # Scale the forward vector by the desired speed
-                target_velocity = carla.Vector3D(
-                    x=forward_vector.x * self.speed,
-                    y=forward_vector.y * self.speed,
-                    z=forward_vector.z * self.speed  # Typically 0 unless you want vertical motion
-                )
-                self.car.set_target_velocity(target_velocity)
+            # if self.step_count % 20 == 0:
+            #     transform = self.car.get_transform()
+            #     forward_vector = transform.get_forward_vector()
+            #
+            #     # Scale the forward vector by the desired speed
+            #     target_velocity = carla.Vector3D(
+            #         x=forward_vector.x * self.speed,
+            #         y=forward_vector.y * self.speed,
+            #         z=forward_vector.z * self.speed  # Typically 0 unless you want vertical motion
+            #     )
+            #     self.car.set_target_velocity(target_velocity)
 
         params = {}
 
@@ -1173,11 +1173,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
         #  En curvas
         done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold,
-                                                               3)
+                                                               2)
         if done:
             print(f"car deviated after step {self.step_count}")
             self.deviated += 1
-            return -1 * max(action[0], 0), done, crash
+            return -5 * max(action[0], 0), done, crash
             #return -5 * action[0], done, crash
 
 
@@ -1210,7 +1210,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         for _, dist_error in enumerate(distance_error):
             if dist_error is None or 0 > dist_error or dist_error > 1:
               continue
-            d_rewards.append(math.pow((1 - dist_error), 1))
+            d_rewards.append(math.pow((1 - dist_error), 2))
 
         # TODO ignore non detected centers
         d_reward = 0 if len(d_rewards) == 0 else sum(d_rewards) / len(d_rewards)
@@ -1239,8 +1239,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # throttle =  max(action[0], 0) # TODO OJO que aquí aplicas el freno indistintamente de la v!
         # v_eff_reward = throttle * pow(d_reward, ((throttle * 5) + 1))
         #v_eff_reward = max(action[0], 0) * d_reward
-        v_eff_reward = action[0] * pow(d_reward, (abs(v) / 5) + 1)
-        if v>27:
+        v_eff_reward = action[0] * pow(1-distance_error[0], (abs(v) / 5) + 1)
+        if v>32:
             v_eff_reward = -max(action[0], 0)
 
         # TOTAL REWARD CALCULATION
@@ -1309,6 +1309,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #     entropy = self.entropy_calculator.calculate_entropy(state, action)
         #     function_reward += self.entropy_factor * entropy
         #print(function_reward)
+        # print(f"v_r = {v_reward_component}")
+        # print(f"d_r = {d_reward_component}")
         # print(params["angular_velocity"])
         return function_reward, done, crash
 
@@ -1870,7 +1872,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.world,
             self.display_manager,
             "RGBCamera",
-            carla.Transform(carla.Location(x=2, y=-0.3, z=1.5), carla.Rotation(yaw=+00)),
+            carla.Transform(
+                carla.Location(x=2, y=-0.1, z=2),
+                carla.Rotation(pitch=0, yaw=0, roll=0.0)),
             self.car,
             {},
             display_pos=[0, 0],
@@ -2022,7 +2026,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # self.speed = 16 if rnd < 0.25 else 30 \
         #   if rnd < 0.5 else random.randint(5, 30)
         # self.speed = 30
-        self.speed = 30 if rnd < 0.5 else random.randint(5, 30)
+        self.speed = 30 if rnd < 0.5 else random.randint(10, 36)
         # Scale the forward vector by the desired speed
         target_velocity = carla.Vector3D(
             x=forward_vector.x * self.speed,

@@ -177,10 +177,10 @@ class ExplorationRateCallback(BaseCallback):
         self.tensorboard = tensorboard
         # Configure noise rates based on stage
         if stage in (None, "w"):
-            self.w_initial = initial_exploration_rate
+            self.w_initial = 0.01
             self.v_initial = initial_exploration_rate
         else:
-            self.w_initial = 0.01
+            self.w_initial = 0.003
             self.v_initial = initial_exploration_rate
 
         self.w_exploration_rate = self.w_initial
@@ -195,8 +195,8 @@ class ExplorationRateCallback(BaseCallback):
             mean=np.zeros(self.n_actions),
             sigma=np.array([self.v_exploration_rate] + [self.w_exploration_rate])
         )
-        self.tensorboard.update_stats(std_dev_v=self.w_exploration_rate)
-        self.tensorboard.update_stats(std_dev_w=self.v_exploration_rate)
+        self.tensorboard.update_stats(std_dev_v=self.v_exploration_rate)
+        self.tensorboard.update_stats(std_dev_w=self.w_exploration_rate)
 
         if self.verbose > 0:
             print(f"Training started: Initial exploration rates set to v={self.v_exploration_rate}, w={self.w_exploration_rate}")
@@ -217,8 +217,8 @@ class ExplorationRateCallback(BaseCallback):
                 mean=np.zeros(self.n_actions),
                 sigma=np.array([self.v_exploration_rate] + [self.w_exploration_rate])
             )
-            self.tensorboard.update_stats(std_dev_v=self.w_exploration_rate)
-            self.tensorboard.update_stats(std_dev_w=self.v_exploration_rate)
+            self.tensorboard.update_stats(std_dev_v=self.v_exploration_rate)
+            self.tensorboard.update_stats(std_dev_w=self.w_exploration_rate)
 
         return True
 
