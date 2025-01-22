@@ -325,8 +325,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.lane_model.eval()
         else:
             camera_transform = carla.Transform(
-                carla.Location(x=2, y=-0.1, z=2),
-                carla.Rotation(pitch=-0.1, yaw=0, roll=0.0)
+                carla.Location(x=0.5, y=-0.1, z=2),
+                carla.Rotation(pitch=0, yaw=0, roll=0.0)
             )
 
             # Translation matrix, convert vehicle reference system to camera reference system
@@ -1163,10 +1163,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params["v_reward"] = 0
         params["v_eff_reward"] = 0
         params["reward"] = 0
+
+        car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
+
         if done:
             print("car crashed")
             crash = True
-            return -1, done, crash
+            return car_deviated_punish, done, crash
 
         crash = False
 
@@ -1177,7 +1180,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if done:
             print(f"car deviated after step {self.step_count}")
             self.deviated += 1
-            return -5 * max(action[0], 0), done, crash
+            return car_deviated_punish, done, crash
             #return -5 * action[0], done, crash
 
 
@@ -1201,9 +1204,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         else:
             self.steps_stopped = 0
             # beta = self.beta + distance_error[0] # TODO OJO esto es para que cuanto más desviado esté, más importe la d
-
-        if v > 39:
-            return -1 * max(action[0], 0), True, False
 
         # DISTANCE REWARD CALCULCATION
         d_rewards = []
@@ -1242,6 +1242,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         v_eff_reward = action[0] * pow(1-distance_error[0], (abs(v) / 5) + 1)
         if v>32:
             v_eff_reward = -max(action[0], 0)
+
+        if v > 39 and self.stage != "w":
+            return -1 * max(action[0], 0), True, False
 
         # TOTAL REWARD CALCULATION
         beta = 1 if self.stage == "w" else beta
