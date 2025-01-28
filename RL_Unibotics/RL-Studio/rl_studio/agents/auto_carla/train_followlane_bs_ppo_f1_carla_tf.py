@@ -205,15 +205,19 @@ class DynamicClipRange:
         return max(self.min_clip_range, self.initial_clip_range * progress_remaining)
 
 class ExplorationRateCallback(BaseCallback):
-    def __init__(self, initial_log_std=-1.0,
+    def __init__(self, stage=None, initial_log_std=-1.0,
                  min_log_std=-5.8, decay_rate=0.01, decay_steps=1000, verbose=1):
         super(ExplorationRateCallback, self).__init__(verbose)
         self.initial_log_std = initial_log_std
         self.min_log_std = min_log_std
         self.decay_rate = decay_rate
         self.decay_steps = decay_steps
-        self.w_initial = -4.5
-        self.v_initial = initial_log_std
+        if stage in (None, "w"):
+            self.w_initial = initial_log_std
+            self.v_initial = initial_log_std
+        else:
+            self.w_initial = -4.5
+            self.v_initial = initial_log_std
         self.current_step = 0
 
     def _on_training_start(self):
@@ -230,7 +234,6 @@ class ExplorationRateCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         self.current_step += 1
-
 
         # Check if both components have reached the min_log_std
         # if (
@@ -507,7 +510,6 @@ class TrainerFollowLanePPOCarla:
 
         self.environment.environment["entropy_factor"] = config["settings"]["entropy_factor"]
         self.environment.environment["debug_waypoints"] = False
-        self.environment.environment["estimated_steps"] = 500
         self.rebuild_env()
         self.all_steps = 0
         self.current_max_reward = 0
@@ -544,8 +546,8 @@ class TrainerFollowLanePPOCarla:
                 self.env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[32, 32],  # The architecture for the policy network
-                        vf=[32, 32]  # The architecture for the value network
+                        pi=[64, 64, 64],  # The architecture for the policy network
+                        vf=[64, 64, 64]  # The architecture for the value network
                     ),
                     activation_fn=nn.ReLU,
                     log_std_init=-1.5,
@@ -579,11 +581,12 @@ class TrainerFollowLanePPOCarla:
         # )
 
         # log_std = -0.223 <= 0.8;  -1 <= 0.36
-        exploration_rate_callback = ExplorationRateCallback(initial_log_std=-0.5,
-                                                            min_log_std=-4.5, decay_rate=0.05,
-                                                 decay_steps=10000)
+        exploration_rate_callback = ExplorationRateCallback(
+            stage=self.environment.environment.get("stage"), initial_log_std=-0.5,
+            min_log_std=-4.5, decay_rate=0.03,
+            decay_steps=2000)
         entropy_callback = EntropyCoefficientCallback(
-            initial_ent_coef=0.03,  # Starting entropy coefficient
+            initial_ent_coef=0.02,  # Starting entropy coefficient
             min_ent_coef=0.02,  # Minimum entropy coefficient
             decay_rate=0.0001,  # Decay amount per step
             decay_steps=2000,  # Decay every 1000 steps
@@ -591,7 +594,7 @@ class TrainerFollowLanePPOCarla:
         )
 
         # Instantiate the dynamic clip range
-        dynamic_clip_range = DynamicClipRange(initial_clip_range=0.15, min_clip_range=0.05)
+        dynamic_clip_range = DynamicClipRange(initial_clip_range=0.2, min_clip_range=0.1)
         epsilon_callback = SetClipRangeCallback(clip_range=dynamic_clip_range)
 
         # wandb_callback = WandbCallback(gradient_save_freq=100, verbose=2)
@@ -632,7 +635,7 @@ class TrainerFollowLanePPOCarla:
         if self.environment.environment["mode"] in ["inference"]:
             self.evaluate_ddpg_agent(self.env, self.ppo_agent, 10000)
 
-        self.ppo_agent.learn(total_timesteps=500000,
+        self.ppo_agent.learn(total_timesteps=5000000,
                               callback=callback_list)
 
     # self.restart_training(callback_list)
