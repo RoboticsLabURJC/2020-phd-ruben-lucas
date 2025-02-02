@@ -176,15 +176,13 @@ class ExplorationRateCallback(BaseCallback):
         self.current_step = 0
         self.tensorboard = tensorboard
         # Configure noise rates based on stage
-        if stage == "w":
-            self.w_initial = 0.08
-            self.v_initial = initial_exploration_rate
-        elif stage == "v":
-            self.w_initial = 0.003
-            self.v_initial = initial_exploration_rate
-        elif stage == "r":
-            self.w_initial = 0.001
-            self.v_initial = 0.03
+        if stage in (None, "w"):
+            self.w_initial = 0.07
+            self.v_initial = 0
+        else:
+            self.w_initial = 0
+            self.v_initial = 0.2
+
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
         self.n_actions = None  # Will be initialized at training start
@@ -267,6 +265,12 @@ class TrainerFollowLaneDDPGCarla:
 
         self.environment.environment["entropy_factor"] = config["settings"]["entropy_factor"]
         self.environment.environment["use_curves_state"] = config["settings"]["use_curves_state"]
+        self.w_net_dir = self.environment.environment['retrain_ddpg_tf_model_name_w']
+        self.v_net_dir = self.environment.environment['retrain_ddpg_tf_model_name_v']
+        self.stage = self.environment.environment.get("stage")
+        if self.stage == "v":
+            self.environment.environment["w_net"] = DDPG.load(self.w_net_dir)
+
         self.env = gym.make(self.env_params.env_name, **self.environment.environment)
         self.all_steps = 0
         self.current_max_reward = 0
@@ -305,7 +309,10 @@ class TrainerFollowLaneDDPGCarla:
 
         # Init Agents
         if self.environment.environment["mode"] in ["inference", "retraining"]:
-            actor_retrained_model = self.environment.environment['retrain_ddpg_tf_model_name']
+            if self.stage == "w":
+                actor_retrained_model = self.environment.environment['retrain_ddpg_tf_model_name_w']
+            else:
+                actor_retrained_model = self.environment.environment['retrain_ddpg_tf_model_name_v']
             self.ddpg_agent = DDPG.load(actor_retrained_model)
             # Set the environment on the loaded model
             self.ddpg_agent.set_env(self.env)
@@ -358,7 +365,7 @@ class TrainerFollowLaneDDPGCarla:
         eval_callback = EvalCallback(
             self.eval_env,
             best_model_save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
-            eval_freq=15000,
+            eval_freq=20000,
             deterministic=True,
             render=False
         )
@@ -377,8 +384,9 @@ class TrainerFollowLaneDDPGCarla:
         )
 
         callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
-       # callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
+        #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
 
+        # TODO (OJO) Falta por adaptar esto a las 2 redes
         if self.environment.environment["mode"] == "inference":
             self.evaluate_ddpg_agent(self.env, self.ddpg_agent, 10000)
 
