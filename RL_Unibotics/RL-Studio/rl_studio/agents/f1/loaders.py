@@ -7,7 +7,8 @@ class LoadAlgorithmParams:
     """
 
     def __init__(self, config):
-        if config["settings"]["algorithm"] == "sac":
+        algorithm = config["settings"]["algorithm"]
+        if algorithm == "sac":
             self.gamma = config["algorithm"]["sac"]["gamma"]
             self.std_dev = config["algorithm"]["sac"]["std_dev"]
             self.model_name = config["algorithm"]["sac"]["model_name"]
@@ -16,15 +17,15 @@ class LoadAlgorithmParams:
             self.critic_lr = config["algorithm"]["sac"]["critic_lr"]
             self.epsilon = config["algorithm"]["sac"]["epsilon"]
 
-        if config["settings"]["algorithm"] == "ddpg":
-            self.gamma = config["algorithm"]["ddpg"]["gamma"]
-            self.tau = config["algorithm"]["ddpg"]["tau"]
-            self.std_dev = config["algorithm"]["ddpg"]["std_dev"]
-            self.model_name = config["algorithm"]["ddpg"]["model_name"]
-            self.buffer_capacity = config["algorithm"]["ddpg"]["buffer_capacity"]
-            self.batch_size = config["algorithm"]["ddpg"]["batch_size"]
+        if algorithm in ("ddpg", "ddpg_2"):
+            self.gamma = config["algorithm"][algorithm]["gamma"]
+            self.tau = config["algorithm"][algorithm]["tau"]
+            self.std_dev = config["algorithm"][algorithm]["std_dev"]
+            self.model_name = config["algorithm"][algorithm]["model_name"]
+            self.buffer_capacity = config["algorithm"][algorithm]["buffer_capacity"]
+            self.batch_size = config["algorithm"][algorithm]["batch_size"]
 
-        if config["settings"]["algorithm"] == "ppo_continuous":
+        if algorithm == "ppo_continuous":
             self.gamma = config["algorithm"]["ppo"]["gamma"]
             self.std_dev = config["algorithm"]["ppo"]["std_dev"]
             self.model_name = config["algorithm"]["ppo"]["model_name"]
@@ -33,11 +34,11 @@ class LoadAlgorithmParams:
             self.critic_lr = config["algorithm"]["ppo"]["critic_lr"]
             self.epsilon = config["algorithm"]["ppo"]["epsilon"]
 
-        elif config["settings"]["algorithm"] == "manual":
+        elif algorithm == "manual":
             self.model_name = config["algorithm"]["manual"]["model_name"]
             self.episodes_update = config["algorithm"]["manual"]["episodes_update"]
 
-        elif config["settings"]["algorithm"] == "dqn":
+        elif algorithm == "dqn":
             self.alpha = config["algorithm"]["dqn"]["alpha"]
             self.gamma = config["algorithm"]["dqn"]["gamma"]
             self.epsilon = config["algorithm"]["dqn"]["epsilon"]
@@ -54,7 +55,7 @@ class LoadAlgorithmParams:
             self.buffer_capacity = config["algorithm"]["dqn"]["buffer_capacity"]
             self.batch_size = config["algorithm"]["dqn"]["batch_size"]
 
-        elif config["settings"]["algorithm"] == "qlearn":
+        elif algorithm == "qlearn":
             self.alpha = config["algorithm"]["qlearn"]["alpha"]
             self.gamma = config["algorithm"]["qlearn"]["gamma"]
             self.epsilon = config["algorithm"]["qlearn"]["epsilon"]
@@ -580,11 +581,13 @@ class LoadEnvVariablesDDPGCarla:
 
         # Training/inference
         self.environment["mode"] = config["settings"]["mode"]
-        self.environment["retrain_ddpg_tf_model_name"] = f"{config['retraining']['ddpg']['retrain_ddpg_tf_model_name']}"
-        self.environment["retrain_ddpg_tf_actor_model_name"] = f"{config['retraining']['ddpg']['retrain_ddpg_tf_model_name']}/ACTOR"
-        self.environment["retrain_ddpg_tf_critic_model_name"] = f"{config['retraining']['ddpg']['retrain_ddpg_tf_model_name']}/CRITIC"
-        self.environment["inference_ddpg_tf_actor_model_name"] = f"{config['inference']['ddpg']['retrain_ddpg_tf_model_name']}/ACTOR"
-        self.environment["inference_ddpg_tf_critic_model_name"] = f"{config['inference']['ddpg']['retrain_ddpg_tf_model_name']}/CRITIC"
+        self.environment["retrain_ddpg_tf_model_name"] = config['retraining']['ddpg'].get('retrain_ddpg_tf_model_name')
+        self.environment["retrain_ddpg_tf_model_name_w"] = config['retraining']['ddpg'].get('retrain_ddpg_tf_model_name_w')
+        self.environment["retrain_ddpg_tf_model_name_v"] = config['retraining']['ddpg'].get('retrain_ddpg_tf_model_name_v')
+        # self.environment["retrain_ddpg_tf_actor_model_name"] = f"{config['retraining']['ddpg']['retrain_ddpg_tf_model_name']}/ACTOR"
+        # self.environment["retrain_ddpg_tf_critic_model_name"] = f"{config['retraining']['ddpg']['retrain_ddpg_tf_model_name']}/CRITIC"
+        # self.environment["inference_ddpg_tf_actor_model_name"] = f"{config['inference']['ddpg']['retrain_ddpg_tf_model_name']}/ACTOR"
+        # self.environment["inference_ddpg_tf_critic_model_name"] = f"{config['inference']['ddpg']['retrain_ddpg_tf_model_name']}/CRITIC"
 
         # Env
         self.environment["env"] = config["settings"]["env"]
@@ -691,10 +694,11 @@ class LoadEnvVariablesDDPGCarla:
         self.environment["rewards"] = config["rewards"][self.rewards]
 
         # Algorithm
-        self.environment["critic_lr"] = config["algorithm"]["ddpg"]["critic_lr"]
-        self.environment["actor_lr"] = config["algorithm"]["ddpg"]["actor_lr"]
-        self.environment["model_name"] = config["algorithm"]["ddpg"]["model_name"]
-        #
+        algorithm = config["settings"]["algorithm"]
+        self.environment["critic_lr"] = config["algorithm"][algorithm]["critic_lr"]
+        self.environment["actor_lr"] = config["algorithm"][algorithm]["actor_lr"]
+        self.environment["model_name"] = config["algorithm"][algorithm]["model_name"]
+
         self.environment["ROS_MASTER_URI"] = config["ros"]["ros_master_uri"]
         self.environment["GAZEBO_MASTER_URI"] = config["ros"]["gazebo_master_uri"]
 
