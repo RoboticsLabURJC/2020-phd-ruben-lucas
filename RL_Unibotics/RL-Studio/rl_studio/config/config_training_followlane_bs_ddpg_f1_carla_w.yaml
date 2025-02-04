@@ -115,7 +115,7 @@ carla_environments:
     detection_mode: carla_perfect  # carla_perfect
     fixed_delta_seconds: 0.05
     async_forced_delta_seconds: 0
-    reset_threshold: 0.35
+    reset_threshold: 0.3
     alternate_pose: True
     spawn_points: [
 #      [ -320.872070, 15.83397, 0.416225, 0.118217, 176.971695, 0.924344 ], # sharp to left

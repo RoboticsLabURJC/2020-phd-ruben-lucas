@@ -9,6 +9,7 @@ class AlgorithmsType(Enum):
     DQN = "dqn"
     DDPG = "ddpg"
     SAC = "sac"
+    SAC_2 = "sac_2"
     DDPG_TORCH = "ddpg_torch"
     PPO = "ppo"
     PPO_CONTINIUOUS = 'ppo_continuous'
