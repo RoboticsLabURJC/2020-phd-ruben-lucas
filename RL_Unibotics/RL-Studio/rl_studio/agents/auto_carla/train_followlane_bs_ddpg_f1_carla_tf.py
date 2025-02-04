@@ -183,8 +183,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = 0.003
             self.v_initial = initial_exploration_rate
         elif stage == "r":
-            self.w_initial = 0.001
-            self.v_initial = 0.03
+            self.w_initial = 0.003
+            self.v_initial = 0.2
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
         self.n_actions = None  # Will be initialized at training start
