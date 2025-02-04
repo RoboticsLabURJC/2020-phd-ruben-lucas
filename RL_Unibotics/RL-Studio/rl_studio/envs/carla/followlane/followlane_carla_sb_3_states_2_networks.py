@@ -275,6 +275,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.failures = 0
         self.tensorboard = config.get("tensorboard")
+        self.model_path = config.get("model_path")
 
         self.actor_list = []
         self.episodes_speed = []
@@ -294,6 +295,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.detection_mode = config.get("detection_mode")
         self.device = select_device()
         self.fixed_delta_seconds = config.get("fixed_delta_seconds")
+        self.prev_states = np.array([0, 0, 0, 0, 0, 0, 0, 0])
+        self.prev_action_w = np.array([0, 0])
 
         if self.detection_mode == 'yolop':
             from rl_studio.envs.carla.utils.yolop.YOLOP import get_net
@@ -995,11 +998,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #     action.append(action_w)
         params = self.get_car_params()
         states, distance_error, right_lane_normalized_distances = self.get_states(params)
-        if self.stage == "v":
-            action_w, _states = self.w_net.predict(states, deterministic=True)
+        if self.stage in ("v", "r"):
+            action_w, _ = self.w_net.predict(states, deterministic=False)
             # if (np.abs(states[0] - states[4])  > 0.1) and params["velocity"] > 20:
             #     action[0] = -1
-
             action[1] = action_w[1]*0.2
 
         if self.tensorboard is not None:
@@ -1033,12 +1035,22 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # print(f"appended_states => {np.array(states[5:])}")
         # print(f"mean_points => {np.mean(np.abs(states[:5]))}")
         # print(f"diff_extremes => {np.abs(states[0]-states[4])}")
+        if self.stage == "r": # OJO TODO it depends on the algorithm implementation. So it needs parametrization
+            self.w_net.replay_buffer.add(self.prev_states, states, self.prev_action_w, reward, done, [{}])
+
+            # Perform a training step if enough samples are in the replay buffer
+            if self.w_net.replay_buffer.size() > self.w_net.batch_size and self.step_count % 10:
+                self.w_net.train(gradient_steps=2)
+            if self.step_count % 10000 == 0:
+                self.w_net.save(f"{self.model_path}/model_w_{self.step_count}.zip")
+            self.prev_states = states
+            self.prev_action_w = action_w
         return np.array(states), reward, done, done, params
 
 
     ################################################################################
     def step(self, action):
-        #time.sleep(0.2)
+        # time.sleep(0.5)
         self.step_count += 1
 
         # test code to verify the initial position
@@ -1061,7 +1073,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return states, reward, done, done, params
 
     def control(self, action):
-        if self.stage in (None, "v"):
+        if self.stage in ("v", "r"):
             if float(action[0]) < 0:
                 brake = -float(action[0])
                 throttle = 0
@@ -1075,7 +1087,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 throttle=0.8,
                 steer=float(action[0])))
 
-            if not self.step_count % 20 or not self.step_count % 10:
+            if self.step_count == 20 or self.step_count == 10:
                 transform = self.car.get_transform()
                 forward_vector = transform.get_forward_vector()
 
@@ -1147,20 +1159,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #     return -10 * max(action[0], 0), done, crash
         #     #return -5 * action[0], done, crash
 
-        v = params["velocity"]
-
-        # REWARD CALCULATION
-        beta = self.beta
-        if v < self.punish_ineffective_vel:
-            self.steps_stopped += 1
-            if self.steps_stopped > 500:
-                print("too much time stopped")
-                return -1, True, False
-            beta = 0  # por debajo de v_ineffective solo vale la v
-        else:
-            self.steps_stopped = 0
-            # beta = self.beta + distance_error[0] # TODO OJO esto es para que cuanto más desviado esté, más importe la d
-
         # DISTANCE REWARD CALCULATION
         d_rewards = []
         for _, dist_error in enumerate(distance_error):
@@ -1171,12 +1169,22 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # TODO ignore non detected centers
         d_reward = 0 if len(d_rewards) == 0 else sum(d_rewards) / len(d_rewards)
 
-        # VELOCITY REWARD CALCULATION
+        v = params["velocity"]
 
-        #v_eff_reward = np.log1p(v) * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
-        #v_eff_reward = np.log1p(v) * max(d_reward, 0)
-        #v_eff_reward = max(action[0], 0)  * d_reward
-        #v_eff_reward = v * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
+        # REWARD CALCULATION
+        beta = self.beta
+        if v < self.punish_ineffective_vel:
+            self.steps_stopped += 1
+            if self.steps_stopped > 500:
+                print("too much time stopped")
+                return -1, True, False
+            return action[0] * d_reward, False, False
+            # beta = 0  # por debajo de v_ineffective solo vale la v
+        else:
+            self.steps_stopped = 0
+            # beta = self.beta + distance_error[0] # TODO OJO esto es para que cuanto más desviado esté, más importe la d
+
+        # VELOCITY REWARD CALCULATION
 
         # v_kmh = v * 3.6
         # target_speed = 40.0
@@ -1190,18 +1198,23 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # print(f"dist {distance_error[0]}")
         # print(f"v{v_kmh}")
         # print(f"sRew {speed_reward}")
-        # v_reward =  max(action[0], 0) if distance_error[0] < 0.05 else 0.3
-        # v_eff_reward = v/30  * d_reward
-        throttle =  max(action[0], 0) # TODO OJO que aquí aplicas el freno indistintamente de la v!
         is_not_aligned = abs(distances[0]-distances[4]) > 0.1
+
+        # v_eff_reward = v/30  * d_reward
+        #throttle =  max(action[0], 0) # TODO OJO que aquí aplicas el freno indistintamente de la v!
         # v_eff_reward = throttle * pow(d_reward, ((throttle * 5) + 1))
         #v_eff_reward = max(action[0], 0) * d_reward
-        v_eff_reward = throttle * pow(1-distance_error[0], (abs(v) / 5) + 1)
+        #v_eff_reward = throttle * pow(1-distance_error[0], (abs(v) / 5) + 1)
+        v_eff_reward = np.log1p(v) * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
+        #v_eff_reward = np.log1p(v) * max(d_reward, 0)
+        #v_eff_reward = max(action[0], 0)  * d_reward
+        #v_eff_reward = v * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
+
         v_eff_reward = -action[0] * 5 if is_not_aligned and v > 20 else v_eff_reward
         if v>32:
             v_eff_reward = -max(action[0], 0)
 
-        if v > 39 and self.stage != "w":
+        if v > 39 and self.stage in ("v", "r"):
             return -1 * max(action[0], 0), True, False
 
         # TOTAL REWARD CALCULATION
@@ -1214,14 +1227,16 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         # PUNISH CALCULATION
         punish = 0
-        punish += self.punish_zig_zag_value * abs(params["steering_angle"]) if self.stage == "w" else 0
-        if not is_not_aligned and action[0] < 0:
-            #punish += abs(action[0]) * 5
-            punish += abs(self.prev_throtle - action[0])  # TODO parametrize stablility punish
-            self.prev_throtle = action[0]
+        if self.stage in ("w", "r"):
+            punish += self.punish_zig_zag_value * abs(params["steering_angle"])
 
-        if self.stage == "v":
+        if self.stage in ("v", "r"):
             punish += 1 if action[0] > 0.95 else 0
+            if not is_not_aligned:
+                punish += abs(self.prev_throtle - action[0]) * 5  # TODO parametrize stablility punish
+                self.prev_throtle = action[0]
+                if action[0] < 0:
+                    punish += abs(action[0]) * 5
             # punish += self.car.get_angular_velocity().z / 50
 
         # if distance_error[0] > 0.05 and v > 20:
@@ -1991,8 +2006,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         rnd = random.random()
         # self.speed = 16 if rnd < 0.25 else 30 \
         #   if rnd < 0.5 else random.randint(5, 30)
-        #self.speed = 32
-        self.speed = 0 if rnd < 0.5 else random.randint(28, 36)
+        # self.speed = 0
+        self.speed = 0 if rnd < 0.5 else 30
         # Scale the forward vector by the desired speed
         target_velocity = carla.Vector3D(
             x=forward_vector.x * self.speed,

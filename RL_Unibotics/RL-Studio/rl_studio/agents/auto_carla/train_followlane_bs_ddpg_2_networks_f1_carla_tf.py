@@ -177,11 +177,14 @@ class ExplorationRateCallback(BaseCallback):
         self.tensorboard = tensorboard
         # Configure noise rates based on stage
         if stage in (None, "w"):
-            self.w_initial = 0.07
+            self.w_initial = 0.2
             self.v_initial = 0
-        else:
+        elif stage == "v":
             self.w_initial = 0
             self.v_initial = 0.2
+        else:
+            self.w_initial = 0.3
+            self.v_initial = 0.5
 
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
@@ -249,6 +252,9 @@ class TrainerFollowLaneDDPGCarla:
         )
         self.environment.environment["tensorboard"] = self.tensorboard
 
+        self.model_path = f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}"
+        self.environment.environment["model_path"] = self.model_path
+
         self.loss = 0
 
         os.makedirs(f"{self.global_params.models_dir}", exist_ok=True)
@@ -268,8 +274,10 @@ class TrainerFollowLaneDDPGCarla:
         self.w_net_dir = self.environment.environment['retrain_ddpg_tf_model_name_w']
         self.v_net_dir = self.environment.environment['retrain_ddpg_tf_model_name_v']
         self.stage = self.environment.environment.get("stage")
-        if self.stage == "v":
+        if self.stage in ("v", "r"):
             self.environment.environment["w_net"] = DDPG.load(self.w_net_dir)
+            agent_logger = configure(agent_log_file, ["stdout", "csv", "tensorboard"])
+            self.environment.environment["w_net"].set_logger(agent_logger)
 
         self.env = gym.make(self.env_params.env_name, **self.environment.environment)
         self.all_steps = 0
@@ -364,7 +372,7 @@ class TrainerFollowLaneDDPGCarla:
         # wandb_callback = WandbCallback(gradient_save_freq=100, verbose=2)
         eval_callback = EvalCallback(
             self.eval_env,
-            best_model_save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
+            best_model_save_path=self.model_path,
             eval_freq=20000,
             deterministic=True,
             render=False
