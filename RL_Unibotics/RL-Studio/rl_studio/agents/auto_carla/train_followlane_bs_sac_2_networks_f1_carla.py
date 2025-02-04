@@ -176,7 +176,7 @@ class PeriodicSaveCallback(BaseCallback):
         return True
 
 class ExplorationRateCallback(BaseCallback):
-    def __init__(self, tensorboard, stage=None, initial_exploration_rate=1.0,
+    def __init__(self, tensorboard, initial_exploration_rate=1.0,
                  exploration_min=0.03, decay_rate=0.005, decay_steps=1000, verbose=1):
         super(ExplorationRateCallback, self).__init__(verbose)
         self.min_exploration_rate = exploration_min
@@ -185,51 +185,41 @@ class ExplorationRateCallback(BaseCallback):
         self.current_step = 0
         self.tensorboard = tensorboard
         # Configure noise rates based on stage
-        if stage in (None, "w"):
-            self.w_initial = 0.05
-            self.v_initial = 0
-        else:
-            self.w_initial = 0.001
-            self.v_initial = 0.2
+        self.initial = initial_exploration_rate
 
-        self.w_exploration_rate = self.w_initial
-        self.v_exploration_rate = self.v_initial
+        self.exploration_rate = self.initial
         self.n_actions = None  # Will be initialized at training start
 
     def _on_training_start(self):
         # Initialize number of actions and set initial action noise
-        self.n_actions = self.model.action_space.shape[0]
+        self.n_actions = 1
 
         self.model.action_noise = NormalActionNoise(
             mean=np.zeros(self.n_actions),
-            sigma=np.array([self.v_exploration_rate] + [self.w_exploration_rate])
+            sigma=np.array([self.exploration_rate])
         )
-        self.tensorboard.update_stats(std_dev_v=self.v_exploration_rate)
-        self.tensorboard.update_stats(std_dev_w=self.w_exploration_rate)
+        self.tensorboard.update_stats(std_dev_w=self.exploration_rate)
 
         if self.verbose > 0:
-            print(f"Training started: Initial exploration rates set to v={self.v_exploration_rate}, w={self.w_exploration_rate}")
+            print(f"Training started: Initial exploration rates set to {self.exploration_rate}")
 
     def _on_step(self) -> bool:
         self.current_step += 1
 
         if self.current_step % self.decay_steps == 0:
             # Decay exploration rates for first and subsequent actions
-            self.v_exploration_rate = max(self.min_exploration_rate,
-                                          self.v_exploration_rate - self.decay_rate)
-            self.w_exploration_rate = max(self.min_exploration_rate,
-                                          self.w_exploration_rate - self.decay_rate)
+            self.exploration_rate = max(self.min_exploration_rate,
+                                        self.exploration_rate - self.decay_rate)
 
             # Update the action noise with the new exploration rates
             self.model.action_noise = NormalActionNoise(
                 mean=np.zeros(self.n_actions),
-                sigma=np.array([self.v_exploration_rate] + [self.w_exploration_rate])
+                sigma=np.array([self.exploration_rate])
             )
 
-            self.tensorboard.update_stats(std_dev_v=self.v_exploration_rate)
-            self.tensorboard.update_stats(std_dev_w=self.w_exploration_rate)
+            self.tensorboard.update_stats(std_dev_w=self.exploration_rate)
             if self.verbose > 0:
-                print(f"Step {self.current_step}: Updated exploration rates to v={self.v_exploration_rate}, w={self.w_exploration_rate}")
+                print(f"Step {self.current_step}: Updated exploration rates to w={self.exploration_rate}")
 
         return True
 
@@ -363,6 +353,12 @@ class TrainerFollowLaneSACCarla:
 
         self.environment.environment["entropy_factor"] = config["settings"]["entropy_factor"]
         self.environment.environment["debug_waypoints"] = False
+        self.w_net_dir = self.environment.environment['retrain_sac_tf_model_name_w']
+        self.v_net_dir = self.environment.environment['retrain_sac_tf_model_name_v']
+        self.stage = self.environment.environment.get("stage")
+        if self.stage == "v":
+            self.environment.environment["w_net"] = SAC.load(self.w_net_dir)
+
         self.env = gym.make(self.env_params.env_name, **self.environment.environment)
 
         self.exploration = self.algoritmhs_params.std_dev if self.global_params.mode != "inference" else 0
@@ -402,7 +398,10 @@ class TrainerFollowLaneSACCarla:
 
         # Init Agents
         if self.environment.environment["mode"] in ["inference", "retraining"]:
-            actor_retrained_model = self.environment.environment['retrain_sac_tf_model_name']
+            if self.stage == "w":
+                actor_retrained_model = self.environment.environment['retrain_sac_tf_model_name_w']
+            else:
+                actor_retrained_model = self.environment.environment['retrain_sac_tf_model_name_v']
             self.sac_agent = SAC.load(actor_retrained_model)
             # Set the environment on the loaded model
             self.sac_agent.set_env(self.env)
@@ -447,7 +446,6 @@ class TrainerFollowLaneSACCarla:
 
         # log_std = -0.223 <= 0.8;  -1 <= 0.36
         exploration_rate_callback = ExplorationRateCallback(self.tensorboard,
-                                                            stage=self.environment.environment.get("stage"),
                                                             initial_exploration_rate=self.exploration,
                                                             decay_rate= self.global_params.decrease_substraction,
                                                             decay_steps=self.global_params.steps_to_decrease,
@@ -476,7 +474,7 @@ class TrainerFollowLaneSACCarla:
         )
 
         if self.environment.environment["mode"] in ["inference"]:
-            self.evaluate_ddpg_agent(self.env, self.sac_agent, 10000, 200)
+            self.evaluate_sac_agent(self.env, self.sac_agent, 10000, 200)
 
         callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
         #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
@@ -487,7 +485,7 @@ class TrainerFollowLaneSACCarla:
 
         # self.env.close()
 
-    def evaluate_ddpg_agent(self, env, agent, num_episodes, num_steps):
+    def evaluate_sac_agent(self, env, agent, num_episodes, num_steps):
         for episode in range(num_episodes):
             obs, _ = env.reset()
             done = False

@@ -201,13 +201,27 @@ class TrainerFactory:
                 and agent == AgentsType.AUTOCARLA.value
                 and algorithm == AlgorithmsType.DDPG_2.value
                 and simulator == EnvsType.CARLA.value
-                and framework == FrameworksType.BASELINES.value
+                and framework == FrameworksType.BASELINES_2.value
         ):
             from rl_studio.agents.auto_carla.train_followlane_bs_ddpg_2_networks_f1_carla_tf import (
                 TrainerFollowLaneDDPGCarla,
             )
 
             return TrainerFollowLaneDDPGCarla(config)
+
+
+        elif (
+                task == TasksType.FOLLOWLANECARLA.value
+                and agent == AgentsType.AUTOCARLA.value
+                and algorithm == AlgorithmsType.SAC_2.value
+                and simulator == EnvsType.CARLA.value
+                and framework == FrameworksType.BASELINES_2_SIMPLE.value
+        ):
+            from rl_studio.agents.auto_carla.train_followlane_bs_sac_2_networks_f1_carla import (
+                TrainerFollowLaneSACCarla,
+            )
+
+            return TrainerFollowLaneSACCarla(config)
 
         elif (
                 task == TasksType.FOLLOWLANECARLA.value
@@ -702,13 +716,27 @@ class InferencerFactory:
                 and agent == AgentsType.AUTOCARLA.value
                 and algorithm == AlgorithmsType.DDPG_2.value
                 and simulator == EnvsType.CARLA.value
-                and framework == FrameworksType.BASELINES.value
+                and framework == FrameworksType.BASELINES_2.value
         ):
             from rl_studio.agents.auto_carla.train_followlane_bs_ddpg_2_networks_f1_carla_tf import (
                 TrainerFollowLaneDDPGCarla,
             )
 
             return TrainerFollowLaneDDPGCarla(config)
+
+
+        elif (
+                task == TasksType.FOLLOWLANECARLA.value
+                and agent == AgentsType.AUTOCARLA.value
+                and algorithm == AlgorithmsType.SAC_2.value
+                and simulator == EnvsType.CARLA.value
+                and framework == FrameworksType.BASELINES_2_SIMPLE.value
+        ):
+            from rl_studio.agents.auto_carla.train_followlane_bs_sac_2_networks_f1_carla import (
+                TrainerFollowLaneSACCarla,
+            )
+
+            return TrainerFollowLaneSACCarla(config)
 
         elif (
             task == TasksType.FOLLOWLANECARLA.value

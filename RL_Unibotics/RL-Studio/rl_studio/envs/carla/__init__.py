@@ -24,11 +24,18 @@ class Carla:
 
             return FollowLaneStaticWeatherNoTraffic(**environment)
 
-        if (framework == "baselines"
-            and app_states == 3
-            and algorithm == AlgorithmsType.DDPG_2.value):
+        if (framework == "baselines_2_networks"):
         # if framework == FrameworksType.BASELINES:
             from rl_studio.envs.carla.followlane.followlane_carla_sb_3_states_2_networks import (
+                FollowLaneStaticWeatherNoTraffic,
+            )
+
+            return FollowLaneStaticWeatherNoTraffic(**environment)
+
+
+        if (framework == "baselines_2_simple_networks"):
+        # if framework == FrameworksType.BASELINES:
+            from rl_studio.envs.carla.followlane.followlane_carla_sb_3_states_2_simple_networks import (
                 FollowLaneStaticWeatherNoTraffic,
             )
 

@@ -8,14 +8,14 @@ class LoadAlgorithmParams:
 
     def __init__(self, config):
         algorithm = config["settings"]["algorithm"]
-        if algorithm == "sac":
-            self.gamma = config["algorithm"]["sac"]["gamma"]
-            self.std_dev = config["algorithm"]["sac"]["std_dev"]
-            self.model_name = config["algorithm"]["sac"]["model_name"]
-            self.episodes_update = config["algorithm"]["sac"]["episodes_update"]
-            self.actor_lr = config["algorithm"]["sac"]["actor_lr"]
-            self.critic_lr = config["algorithm"]["sac"]["critic_lr"]
-            self.epsilon = config["algorithm"]["sac"]["epsilon"]
+        if algorithm in ("sac", "sac_2"):
+            self.gamma = config["algorithm"][algorithm]["gamma"]
+            self.std_dev = config["algorithm"][algorithm]["std_dev"]
+            self.model_name = config["algorithm"][algorithm]["model_name"]
+            self.episodes_update = config["algorithm"][algorithm]["episodes_update"]
+            self.actor_lr = config["algorithm"][algorithm]["actor_lr"]
+            self.critic_lr = config["algorithm"][algorithm]["critic_lr"]
+            self.epsilon = config["algorithm"][algorithm]["tau"]
 
         if algorithm in ("ddpg", "ddpg_2"):
             self.gamma = config["algorithm"][algorithm]["gamma"]
@@ -734,7 +734,9 @@ class LoadEnvVariablesSACCarla:
 
         # Training/inference
         self.environment["mode"] = config["settings"]["mode"]
-        self.environment["retrain_sac_tf_model_name"] = f"{config['retraining']['sac']['retrain_sac_tf_model_name']}"
+        self.environment["retrain_sac_tf_model_name"] = f"{config['retraining']['sac'].get('retrain_sac_tf_model_name')}"
+        self.environment["retrain_sac_tf_model_name_w"] = config['retraining']['sac'].get('retrain_sac_tf_model_name_w')
+        self.environment["retrain_sac_tf_model_name_v"] = config['retraining']['sac'].get('retrain_sac_tf_model_name_v')
         self.environment["inference_sac_tf_actor_model_name"] = config["inference"][
             "sac"
         ]["inference_sac_tf_actor_model_name"]
@@ -852,10 +854,10 @@ class LoadEnvVariablesSACCarla:
         self.environment["manager_port"] = config["carla"]["manager_port"]
 
         # Algorithm
-        self.environment["critic_lr"] = config["algorithm"]["sac"]["critic_lr"]
-        self.environment["actor_lr"] = config["algorithm"]["sac"]["actor_lr"]
-        self.environment["model_name"] = config["algorithm"]["sac"]["model_name"]
-
+        algorithm = config["settings"]["algorithm"]
+        self.environment["critic_lr"] = config["algorithm"][algorithm]["critic_lr"]
+        self.environment["actor_lr"] = config["algorithm"][algorithm]["actor_lr"]
+        self.environment["model_name"] = config["algorithm"][algorithm]["model_name"]
 
 
 class LoadEnvVariablesPPOCarla:
