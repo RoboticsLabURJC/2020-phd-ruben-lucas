@@ -1,5 +1,5 @@
 ---
-title: "Carla follow lane DDPG Vs PPO Vs SAC [January]"
+title: "Carla follow lane DDPG Vs PPO Vs SAC [February]"
 excerpt: "Encourage smooth driving"
 
 sidebar:
@@ -22,7 +22,7 @@ author: Tony Stark
 pinned: false
 ---
 
-After getting ppo, sac and ddpg drive on lane and brake on curves without zig-zag,
-now we making SAC and DDPG to also drive smooth like PPO learned with the given reward.
+Got it using 2 networks, one for v and one for w.
+However, it is a shortcut against our intuition, so we will go back trying with 1 network.
 
-Reward and learning process explained in the [following slides](https://docs.google.com/presentation/d/16qM3wvjNMw6PAZkfsdk7SgZlEpeyuOP0-cN6rri1ShY/edit#slide=id.g30b0a1af163_0_6)
+Reward and learning process explained in the [following slides](https://docs.google.com/presentation/d/1lz6htlrBFnqldDpudNJacTVVamwpY6tLbXnoU0PA_Xw/edit#slide=id.g28f96688b3f_1_0)
