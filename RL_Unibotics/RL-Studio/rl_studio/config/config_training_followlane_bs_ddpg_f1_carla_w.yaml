@@ -1,14 +1,16 @@
 settings:
   mode: inference # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
-  algorithm: ddpg # qlearn, dqn, ddpg, ppo
+  algorithm: ddpg_2 # qlearn, dqn, ddpg, ppo
   simulator: carla # openai, carla, gazebo, sumo
   environment_set: carla_environments # gazebo_environments, carla_environments
   env: follow_lane # Town01, simple, nurburgring, montreal, curves, simple_laser, manual, autoparking
   agent: auto_carla # auto_carla, autoparkingRL, auto_carla, mountain_car, robot_mesh, cartpole, turtlebot
   actions: continuous # slow, fast
+  appended_states: 3
+  stage: r
   states: sp5 #image, sp1 (simplified perception with 1 point), sp3 (simplified perception with 3 points), spn (simplified perception with n points)
-  rewards: followlane_center # ffollowline_center, followline_center_v_w_linear
+  rewards: followlane_center # followline_center, followline_center_v_w_linear
   framework: baselines # TensorFlow, Pytorch
   total_episodes: 5000000
   training_time: 72
@@ -18,16 +20,16 @@ settings:
   metrics_dir: "./metrics"
   debug_stats: false
   show_monitoring: false
-  steps_to_decrease: 10000
+  steps_to_decrease: 500
   decrease_substraction: 0.003
   decrease_min: 0.003
   entropy_factor: 0
   use_curves_state: False
   reward_params:
     function: pow
-    punish_zig_zag_value: 3
+    punish_zig_zag_value: 5
     punish_ineffective_vel: 1
-    beta_1: 0.2
+    beta_1: 0
 
 ros:
   ros_master_uri: "11311"
@@ -35,16 +37,17 @@ ros:
 
 retraining:
   ddpg:
-    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/best_checkpoints/ddpg_bs/2101_just_w_model_210000_steps.zip
+    retrain_ddpg_tf_model_name_w: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/best_checkpoints/ddpg_bs/2_networks/30_01:w_net_best_model.zip
+    retrain_ddpg_tf_model_name_v: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/best_checkpoints/ddpg_bs/2_networks/02_02_smooth_best_b_net_model.zip
 inference:
   ddpg:
     retrain_ddpg_tf_model_name: /whatever
 
 algorithm:
-  ddpg:
+  ddpg_2:
     gamma: 0.92
     tau: 0.005
-    std_dev: 0.05 # Note this std dev is applied to normalized actions (-1, 1) and generates noise between +-2*std_dev
+    std_dev: 0.2 # Note this std dev is applied to normalized actions (-1, 1) and generates noise between +-2*std_dev
     model_name: DDPG_Actor_conv2d32x64_Critic_conv2d32x64
     replay_memory_size: 10_000
     memory_fraction: 0.20
@@ -73,16 +76,16 @@ states:
   sp3:
     0: [10, 50, 150]
   sp5:
-    0: [280, 320, 360, 420, 460]
+    0: [270, 280, 360, 410, 460]
   sp10:
-    0: [270, 280, 290, 300, 310, 330, 370, 400, 430, 460]
+    0: [270, 280, 290, 295, 320, 360, 390, 420, 450, 480]
   spn:
     0: [10]
 
 actions:
   continuous:
     v: [-1, 1]
-    w: [-0.2, 0.2]
+    w: [-1, 1]
 #    b: [0, 1]
 
 
@@ -99,7 +102,7 @@ carla_environments:
     traffic_pedestrians: False
     city_lights: False
     car_lights: False
-    estimated_steps: 2000
+    estimated_steps: 500
     save_episodes: 5 # not used in this carla ppo
     save_every_step: 100 # not used in this carla ppo
     goal_pose:
@@ -115,12 +118,15 @@ carla_environments:
     reset_threshold: 0.35
     alternate_pose: True
     spawn_points: [
-#      [ -475.506342, 352.208710, 0.807793, 0.051254, 55.662395, 0.072115 ],
-#      [12.493741, 157.040146, 0.809260, 0.051254, -90.375160, 0.1006703],
-      [384.381470, -46.060329, 0.607339, 0.031453, 90.310402, 0.008101],
-#      [199.221252, -367.893829, 0.809260, 0.248796, 0.152361, -0.002625]
-#      [235.603699, 12.395636, 5.128042, 3.577455, 0.124573, -0.008118],
-#      [389.385938, -179.152158, 0.457793, 0.082516, 270.889893, 0.078263]
+#      [ -320.872070, 15.83397, 0.416225, 0.118217, 176.971695, 0.924344 ], # sharp to left
+#      [ -475.506342, 352.208710, 0.807793, 0.051254, 55.662395, 0.072115 ], #sliht curve to left
+#      [12.93741, 157.040146, 0.09260, 0.051254, -90.375160, 0.1006703], # straight
+#      [384.71470, -170.460329, 0.307339, 0.031453, 90.310402, 0.008101], # sharp to right
+#      [384.71470, -170.460329, 0.307339, 0.031453, 100.310402, 0.008101], # sharp to right deviated
+#      [199.221252, -367.893829, 0.809260, 0.248796, 0.152361, -0.002625], # straight
+     [ 334.204407,  13.815439, 0.608849, 1.506945, -179.198761, -1.299316] # long straight
+      #   [235.603699, 12.395636, 5.228042, 3.577455, 0.124573, -0.008118], # straight reverse
+   #   [389.385938, -179.152158, 0.457793, 0.082516, 270.889893, 0.078263] # straight reverse
     ]
     front_car: none # none, fixed, stopped, driving, incoming, outgoing
     front_car_spawn_points: [
