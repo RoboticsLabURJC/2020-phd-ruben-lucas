@@ -119,6 +119,8 @@ def combine_attributes(obj1, obj2, obj3):
 
     return combined_dict
 
+def new_lr_schedule(progress_remaining):
+    return 0.00003
 
 class PeriodicSaveCallback(BaseCallback):
     def __init__(self, env, params, save_path, save_freq=10000, verbose=1):
@@ -175,16 +177,18 @@ class ExplorationRateCallback(BaseCallback):
         self.decay_steps = decay_steps
         self.current_step = 0
         self.tensorboard = tensorboard
+        self.iters_w_on_min = 0
+        self.stage = stage
         # Configure noise rates based on stage
         if stage == "w":
-            self.w_initial = 0.08
-            self.v_initial = initial_exploration_rate
+            self.w_initial = 0.05
+            self.v_initial = 0
         elif stage == "v":
-            self.w_initial = 0.003
+            self.w_initial = 0
             self.v_initial = initial_exploration_rate
         elif stage == "r":
-            self.w_initial = 0.003
-            self.v_initial = 0.2
+            self.w_initial = 0.1
+            self.v_initial = 0.4
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
         self.n_actions = None  # Will be initialized at training start
@@ -214,6 +218,12 @@ class ExplorationRateCallback(BaseCallback):
             self.w_exploration_rate = max(self.min_exploration_rate,
                                           self.w_exploration_rate - self.decay_rate)
 
+            if self.w_exploration_rate == self.min_exploration_rate:
+                self.iters_w_on_min +=1
+            if self.iters_w_on_min == 50 and self.stage == "w":
+                self.iters_w_on_min = 0
+                self.w_exploration_rate = 0.02
+
             # Update the action noise with the new exploration rates
             self.model.action_noise = NormalActionNoise(
                 mean=np.zeros(self.n_actions),
@@ -223,6 +233,84 @@ class ExplorationRateCallback(BaseCallback):
             self.tensorboard.update_stats(std_dev_w=self.w_exploration_rate)
 
         return True
+
+from stable_baselines3.common.buffers import ReplayBuffer
+class CustomReplayBuffer(ReplayBuffer):
+    def add(self, obs,next_obs, action, reward , done, infos=None):
+        action = np.array(action, copy=True)  # Ensure no inplace modification issues
+        action[0][0] = 0.7  # Force action[0] to always be 0.8
+        super().add(obs, next_obs, action, reward, done, infos)
+
+import torch as th
+import torch.nn.functional as F
+import numpy as np
+from stable_baselines3 import TD3
+from stable_baselines3.common.utils import polyak_update
+
+class CustomTD3(TD3):
+    def train(self, gradient_steps: int, batch_size: int = 100) -> None:
+        # Switch to train mode (this affects batch norm / dropout)
+        self.policy.set_training_mode(True)
+
+        # Update learning rate according to lr schedule
+        self._update_learning_rate([self.actor.optimizer, self.critic.optimizer])
+
+        actor_losses, critic_losses = [], []
+        for _ in range(gradient_steps):
+            self._n_updates += 1
+            # Sample replay buffer
+            replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+
+            with th.no_grad():
+                # Select action according to policy and add clipped noise
+                noise = replay_data.actions.clone().data.normal_(0, self.target_policy_noise)
+                noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
+                next_actions = (self.actor_target(replay_data.next_observations) + noise).clamp(-1, 1)
+
+                # Compute the next Q-values: min over all critics targets
+                next_q_values = th.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)
+                next_q_values, _ = th.min(next_q_values, dim=1, keepdim=True)
+                target_q_values = replay_data.rewards + (1 - replay_data.dones) * self.gamma * next_q_values
+
+            # Get current Q-values estimates for each critic network
+            current_q_values = self.critic(replay_data.observations, replay_data.actions)
+
+            # Compute critic loss
+            critic_loss = sum(F.mse_loss(current_q, target_q_values) for current_q in current_q_values)
+            assert isinstance(critic_loss, th.Tensor)
+            critic_losses.append(critic_loss.item())
+
+            # Optimize the critics
+            self.critic.optimizer.zero_grad()
+            critic_loss.backward()
+            self.critic.optimizer.step()
+
+            # Delayed policy updates
+            if self._n_updates % self.policy_delay == 0:
+                # Compute actor loss
+                actions = self.actor(replay_data.observations)
+
+                # 🛑 Freeze learning for action[1] by detaching it
+                actions = th.cat([actions[:, :1], actions[:, 1:2].detach(), actions[:, 2:]], dim=1)
+
+                actor_loss = -self.critic.q1_forward(replay_data.observations, actions).mean()
+                actor_losses.append(actor_loss.item())
+
+                # Optimize the actor
+                self.actor.optimizer.zero_grad()
+                actor_loss.backward()
+                self.actor.optimizer.step()
+
+                polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
+                polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
+                # Copy running stats, see GH issue #996
+                polyak_update(self.critic_batch_norm_stats, self.critic_batch_norm_stats_target, 1.0)
+                polyak_update(self.actor_batch_norm_stats, self.actor_batch_norm_stats_target, 1.0)
+
+        self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
+        if len(actor_losses) > 0:
+            self.logger.record("train/actor_loss", np.mean(actor_losses))
+        self.logger.record("train/critic_loss", np.mean(critic_losses))
 
 class TrainerFollowLaneDDPGCarla:
     """
@@ -306,7 +394,10 @@ class TrainerFollowLaneDDPGCarla:
         # Init Agents
         if self.environment.environment["mode"] in ["inference", "retraining"]:
             actor_retrained_model = self.environment.environment['retrain_ddpg_tf_model_name']
-            self.ddpg_agent = DDPG.load(actor_retrained_model)
+            if self.environment.environment.get("stage") == "v":
+                self.ddpg_agent = CustomTD3.load(actor_retrained_model)
+            else:
+                self.ddpg_agent = DDPG.load(actor_retrained_model)
             # Set the environment on the loaded model
             self.ddpg_agent.set_env(self.env)
         else:
@@ -337,6 +428,10 @@ class TrainerFollowLaneDDPGCarla:
         tf.compat.v1.random.set_random_seed(1)
 
     def main(self):
+        hyperparams = combine_attributes(self.algoritmhs_params,
+                                         self.environment,
+                                         self.global_params)
+        self.tensorboard.update_hyperparams(hyperparams)
         # run = wandb.init(
         #     project="rl-follow-lane",
         #     config=self.params,
@@ -358,7 +453,7 @@ class TrainerFollowLaneDDPGCarla:
         eval_callback = EvalCallback(
             self.eval_env,
             best_model_save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
-            eval_freq=15000,
+            eval_freq=100000,
             deterministic=True,
             render=False
         )
@@ -382,10 +477,22 @@ class TrainerFollowLaneDDPGCarla:
         if self.environment.environment["mode"] == "inference":
             self.evaluate_ddpg_agent(self.env, self.ddpg_agent, 10000)
 
+       # Apply the new learning rate schedule
+        self.ddpg_agent.learning_rate = new_lr_schedule
+
+        if self.environment.environment.get("stage") == "w":
+            self.ddpg_agent.replay_buffer = CustomReplayBuffer(
+                self.ddpg_agent.buffer_size,
+                self.ddpg_agent.observation_space,
+                self.ddpg_agent.action_space,
+                self.ddpg_agent.device,
+                self.ddpg_agent.n_envs,
+                True,
+                False,
+            )
+
         self.ddpg_agent.learn(total_timesteps=self.params["total_timesteps"],
                               callback=callback_list)
-
-
 
     def evaluate_ddpg_agent(self, env, agent, num_episodes):
         for episode in range(num_episodes):

@@ -217,6 +217,15 @@ class EntropyCalculator:
 def is_curve(ll_segment):
     # edges = cv2.Canny(ll_segment, 50, 100)
     # Extract coordinates of non-zero points
+    mean_curvature = get_curvature(ll_segment)
+    # print(mean_curvature)
+    # print (f"curvature = {mean_curvature}")
+    if mean_curvature < 0.002:
+        return False
+    else:
+        return True
+
+def get_curvature(ll_segment):
     nonzero_points = np.argwhere(ll_segment == 255)
     if len(nonzero_points) == 0:
         return None
@@ -229,13 +238,7 @@ def is_curve(ll_segment):
     polinomio = np.polyfit(x, y, 2)
     second_derivative = np.polyder(polinomio, 2)
     curvature_values = np.polyval(second_derivative, x)
-    mean_curvature = np.mean(np.abs(curvature_values))
-    # print(mean_curvature)
-    # print (f"curvature = {mean_curvature}")
-    if mean_curvature < 0.002:
-        return False
-    else:
-        return True
+    return np.mean(np.abs(curvature_values))
 
 class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def __init__(self, **config):
@@ -390,7 +393,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         num_states = 0
         num_states += len(self.x_row) if self.x_row is not None else 0
         num_states += len(self.projected_x) if self.projected_x is not None else 0
-        num_states += 3
+        num_states += 5
         if self.actions.get("b") is not None:
             self.action_space = spaces.Box(low=np.array([self.actions["v"][0],
                                                          self.actions["w"][0],
@@ -493,12 +496,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         elif self.detection_mode == 'carla_perfect':
             ll_segment_post_process = self.detect_lines_perfect(raw_image)
         else:
-            ll_segment_post_process, curve = self.detect_lines(raw_image)
+            ll_segment_post_process, curve, curvature = self.detect_lines(raw_image)
 
         (
             center_lanes,
             distance_to_center_normalized,
         ) = self.calculate_center(ll_segment_post_process)
+        # print(ll_segment_post_process.shape)
         right_lane_normalized_distances, right_center_lane = choose_lane(distance_to_center_normalized, center_lanes)
         if self.projected_x is not None:
             right_center_lane, right_lane_normalized_distances = self.project_line(self.x_row, right_center_lane,
@@ -512,6 +516,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # time.sleep(1)
 
         states = right_lane_normalized_distances
+        states.append(0)
+        states.append(0)
         states.append(0)
         states.append(0)
         states.append(0)
@@ -990,7 +996,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def apply_step(self, action):
         self.all_steps += 1
-        action[1] = action[1] * 0.2
+        action[1] = action[1] * 0.5
+
         if self.tensorboard is not None:
             self.tensorboard.update_actions(action, self.all_steps)
 
@@ -1016,12 +1023,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         segmentated_image = self.get_resized_image(self.front_camera_1_5_segmentated.front_camera)
 
         curve = False
+        curvature = 0
         if self.detection_mode == 'carla_segmentated':
             ll_segment = self.detect_lines_from_segmentated(segmentated_image)
         elif self.detection_mode == 'carla_perfect':
             ll_segment = self.detect_lines_perfect(raw_image)
         else:
-            ll_segment, curve = self.detect_lines(raw_image)
+            ll_segment, curve, curvature = self.detect_lines(raw_image)
 
         (
             center_lanes,
@@ -1044,10 +1052,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.car.reward = reward
         self.cumulated_reward = self.cumulated_reward + reward
 
+        final_curvature = self.calculate_curvature_from(right_lane_normalized_distances)
         states = right_lane_normalized_distances
         states.append(params["velocity"]/40)
         states.append(params["steering_angle"])
-        states.append(max(-1, 1-(abs(distance_error[0])*5)))
+        states.append(final_curvature)
+        states.append(action[0])
+        states.append(action[1])
         #states.append(self.lidar_front_distance/100)
         #states.append(curvature * 10)
         # states.append(params["angular_velocity"]/100)
@@ -1077,7 +1088,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     ################################################################################
     def step(self, action):
-        # time.sleep(0.5)
+        # time.sleep(0.2)
         self.step_count += 1
 
         # test code to verify the initial position
@@ -1111,8 +1122,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.car.apply_control(carla.VehicleControl(throttle=throttle, brake=brake,
                                                         steer=float(action[1])))
         else:
+            action[0] = 0.7
             self.car.apply_control(carla.VehicleControl(
-                throttle=0.8,
+                throttle=float(action[0]),
                 steer=float(action[1])))
 
             if self.step_count == 10 or self.step_count == 20:
@@ -1172,7 +1184,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params["v_eff_reward"] = 0
         params["reward"] = 0
 
-        car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
+        #car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
+        car_deviated_punish = -1
 
         if done:
             print("car crashed")
@@ -1183,8 +1196,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
         #  En curvas
-        done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold,
-                                                               2)
+        #done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold,
+        #                                                       3)
         if done:
             print(f"car deviated after step {self.step_count}")
             self.deviated += 1
@@ -1192,10 +1205,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             #return -5 * action[0], done, crash
 
 
-        # done = self.has_invaded()
-        # if done:
-        #     print("car deviated")
-        #     self.deviated += 1
+        done = self.has_invaded()
+        if done:
+            print("car deviated")
+            self.deviated += 1
+            return car_deviated_punish, done, crash
         #     return -10 * max(action[0], 0), done, crash
         #     #return -5 * action[0], done, crash
 
@@ -1215,10 +1229,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         beta = self.beta
         if v < self.punish_ineffective_vel:
             self.steps_stopped += 1
-            if self.steps_stopped > 500:
+            if self.steps_stopped > 100:
                 print("too much time stopped")
-                return -1, True, False
-            return action[0] * d_reward, False, False
+                return car_deviated_punish, True, False
+            return -1, False, False
             # beta = 0  # por debajo de v_ineffective solo vale la v
         else:
             self.steps_stopped = 0
@@ -1238,23 +1252,32 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # print(f"dist {distance_error[0]}")
         # print(f"v{v_kmh}")
         # print(f"sRew {speed_reward}")
-        is_not_aligned = abs(distances[0]-distances[4]) > 0.1
 
         # v_eff_reward = v/30  * d_reward
-        #throttle =  max(action[0], 0) # TODO OJO que aquí aplicas el freno indistintamente de la v!
+        # throttle =  max(action[0], 0) # TODO OJO que aquí aplicas el freno indistintamente de la v!
+        # throttle = 5 * action[0] # TODO OJO que aquí aplicas el freno indistintamente de la v!
         # v_eff_reward = throttle * pow(d_reward, ((throttle * 5) + 1))
         #v_eff_reward = max(action[0], 0) * d_reward
-        #v_eff_reward = throttle * pow(1-distance_error[0], (abs(v) / 5) + 1)
-        v_eff_reward = np.log1p(v) * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
-        #v_eff_reward = np.log1p(v) * max(d_reward, 0)
+        # v_eff_reward = throttle * pow(1-distance_error[0], (abs(v) / 5) + 1)
+        # v_eff_reward = throttle * pow(d_reward, (abs(v) / 5) + 1)
+        # v_eff_reward = throttle * d_rewards
+        # v_eff_reward = np.log1p(v) * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
+        # v_eff_reward = np.log1p(v) * max(d_reward, 0)
+        v_eff_reward = v * max(d_reward, 0)
         #v_eff_reward = max(action[0], 0)  * d_reward
         #v_eff_reward = v * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
 
-        v_eff_reward = -action[0] * 5 if is_not_aligned and v > 20 else v_eff_reward
-        if v>32:
-            v_eff_reward = -max(action[0], 0)
+        # ALIGNMENT REWARD SHAPING!
 
-        if v > 39 and self.stage in ("v", "r"):
+        is_not_aligned = abs(distances[0]-distances[4]) > 0.1
+        # v_eff_reward = -action[0] * 5 if is_not_aligned and v > 20 else v_eff_reward
+        # beta = 1 if is_not_aligned and v > 20 else beta # Just rewarding pos if misaligned
+
+        if v>27:
+            v_eff_reward = 0
+            #beta = 1
+
+        if v > 35 and self.stage in ("v", "r"):
             return -1 * max(action[0], 0), True, False
 
         # TOTAL REWARD CALCULATION
@@ -1267,16 +1290,16 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         # PUNISH CALCULATION
         punish = 0
-        if self.stage in ("w", "r"):
-            punish += self.punish_zig_zag_value * abs(params["steering_angle"])
+       # punish += self.punish_zig_zag_value * abs(params["steering_angle"])
+        punish += self.punish_zig_zag_value * abs(action[1])
 
         if self.stage in ("v", "r"):
             punish += 1 if action[0] > 0.95 else 0
             if not is_not_aligned:
-                punish += abs(self.prev_throtle - action[0]) * 5  # TODO parametrize stablility punish
+                #punish += abs(self.prev_throtle - action[0]) * 5  # TODO parametrize stablility punish
                 self.prev_throtle = action[0]
-                if action[0] < 0:
-                    punish += abs(action[0]) * 5
+                # if action[0] < 0:
+                #     punish += abs(action[0]) * self.punish_braking
             # punish += self.car.get_angular_velocity().z / 50
 
         # if distance_error[0] > 0.05 and v > 20:
@@ -1307,6 +1330,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                     (action[0] - self.throttle_action_avg_no_curves) * (
                     action[0] - self.throttle_action_avg_no_curves - (1 / self.step_count_no_curves))) / self.step_count_no_curves
             self.throttle_action_std_dev_no_curves = self.throttle_action_variance_no_curves ** 0.5
+
+            self.abs_w_no_curves_avg = self.abs_w_no_curves_avg + (
+                    abs(action[1]) - self.abs_w_no_curves_avg) / self.step_count_no_curves
+
             self.step_count_no_curves += 1
         else:
             self.curves_states += 1
@@ -1477,6 +1504,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             # print(f"left curve -> {is_curve(blue_channel)}")
             # print(f"right curve -> {is_curve(red_channel)}")
             curve = is_curve(blue_channel) or is_curve(red_channel)
+            curvature = (get_curvature(blue_channel) + get_curvature(red_channel))/2
 
             lines = []
             left_line = self.post_process_hough_lane_det(blue_channel)
@@ -1518,7 +1546,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         ll_segment[boundary_y:, :] = detected_lines[boundary_y:, :]
         ll_segment = (ll_segment // 255).astype(np.uint8) # Keep the lower one-third of the image
 
-        return ll_segment, curve
+        return ll_segment, curve, curvature
 
     def detect_yolop(self, raw_image):
         # Get names and colors
@@ -1820,12 +1848,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def set_init_pose(self):
         ## ---  Car
         waypoints_town = self.world.get_map().generate_waypoints(5.0)
-        init_waypoint = waypoints_town[self.waypoints_init]
 
         # set self driving car
         if self.alternate_pose:
             self.car = self.setup_car_random_pose(self.spawn_points)
         elif self.waypoints_init is not None:
+            init_waypoint = waypoints_town[self.waypoints_init]
             if self.show_all_points:
                 self.draw_waypoints(
                    waypoints_town,
@@ -2029,8 +2057,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         transform = self.car.get_transform()
         forward_vector = transform.get_forward_vector()
         rnd = random.random()
-        self.speed = 16 if rnd < 0.25 else 30 \
-          if rnd < 0.5 else random.randint(0, 30)
+        self.speed = 17 if rnd < 0.5 else 0 if rnd < 0.7  else random.randint(0, 20)
         # self.speed = 32
         # self.speed = 32 if rnd < 0.5 else random.randint(10, 36)
         # Scale the forward vector by the desired speed
