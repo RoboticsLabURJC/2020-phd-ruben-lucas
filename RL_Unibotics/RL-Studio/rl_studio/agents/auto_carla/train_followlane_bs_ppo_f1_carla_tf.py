@@ -574,6 +574,10 @@ class TrainerFollowLanePPOCarla:
         tf.compat.v1.random.set_random_seed(1)
 
     def main(self):
+        hyperparams = combine_attributes(self.algoritmhs_params,
+                                         self.environment,
+                                         self.global_params)
+        self.tensorboard.update_hyperparams(hyperparams)
         # run = wandb.init(
         #     project="rl-follow-lane",
         #     config=self.params,

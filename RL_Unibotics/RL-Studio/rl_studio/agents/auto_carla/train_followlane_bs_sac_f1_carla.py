@@ -186,11 +186,11 @@ class ExplorationRateCallback(BaseCallback):
         self.tensorboard = tensorboard
         # Configure noise rates based on stage
         if stage in (None, "w"):
-            self.w_initial = 0.05
+            self.w_initial = 0.5
             self.v_initial = 0
         else:
-            self.w_initial = 0.001
-            self.v_initial = 0.2
+            self.w_initial = 0.5
+            self.v_initial = 0.8
 
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
@@ -413,8 +413,8 @@ class TrainerFollowLaneSACCarla:
                 self.env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[64, 64, 64],  # The architecture for the policy network
-                        qf=[64, 64, 64]  # The architecture for the value network
+                        pi=[124, 124, 124, 124],  # The architecture for the policy network
+                        qf=[124, 124, 124, 124]  # The architecture for the value network
                     ),
                     # activation_fn=nn.ReLU,
                     # ortho_init=True,
@@ -439,6 +439,11 @@ class TrainerFollowLaneSACCarla:
         tf.compat.v1.random.set_random_seed(1)
 
     def main(self):
+        hyperparams = combine_attributes(self.algoritmhs_params,
+                                         self.environment,
+                                         self.global_params)
+        self.tensorboard.update_hyperparams(hyperparams)
+
         # run = wandb.init(
         #     project="rl-follow-lane",
         #     config=self.params,
@@ -476,7 +481,7 @@ class TrainerFollowLaneSACCarla:
         )
 
         if self.environment.environment["mode"] in ["inference"]:
-            self.evaluate_ddpg_agent(self.env, self.sac_agent, 10000, 200)
+            self.evaluate_ddpg_agent(self.env, self.sac_agent, 10000, 20000)
 
         callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
         #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
