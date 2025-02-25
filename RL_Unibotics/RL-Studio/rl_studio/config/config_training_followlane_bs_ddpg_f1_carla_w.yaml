@@ -22,7 +22,7 @@ settings:
   show_monitoring: false
   steps_to_decrease: 500
   decrease_substraction: 0.003
-  decrease_min: 0.003
+  decrease_min: 0.001
   entropy_factor: 0
   use_curves_state: False
   reward_params:
@@ -38,7 +38,7 @@ ros:
 retraining:
   ddpg:
     retrain_ddpg_tf_model_name_w: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/best_checkpoints/ddpg_bs/2_networks/30_01:w_net_best_model.zip
-    retrain_ddpg_tf_model_name_v: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/best_checkpoints/ddpg_bs/2_networks/02_02_smooth_best_b_net_model.zip
+    retrain_ddpg_tf_model_name_v: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/best_checkpoints/ddpg_bs/2_networks/02_02_smooth_may_need_rescaling_v_best_b_net_model.zip
 inference:
   ddpg:
     retrain_ddpg_tf_model_name: /whatever
@@ -115,7 +115,7 @@ carla_environments:
     detection_mode: carla_perfect  # carla_perfect
     fixed_delta_seconds: 0.05
     async_forced_delta_seconds: 0
-    reset_threshold: 0.35
+    reset_threshold: 0.3
     alternate_pose: True
     spawn_points: [
 #      [ -320.872070, 15.83397, 0.416225, 0.118217, 176.971695, 0.924344 ], # sharp to left
