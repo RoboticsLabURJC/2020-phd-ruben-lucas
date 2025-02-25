@@ -13,12 +13,14 @@ def extract_tensorboard_data(log_dir, key):
     # advanced_meters = event_acc.Tensors('advanced_meters')  # Key name for advanced meters
     # avg_speed = event_acc.Tensors('avg_speed')  # Key name for average speed
     # std_dev = event_acc.Tensors('std_dev')  # Key name for standard deviation
-    for e in tf.compat.v1.train.summary_iterator(log_dir):
-        for v in e.summary.value:
-            if v.tag == key:
-                tensors.append(v.tensor)
-                steps.append(e.step)
-
+    try:
+        for e in tf.compat.v1.train.summary_iterator(log_dir):
+            for v in e.summary.value:
+                if v.tag == key:
+                    tensors.append(v.tensor)
+                    steps.append(e.step)
+    except Exception as outer_error:
+        print(f"Failed to read TensorBoard logs: {outer_error}")
     values = [tf.make_ndarray(t) for t in tensors]
     return steps, values
 

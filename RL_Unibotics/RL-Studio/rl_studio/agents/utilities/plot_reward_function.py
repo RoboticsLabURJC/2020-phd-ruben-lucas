@@ -71,15 +71,16 @@ def rewards_easy(v, pos):
 
     rewarded_v = min(v, 34) # min to not to reward speeds over 120km/h
 
-    d_reward = math.pow(1 - abs(pos/2), 1)
-    v_eff_reward = np.log(rewarded_v)/np.log(20) * math.pow(d_reward, (rewarded_v/5) + 1)
+    d_reward = math.pow(1 - abs(pos), 1)
+    # v_eff_reward = np.log(rewarded_v)/np.log(20) * math.pow(d_reward, (rewarded_v/5) + 1)
+    v_eff_reward = np.log1p(v) * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
 
     beta = 0
     # TODO Ver que valores toma la velocity para compensarlo mejor
     function_reward = beta * d_reward + (1 - beta) * v_eff_reward
     punish = 0
-    if v > 34:
-        punish = (v - 34) / 100
+    # if v > 34:
+    #     punish = (v - 34) / 100
         
     return max(function_reward - punish, 0)
 

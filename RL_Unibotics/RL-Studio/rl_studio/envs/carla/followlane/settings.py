@@ -64,5 +64,6 @@ class FollowLaneCarlaConfig(BaseModel):
         self.beta = config["beta_1"]
         self.punish_ineffective_vel = config["punish_ineffective_vel"]
         self.punish_zig_zag_value = config["punish_zig_zag_value"]
+        self.punish_braking = config["punish_braking"]
         # self.actor_list = []
         # self.collision_hist = []
