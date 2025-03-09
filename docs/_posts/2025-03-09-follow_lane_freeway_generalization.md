@@ -1,5 +1,5 @@
 ---
-title: "Carla follow lane DDPG Vs PPO Vs SAC [February]"
+title: "Carla follow lane DDPG Vs PPO Vs SAC [Mars]"
 excerpt: "Explore agents generalization"
 
 sidebar:
