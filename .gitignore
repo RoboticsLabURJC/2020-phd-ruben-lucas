@@ -9,3 +9,5 @@ RL_Unibotics/RL-Studio/rl_studio/CustomRobots/
 RL_Unibotics/RL-Studio/rl_studio/installation/
 mlruns/
 RL_Unibotics/RL-Studio/rl_studio/agents/auto_carla/hyperparameter_tuning/logs/
+RL_Unibotics/RL-Studio/rl_studio/best_logs/
+
