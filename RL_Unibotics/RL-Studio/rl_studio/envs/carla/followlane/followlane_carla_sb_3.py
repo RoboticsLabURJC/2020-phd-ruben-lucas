@@ -1193,8 +1193,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return math.log(1 + velocity) / math.log(1 + v_max)
 
     def rewards_easy(self, error, distances, action, params):
-        distance_error = error[3:]  # We are just rewarding the 3 lowest points!
-        # distance_error = error
+        #distance_error = error[3:]  # We are just rewarding the 3 lowest points!
+        distance_error = error
         ## EARLY RETURNS
         done = self.has_crashed()
         params["d_reward"] = 0
