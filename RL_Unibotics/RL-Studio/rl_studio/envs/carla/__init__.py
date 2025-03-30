@@ -15,7 +15,7 @@ class Carla:
         traffic_pedestrians = environment["traffic_pedestrians"]
 
         if (framework == "baselines"
-            and app_states == 3):
+            and app_states >= 3):
         # if framework == FrameworksType.BASELINES:
             from rl_studio.envs.carla.followlane.followlane_carla_sb_3 import (
                 FollowLaneStaticWeatherNoTraffic,
