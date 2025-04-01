@@ -1,5 +1,5 @@
 settings:
-  mode: retraining # training, retraining, inference
+  mode: training # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: sac # qlearn, dqn, ddpg, sac
   simulator: carla # openai, carla, gazebo, sumo
@@ -20,7 +20,7 @@ settings:
   metrics_dir: "./metrics"
   debug_stats: false
   show_monitoring: false
-  steps_to_decrease: 500
+  steps_to_decrease: 1500
   entropy_factor: 0
   decrease_substraction: 0.003
   decrease_min: 0.01
@@ -37,7 +37,7 @@ ros:
 
 retraining:
   sac:
-    retrain_sac_tf_model_name: /home/alumnos/rlucasz/Escritorio/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20250227-190651/best_model.zip
+    retrain_sac_tf_model_name: /home/alumnos/rlucasz/Escritorio/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20250227-190651/2025-03-31-best_model.zip
 
 inference:
   sac:
@@ -78,7 +78,7 @@ states:
   sp5:
     0: [ 270, 280, 320, 400, 460 ]
   sp10:
-    0: [270, 280, 290, 300, 310, 320, 350, 380, 420, 460]
+    0: [280, 285, 290, 295, 320, 360, 390, 420, 450, 480]
   spn:
     0: [10]
 
@@ -145,5 +145,5 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: 4014
+  carla_client: 4013
   manager_port: 8023

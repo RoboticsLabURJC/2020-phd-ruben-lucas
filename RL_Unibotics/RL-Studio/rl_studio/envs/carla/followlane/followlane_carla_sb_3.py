@@ -1203,7 +1203,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params["reward"] = 0
 
         # car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
-        car_deviated_punish = -1
+        car_deviated_punish = -5
 
         if done:
             print("car crashed")
@@ -1214,13 +1214,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
         #  En curvas
-        # done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold,
-        #                                                       2*len(distance_error)//3)
-        # if done:
-        #     print(f"car deviated after step {self.step_count}")
-        #     self.deviated += 1
-        #     return car_deviated_punish, done, crash
-        #     # return -5 * action[0], done, crash
+        done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold,
+                                                              2*len(distance_error)//3)
+        if done:
+            print(f"car deviated after step {self.step_count}")
+            self.deviated += 1
+            return car_deviated_punish, done, crash
+            # return -5 * action[0], done, crash
 
         done = self.has_invaded()
         if done:
@@ -1273,11 +1273,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # v_eff_reward = v/30  * d_reward
         # v_eff_reward = throttle * d_reward
         # v_eff_reward = throttle * pow(d_re-ward, (throttle + 1))
-        # v_eff_reward = throttle * pow(d_reward, (abs(v) / 5) + 1)
+        v_eff_reward = throttle * pow(d_reward, (abs(v) / 5) + 1)
         # v_eff_reward = max(action[0], 0) * d_reward
         # v_eff_reward = v * pow(1 - distance_error[0], (abs(v) / 5) + 1)
         # v_eff_reward = np.log1p(v) * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
-        v_eff_reward = np.log1p(v) * max(d_reward, 0)
+        #v_eff_reward = np.log1p(v) * max(d_reward, 0)
         # v_eff_reward = max(action[0], 0)  * d_reward
         # v_eff_reward = v * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
 
@@ -2062,7 +2062,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         forward_vector = transform.get_forward_vector()
         rnd = random.random()
         self.speed = 0 if rnd < 0.3 else 23 \
-            if rnd < 0.6 else random.randint(0, 25)
+            if rnd < 0.6 else random.randint(0, 31)
         #self.speed = 0
         # self.speed = 32 if rnd < 0.5 else random.randint(10, 36)
         # Scale the forward vector by the desired speed

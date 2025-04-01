@@ -432,7 +432,7 @@ class TrainerFollowLaneDDPGCarla:
         hyperparams = combine_attributes(self.algoritmhs_params,
                                          self.environment,
                                          self.global_params)
-        reward_filename = '/home/alumnos/rlucasz/Escritorio/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/envs/carla/followlane/followlane_carla_sb_3.py'
+        reward_filename = '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/envs/carla/followlane/followlane_carla_sb_3.py'
         reward_method = 'rewards_easy'
         reward_function = extract_reward_function(reward_filename, reward_method)
         hyperparams['reward_function'] = reward_function
