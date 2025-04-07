@@ -216,8 +216,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = initial_log_std
             self.v_initial = initial_log_std
         else:
-            self.w_initial = -4.5
-            self.v_initial = initial_log_std
+            self.w_initial = -0.5
+            self.v_initial = -0.5
         self.current_step = 0
 
     def _on_training_start(self):
@@ -546,8 +546,8 @@ class TrainerFollowLanePPOCarla:
                 self.env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[64, 64, 64],  # The architecture for the policy network
-                        vf=[64, 64, 64]  # The architecture for the value network
+                        pi=[64, 128, 128, 64],  # The architecture for the policy network
+                        vf=[64, 128, 128, 64]  # The architecture for the value network
                     ),
                     activation_fn=nn.ReLU,
                     log_std_init=-1.5,
@@ -556,7 +556,7 @@ class TrainerFollowLanePPOCarla:
                 learning_rate=linear_schedule(self.environment.environment["critic_lr"]),
                 gamma=self.algoritmhs_params.gamma,
                 # gae_lambda=0.9,
-                ent_coef=0.02,
+                ent_coef=0.05,
                 clip_range=self.algoritmhs_params.epsilon,
                 batch_size=1024,
                 verbose=1,
