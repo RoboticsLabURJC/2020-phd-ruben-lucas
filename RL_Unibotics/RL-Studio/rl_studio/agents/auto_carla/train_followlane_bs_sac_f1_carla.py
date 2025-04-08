@@ -189,8 +189,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = 0.4
             self.v_initial = 0
         elif stage == "v":
-            self.w_initial = 0.1
-            self.v_initial = 0.1
+            self.w_initial = 0.3
+            self.v_initial = 0.5
         else:
             self.w_initial = 0.2
             self.v_initial = 0
@@ -416,17 +416,17 @@ class TrainerFollowLaneSACCarla:
                 self.env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[64, 128, 128, 64],  # The architecture for the policy network
-                        qf=[64, 128, 128, 64]  # The architecture for the value network
+                        pi=[64, 128, 128, 128, 64],  # The architecture for the policy network
+                        qf=[64, 128, 128, 128, 64]  # The architecture for the value network
                     ),
                     # activation_fn=nn.ReLU,
                     # ortho_init=True,
                 ),
-                learning_rate=3e-4,
+                learning_rate=2e-4,
                 buffer_size=100000,
-                batch_size=256,
+                batch_size=128,
                 tau=0.005,
-                gamma=0.95,
+                gamma=0.90,
                 train_freq=1,
                 gradient_steps=1,
                 verbose=1
