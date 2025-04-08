@@ -1273,7 +1273,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # v_eff_reward = v/30  * d_reward
         v_eff_reward = throttle * d_reward
         # v_eff_reward = throttle * pow(d_re-ward, (throttle + 1))
-        # v_eff_reward = throttle * pow(d_reward, (abs(v) / 5) + 1)
+        # v_eff_reward = throttle * pow(d_reward, (abs(v) / 5) + 1) # reward pow curves
         # v_eff_reward = max(action[0], 0) * d_reward
         # v_eff_reward = v * pow(1 - distance_error[0], (abs(v) / 5) + 1)
         # v_eff_reward = np.log1p(v) * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)

@@ -216,8 +216,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = initial_log_std
             self.v_initial = initial_log_std
         else:
-            self.w_initial = -0.5
-            self.v_initial = -0.5
+            self.w_initial = -0.8
+            self.v_initial = -0.8
         self.current_step = 0
 
     def _on_training_start(self):

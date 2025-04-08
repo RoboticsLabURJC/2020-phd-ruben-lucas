@@ -1,5 +1,5 @@
 settings:
-  mode: training # training, retraining, inference
+  mode: inference # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: sac # qlearn, dqn, ddpg, sac
   simulator: carla # openai, carla, gazebo, sumo
@@ -20,7 +20,7 @@ settings:
   metrics_dir: "./metrics"
   debug_stats: false
   show_monitoring: false
-  steps_to_decrease: 1500
+  steps_to_decrease: 5500
   entropy_factor: 0
   decrease_substraction: 0.003
   decrease_min: 0.01
@@ -37,7 +37,7 @@ ros:
 
 retraining:
   sac:
-    retrain_sac_tf_model_name: /home/alumnos/rlucasz/Escritorio/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20250227-190651/2025-03-31-best_model.zip
+    retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20250403-210423/best_model.zip
 
 inference:
   sac:
