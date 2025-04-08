@@ -23,7 +23,7 @@ import gymnasium as gym
 import tensorflow as tf
 from tqdm import tqdm
 from rl_studio.agents.utilities.plot_npy_dataset import plot_rewards
-from rl_studio.agents.utilities.push_git_repo import git_add_commit_push
+from rl_studio.agents.utilities.extract_reward_function import extract_reward_function
 from rl_studio.algorithms.utils import (
     save_actorcritic_baselines_model,
 )
@@ -188,7 +188,7 @@ class ExplorationRateCallback(BaseCallback):
             self.v_initial = initial_exploration_rate
         elif stage == "r":
             self.w_initial = 0.1
-            self.v_initial = 0.4
+            self.v_initial = 0.1
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
         self.n_actions = None  # Will be initialized at training start
@@ -428,9 +428,15 @@ class TrainerFollowLaneDDPGCarla:
         tf.compat.v1.random.set_random_seed(1)
 
     def main(self):
+
         hyperparams = combine_attributes(self.algoritmhs_params,
                                          self.environment,
                                          self.global_params)
+        reward_filename = '/home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/envs/carla/followlane/followlane_carla_sb_3.py'
+        reward_method = 'rewards_easy'
+        reward_function = extract_reward_function(reward_filename, reward_method)
+        hyperparams['reward_function'] = reward_function
+
         self.tensorboard.update_hyperparams(hyperparams)
         # run = wandb.init(
         #     project="rl-follow-lane",

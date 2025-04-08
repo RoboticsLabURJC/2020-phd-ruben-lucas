@@ -146,7 +146,7 @@ class PeriodicSaveCallback(BaseCallback):
     def _on_step(self) -> bool:
         self.step_count += 1
         if self.step_count % self.save_freq == 0:
-            model_save_path = os.path.join(self.save_path, f"model_{self.step_count}_steps")
+            model_save_path = os.path.join(self.save_path, f"model_{self.step_count}_steps_{time.strftime('%Y%m%d-%H%M%S')}")
             self.model.save(model_save_path)
             date_time = time.strftime('%Y%m%d-%H%M%S')
 
@@ -186,11 +186,14 @@ class ExplorationRateCallback(BaseCallback):
         self.tensorboard = tensorboard
         # Configure noise rates based on stage
         if stage in (None, "w"):
-            self.w_initial = 0.5
+            self.w_initial = 0.4
             self.v_initial = 0
+        elif stage == "v":
+            self.w_initial = 0.1
+            self.v_initial = 0.1
         else:
-            self.w_initial = 0.5
-            self.v_initial = 0.8
+            self.w_initial = 0.2
+            self.v_initial = 0
 
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
@@ -413,8 +416,8 @@ class TrainerFollowLaneSACCarla:
                 self.env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[124, 124, 124, 124],  # The architecture for the policy network
-                        qf=[124, 124, 124, 124]  # The architecture for the value network
+                        pi=[64, 128, 128, 64],  # The architecture for the policy network
+                        qf=[64, 128, 128, 64]  # The architecture for the value network
                     ),
                     # activation_fn=nn.ReLU,
                     # ortho_init=True,
@@ -443,7 +446,6 @@ class TrainerFollowLaneSACCarla:
                                          self.environment,
                                          self.global_params)
         self.tensorboard.update_hyperparams(hyperparams)
-
         # run = wandb.init(
         #     project="rl-follow-lane",
         #     config=self.params,
@@ -462,7 +464,7 @@ class TrainerFollowLaneSACCarla:
         eval_callback = EvalCallback(
             self.env,
             best_model_save_path=f"{self.global_params.models_dir}/{time.strftime('%Y%m%d-%H%M%S')}",
-            eval_freq=5000,
+            eval_freq=100000,
             deterministic=True,
             render=False
         )
@@ -481,7 +483,7 @@ class TrainerFollowLaneSACCarla:
         )
 
         if self.environment.environment["mode"] in ["inference"]:
-            self.evaluate_ddpg_agent(self.env, self.sac_agent, 10000, 20000)
+            self.evaluate_ddpg_agent(self.env, self.sac_agent, 10000, 200)
 
         callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
         #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])

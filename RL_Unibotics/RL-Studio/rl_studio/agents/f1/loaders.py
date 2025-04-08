@@ -890,7 +890,7 @@ class LoadEnvVariablesPPOCarla:
         self.environment["appended_states"] = config["settings"]["appended_states"]
         self.environment["framework"] = config["settings"]["framework"]
         self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
-        self.environment["punish_braking"] = config["settings"]["reward_params"]["punish_braking"]
+        self.environment["punish_braking"] = config["settings"]["reward_params"].get("punish_braking")
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
         self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
