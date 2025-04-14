@@ -587,7 +587,7 @@ class TrainerFollowLanePPOCarla:
         # log_std = -0.223 <= 0.8;  -1 <= 0.36
         exploration_rate_callback = ExplorationRateCallback(
             stage=self.environment.environment.get("stage"), initial_log_std=-0.5,
-            min_log_std=-4.5, decay_rate=0.03,
+            min_log_std=self.environment.environment.get("decrease_min"), decay_rate=0.03,
             decay_steps=2000)
         entropy_callback = EntropyCoefficientCallback(
             initial_ent_coef=0.02,  # Starting entropy coefficient

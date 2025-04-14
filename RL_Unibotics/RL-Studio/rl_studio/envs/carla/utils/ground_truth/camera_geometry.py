@@ -57,7 +57,7 @@ def get_matrix_global (vehicle, trafo_matrix_vehicle_to_cam):
 
     return trafo_matrix_global_to_camera
 
-def create_lane_lines(waypoint, vehicle, exclude_junctions=True, only_turns=True):
+def create_lane_lines(waypoint, vehicle, opposite=False, exclude_junctions=True, only_turns=True):
     
     center_list, left_boundary, right_boundary = [], [], []
 
@@ -78,8 +78,12 @@ def create_lane_lines(waypoint, vehicle, exclude_junctions=True, only_turns=True
             pass
             #print("junction on the path")
             #return None, None, None, None
-        next_waypoints = waypoint.next(1.0)
-        # if there is a branch on the path, return None
+        if opposite:
+            next_waypoints = waypoint.previous(1.0)
+        else:
+            next_waypoints = waypoint.next(1.0)
+            # if there is a branch on the path, return None
+
         if len(next_waypoints) != 1:
             pass
             #print("Branch on the path")

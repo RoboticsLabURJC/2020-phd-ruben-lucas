@@ -1,5 +1,5 @@
 settings:
-  mode: inference # training, retraining, inference
+  mode: training # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: sac # qlearn, dqn, ddpg, sac
   simulator: carla # openai, carla, gazebo, sumo
@@ -78,7 +78,7 @@ states:
   sp5:
     0: [ 270, 280, 320, 400, 460 ]
   sp10:
-    0: [280, 285, 290, 295, 320, 360, 390, 420, 450, 480]
+    0: [275, 280, 290, 295, 320, 360, 390, 420, 450, 480]
   spn:
     0: [10]
 
@@ -104,14 +104,15 @@ rewards:
 carla_environments:
   follow_lane:
     env_name: CarlaEnv-v0
-    town: Town04 #Town01, Town02, Town03, Town04, Town05, Town10HD
+    town: [Town04, Town03] #Town01, Town02, Town03, Town04, Town05, Town10HD
+    #town: Town04 #Town01, Town02, Town03, Town04, Town05, Town10HD
     # Town01_Opt, Town02_Opt, Town03_Opt, Town04_Opt, Town05_Opt, Town10HD_Opt
     car: model1
     weather: ClearNoon #dynamic, argparse
     traffic_pedestrians: False
     city_lights: False
     car_lights: False
-    estimated_steps: 500
+    estimated_steps: 400
     save_episodes: 5 # not used in this carla sac
     save_every_step: 100 # not used in this carla sac
     init_pose:
@@ -126,17 +127,17 @@ carla_environments:
     async_forced_delta_seconds: 0
     reset_threshold: 0.3
     alternate_pose: True
-    spawn_points:  [
-      [-320.872070, 15.83397, 0.416225, 0.118217, 176.971695, 0.924344], # sharp to left
-      [278.050293, -368.798950, 0.807949, 0.095828, 16.101439, -2.257110], #slight to right
-      [ -475.506342, 352.208710, 0.807793, 0.051254, 55.662395, 0.072115 ], #sliht curve to left
-      [12.93741, 157.040146, 0.09260, 0.051254, -90.375160, 0.1006703], # straight
-      [384.381470, -116.060329, 0.607339, 0.031453, 90.310402, 0.008101], # sharp to right
-      [199.221252, -367.893829, 0.809260, 0.248796, 0.152361, -0.002625], # straight
-      [ 334.204407,  13.815439, 0.608849, 1.506945, -179.198761, -1.299316] # long straight
+    spawn_points:  #[
+      #[-320.872070, 15.83397, 0.416225, 0.118217, 176.971695, 0.924344], # sharp to left
+      #[278.050293, -368.798950, 0.807949, 0.095828, 16.101439, -2.257110], #slight to right
+      #[ -475.506342, 352.208710, 0.807793, 0.051254, 55.662395, 0.072115 ], #sliht curve to left
+      #[12.93741, 157.040146, 0.09260, 0.051254, -90.375160, 0.1006703], # straight
+     # [384.381470, -116.060329, 0.607339, 0.031453, 90.310402, 0.008101], # sharp to right
+     # [199.221252, -367.893829, 0.809260, 0.248796, 0.152361, -0.002625], # straight
+     # [ 334.204407,  13.815439, 0.608849, 1.506945, -179.198761, -1.299316] # long straight
       #   [235.603699, 12.395636, 5.228042, 3.577455, 0.124573, -0.008118], # straight reverse
    #   [389.385938, -179.152158, 0.457793, 0.082516, 270.889893, 0.078263] # straight reverse
-    ]
+    #]
     waypoints_meters: 5 #distance between waypoints in meters
     waypoints_init: 839 # {6912} 6927 1471 For Town04. 839 For Town01
     waypoints_target: 959 #961

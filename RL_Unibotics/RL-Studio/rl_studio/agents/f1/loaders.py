@@ -427,9 +427,11 @@ class LoadEnvVariablesManualCarla:
         self.environment["agent"] = config["settings"]["agent"]
         self.environment["algorithm"] = config["settings"]["algorithm"]
         self.environment["task"] = config["settings"]["task"]
+        self.environment["stage"] = config["settings"].get("stage")
+        self.environment["projected_x_row"] = config["states"][self.states].get("projected")
         self.environment["framework"] = config["settings"]["framework"]
         self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
-        self.environment["punish_braking"] = config["settings"]["reward_params"]["punish_braking"]
+        self.environment["punish_braking"] = config["settings"]["reward_params"].get("punish_braking")
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
         self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
@@ -486,6 +488,7 @@ class LoadEnvVariablesManualCarla:
         self.environment["sync"] = config[self.environment_set][self.env]["sync"]
         self.environment["reset_threshold"] = config[self.environment_set][self.env].get("reset_threshold")
         self.environment["spawn_points"] = config[self.environment_set][self.env].get("spawn_points")
+        self.environment["detection_mode"] = config[self.environment_set][self.env]["detection_mode"]
         self.environment["waypoints_meters"] = config[self.environment_set][self.env][
             "waypoints_meters"
         ]
@@ -543,6 +546,7 @@ class LoadEnvVariablesManualCarla:
         # CARLA
         self.environment["carla_server"] = config["carla"]["carla_server"]
         self.environment["carla_client"] = config["carla"]["carla_client"]
+        self.environment["manager_port"] = config["carla"]["manager_port"]
 
         # Algorithm
         self.environment["critic_lr"] = config["algorithm"]["manual"]["critic_lr"]
@@ -883,6 +887,7 @@ class LoadEnvVariablesPPOCarla:
         self.rewards = config["settings"]["rewards"]
         ##### environment variable
         self.environment = {}
+        self.environment["decrease_min"] = config["settings"].get("decrease_min")
         self.environment["stage"] = config["settings"].get("stage")
         self.environment["agent"] = config["settings"]["agent"]
         self.environment["algorithm"] = config["settings"]["algorithm"]

@@ -1,5 +1,5 @@
 settings:
-  mode: training # training, retraining, inference
+  mode: inference # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: ddpg # qlearn, dqn, ddpg, ppo
   simulator: carla # openairee, carla, gazebo, sumo
@@ -20,7 +20,7 @@ settings:
   metrics_dir: "./metrics"
   debug_stats: false
   show_monitoring: false
-  steps_to_decrease: 10000
+  steps_to_decrease: 3000
   decrease_substraction: 0.003
   decrease_min: 0.01
   entropy_factor: 0
@@ -38,7 +38,7 @@ ros:
 
 retraining:
   ddpg:
-    retrain_ddpg_tf_model_name: /home/alumnos/rlucasz/Escritorio/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250330-132010/best_model.zip
+    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250411-235401/best_model.zip
 inference:
   ddpg:
     retrain_ddpg_tf_model_name: /whatever
@@ -78,7 +78,7 @@ states:
   sp5:
     0: [270, 280, 360, 410, 460]
   sp10:
-    0: [270, 280, 290, 295, 320, 360, 390, 420, 450, 480]
+    0: [275, 280, 290, 295, 320, 360, 390, 420, 450, 480]
   spn:
     0: [10]
 
@@ -102,7 +102,7 @@ carla_environments:
     traffic_pedestrians: False
     city_lights: False
     car_lights: False
-    estimated_steps: 350
+    estimated_steps: 500
     save_episodes: 5 # not used in this carla ppo
     save_every_step: 100 # not used in this carla ppo
     goal_pose:
