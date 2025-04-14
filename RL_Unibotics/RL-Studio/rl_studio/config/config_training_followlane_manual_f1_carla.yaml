@@ -4,6 +4,7 @@ settings:
   algorithm: manual # qlearn, dqn, ddpg, manual
   simulator: carla # openai, carla, gazebo, sumo
   environment_set: carla_environments # gazebo_environments, carla_environments
+  stage: v
   env: follow_lane # Town01, simple, nurburgring, montreal, curves, simple_laser, manual, autoparking
   agent: auto_carla # f1, autoparkingRL, auto_carla, mountain_car, robot_mesh, cartpole, turtlebot
   actions: slow # slow, fast
@@ -74,7 +75,7 @@ states:
   sp4:
     0: [ 30, 60, 100, 120 ]
   sp10:
-    0: [100, 200, 300, 330, 360, 390, 410, 450, 480, 500]
+    0: [280, 285, 290, 295, 320, 360, 390, 420, 450, 480]
   spn:
     0: [10]
 
@@ -117,6 +118,7 @@ carla_environments:
     rolename: "hero" #name
     gamma: 2.2 #for camera
     sync: True #syncronous mode or async
+    detection_mode: carla_perfect
     alternate_pose: False
     waypoints_meters: 5 #distance between waypoints in meters
     waypoints_init: 839
@@ -126,5 +128,6 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: 2000
+  carla_client: 4013
+  manager_port: 8023
 

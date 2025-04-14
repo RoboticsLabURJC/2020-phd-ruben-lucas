@@ -1,5 +1,5 @@
 settings:
-  mode: training # training, retraining, inference
+  mode: retraining # training, retraining, inference
 #  task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: ppo_continuous # qlearn, dqn, ddpg, ppo
@@ -24,7 +24,7 @@ settings:
   steps_to_decrease: 4000
   entropy_factor: 0
   decrease_substraction: 0.003
-  decrease_min: 0.01
+  decrease_min: -3.5
   reward_params:
     function: pow
     punish_zig_zag_value: 2
@@ -38,7 +38,7 @@ ros:
 
 retraining:
   ppo:
-    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/best_checkpoints/ppo_bs/06_01_smooth_with_lidar_braking_on_curves_best_model.zip
+    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/RL_Unibotics/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250408-195515/model_770000_steps.zip
 inference:
   ppo:
     inference_ppo_tf_actor_model_name:
@@ -105,7 +105,7 @@ rewards:
 carla_environments:
   follow_lane:
     env_name: CarlaEnv-v0
-    town: Town03 #Town01, Town02, Town03, Town04, Town05, Town10HD
+    town: Town04 #Town01, Town02, Town03, Town04, Town05, Town10HD
     # Town01_Opt, Town02_Opt, Town03_Opt, Town04_Opt, Town05_Opt, Town10HD_Opt
     car: model1
     weather: ClearNoon #dynamic, argparse

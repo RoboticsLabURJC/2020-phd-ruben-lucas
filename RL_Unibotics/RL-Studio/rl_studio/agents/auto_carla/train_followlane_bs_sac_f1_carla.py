@@ -189,11 +189,11 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = 0.4
             self.v_initial = 0
         elif stage == "v":
-            self.w_initial = 0.3
-            self.v_initial = 0.5
+            self.w_initial = 0.7
+            self.v_initial = 0.7
         else:
             self.w_initial = 0.2
-            self.v_initial = 0
+            self.v_initial = 0.2
 
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial

@@ -265,6 +265,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.location_stats = []
         self.show_images = False
         self.show_all_points = False
+        self.config = config
+
         self.debug_waypoints = config.get("debug_waypoints")
         self.estimated_steps = config.get("estimated_steps")
 
@@ -287,10 +289,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         ###### init class variables
         FollowLaneCarlaConfig.__init__(self, **config)
-        self.projected_x = config["projected_x_row"]
+        self.projected_x = config.get("projected_x_row")
         self.sync_mode = config["sync"]
-        self.front_car = config["front_car"]
-        self.front_car_spawn_points = config["front_car_spawn_points"]
+        self.front_car = config.get("front_car")
+        self.front_car_spawn_points = config.get("front_car_spawn_points")
         self.reset_threshold = config["reset_threshold"] if self.sync_mode else 1
         self.spawn_points = config.get("spawn_points")
         self.detection_mode = config.get("detection_mode")
@@ -362,21 +364,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.client.set_timeout(10.0)
         print(f"\n maps in carla 0.9.13: {self.client.get_available_maps()}\n")
 
-        self.world = self.client.load_world(config["town"])
-        self.original_settings = self.world.get_settings()
         self.traffic_manager = self.client.get_trafficmanager(config["manager_port"])
-        settings = self.world.get_settings()
-        self.forced_freq = config.get("async_forced_delta_seconds")
-        if self.sync_mode:
-            settings.max_substep_delta_time = 0.02
-            settings.fixed_delta_seconds = config.get("fixed_delta_seconds")
-            settings.synchronous_mode = True
-            self.traffic_manager.set_synchronous_mode(True)
-        else:
-            self.traffic_manager.set_synchronous_mode(False)
-        self.world.apply_settings(settings)
-        current_settings = self.world.get_settings()
-        print(f"Current World Settings: {current_settings}")
+        self.towns = self.config["town"]
+        self.world = None
+        self.town = None
+        self.init_world()
+
         # self.camera = None
         # self.vehicle = None
         # self.display = None
@@ -432,14 +425,14 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         while vehicle is None:
             vehicle = self.world.spawn_actor(car_bp, location)
 
-        self.actor_list.append(vehicle)
+        self.acor_list.append(vehicle)
         # spectator = self.world.get_spectator()
         # spectator_location = carla.Transform(
         #     location.location + carla.Location(z=100),
         #     carla.Rotation(-90, location.rotation.yaw, 0))
         # spectator.set_transform(spectator_location)
 
-        time.sleep(1)
+        time.sleep(0.5)
         return vehicle
 
     def close(self):
@@ -447,6 +440,20 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.display_manager.destroy()
 
     def reset(self, seed=None, options=None):
+        if len(self.actor_list) > 0:
+            self.destroy_all_actors()
+            self.display_manager.destroy()
+        try:
+            time.sleep(2.0)
+            self.init_world()
+        except RuntimeError as e:
+            print(e)
+            print("retrying connection to carla")
+            time.sleep(5)
+            self.init_world()
+
+        #self.actor_list.append(self.world)
+
         if self.episode % 200 == 0:  # Adjust step frequency as needed
             gc.collect()
 
@@ -468,10 +475,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # if self.episode % 20 == 0:
         #     self.tensorboard.save_location_stats(self.location_stats)
 
-        if len(self.actor_list) > 0:
-            self.destroy_all_actors()
-            self.display_manager.destroy()
-
         self.steps_stopped = 0
         self.collision_hist = []
         self.invasion_hist = []
@@ -484,9 +487,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         else:
             self.world.wait_for_tick()
         self.episode_start = time.time()
-        time.sleep(1)
+        time.sleep(2)
 
         self.set_init_speed()
+
+        self.vary_car_orientation(self.car)  # Call the orientation variation method
 
         self.car.apply_control(carla.VehicleControl(steer=0.0))
 
@@ -759,7 +764,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             while vehicle is None:
                 vehicle = self.world.try_spawn_actor(car_bp, location)
         self.actor_list.append(vehicle)
-        time.sleep(1)
+        time.sleep(0.5)
         vehicle.reward = 0
         vehicle.error = 0
         return vehicle
@@ -935,7 +940,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             actor.destroy()
         # print(f"\nin self.destroy_all_actors(), actor : {actor}\n")
 
-        # self.actor_list = []
+        self.actor_list.clear()
         # .client.apply_batch(
         #    [carla.command.DestroyActor(x) for x in self.actor_list[::-1]]
         # )
@@ -1215,7 +1220,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
         #  En curvas
         done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold,
-                                                              2*len(distance_error)//3)
+                                                              len(distance_error)//3)
         if done:
             print(f"car deviated after step {self.step_count}")
             self.deviated += 1
@@ -1443,7 +1448,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             lane_type=carla.LaneType.Driving,
         )
 
-        center_list, left_boundary, right_boundary, type_lane = create_lane_lines(waypoint, self.car)
+        _, _, alignment = self.get_lane_position(self.car, self.map)
+        opposite = alignment < 0.5
+        center_list, left_boundary, right_boundary, type_lane = create_lane_lines(waypoint, self.car, opposite=opposite)
 
         projected_left_boundary = project_polyline(
             left_boundary, trafo_matrix_global_to_camera, self.K).astype(np.int32)
@@ -1457,6 +1464,59 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.draw_line_through_points(projected_left_boundary, image)
         self.draw_line_through_points(projected_right_boundary, image)
         return image
+
+    def get_lane_position(self, vehicle: carla.Vehicle, map: carla.Map):
+        """
+        Determines the vehicle's position relative to the lane.
+
+        Returns:
+            A dictionary containing:
+            - lane_side: "left", "right", or "center"
+            - lane_offset: Distance from the lane center (positive: left, negative: right)
+            - lane_alignment: Alignment of vehicle and lane directions (0: aligned, -1: opposite)
+        """
+
+        waypoint = map.get_waypoint(
+            vehicle.get_transform().location, project_to_road=True,
+            lane_type=carla.LaneType.Driving
+        )
+
+        # Vehicle's forward vector
+        vehicle_forward = vehicle.get_transform().get_forward_vector()
+        vehicle_forward_np = np.array([vehicle_forward.x, vehicle_forward.y])
+
+        # Lane's forward vector
+        waypoint_forward = waypoint.transform.get_forward_vector()
+        waypoint_forward_np = np.array([waypoint_forward.x, waypoint_forward.y])
+
+        # Vector from waypoint to vehicle
+        vehicle_location = vehicle.get_transform().location
+        waypoint_location = waypoint.transform.location
+        waypoint_to_vehicle = carla.Location(
+            vehicle_location.x - waypoint_location.x,
+            vehicle_location.y - waypoint_location.y,
+            vehicle_location.z - waypoint_location.z
+        )
+        waypoint_to_vehicle_np = np.array([waypoint_to_vehicle.x, waypoint_to_vehicle.y])
+
+        # 1. Lane Side (Left/Right)
+        cross_product = np.cross(vehicle_forward_np, waypoint_forward_np)
+        lane_side = "center"
+        if cross_product > 0.1:
+            lane_side = "left"
+        elif cross_product < -0.1:
+            lane_side = "right"
+
+        # 2. Lane Offset (Distance to Center)
+        # Project waypoint_to_vehicle onto a vector perpendicular to lane_forward
+        lane_right_np = np.array([-waypoint_forward_np[1], waypoint_forward_np[0]])  # 90-degree rotation
+        lane_offset = np.dot(waypoint_to_vehicle_np, lane_right_np)
+        lane_offset /= np.linalg.norm(lane_right_np)
+
+        # 3. Lane Alignment (Forward/Backward)
+        lane_alignment = np.dot(vehicle_forward_np, waypoint_forward_np)
+
+        return lane_side, lane_offset, lane_alignment
 
     def detect_lines_from_segmentated(self, ll_segment):
         cv2.imshow('raw', ll_segment)
@@ -2057,12 +2117,36 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         curvature = abs(y_double_prime) / ((1 + y_prime ** 2) ** (3 / 2))
         return curvature
 
+    def vary_car_orientation(self, vehicle: carla.Vehicle):
+        """
+        Slightly varies the orientation (yaw) of the vehicle.
+
+        Args:
+            vehicle: The carla.Vehicle object.
+        """
+
+        # Get the current transform (position and rotation) of the vehicle
+        transform = vehicle.get_transform()
+        rotation = transform.rotation
+
+        # Generate a small random yaw offset (e.g., between -5 and 5 degrees)
+        yaw_offset = random.uniform(-20.0, 20.0)  # Adjust range as needed
+
+        # Create a new rotation with the modified yaw
+        new_rotation = carla.Rotation(pitch=rotation.pitch, yaw=rotation.yaw + yaw_offset, roll=rotation.roll)
+
+        # Create a new transform with the modified rotation
+        new_transform = carla.Transform(transform.location, new_rotation)
+
+        # Apply the new transform to the vehicle
+        vehicle.set_transform(new_transform)
+
     def set_init_speed(self):
         transform = self.car.get_transform()
         forward_vector = transform.get_forward_vector()
         rnd = random.random()
-        self.speed = 0 if rnd < 0.3 else 23 \
-            if rnd < 0.6 else random.randint(0, 31)
+        self.speed = 0 if rnd < 0.3 else 15 \
+            if rnd < 0.6 else random.randint(0, 30)
         #self.speed = 0
         # self.speed = 32 if rnd < 0.5 else random.randint(10, 36)
         # Scale the forward vector by the desired speed
@@ -2072,3 +2156,29 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             z=forward_vector.z * self.speed  # Typically 0 unless you want vertical motion
         )
         self.car.set_target_velocity(target_velocity)
+
+    def init_world(self):
+        if isinstance(self.towns, list):
+            town = random.choice(self.towns)
+        else:
+            town = self.towns
+        if self.town == town:
+            return
+        self.town = town
+        self.world = self.client.load_world(town)
+        print(f"loading world {self.town}")
+        time.sleep(5.0) # Needed to the simulator to be ready. TODO May be decrease to 1?
+        self.map = self.world.get_map()
+        self.original_settings = self.world.get_settings()
+        settings = self.world.get_settings()
+        self.forced_freq = self.config.get("async_forced_delta_seconds")
+        if self.sync_mode:
+            settings.max_substep_delta_time = 0.02
+            settings.fixed_delta_seconds = self.config.get("fixed_delta_seconds")
+            settings.synchronous_mode = True
+            self.traffic_manager.set_synchronous_mode(True)
+        else:
+            self.traffic_manager.set_synchronous_mode(False)
+        self.world.apply_settings(settings)
+        current_settings = self.world.get_settings()
+        print(f"Current World Settings: {current_settings}")
