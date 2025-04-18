@@ -212,6 +212,11 @@ class ExplorationRateCallback(BaseCallback):
         self.min_log_std = min_log_std
         self.decay_rate = decay_rate
         self.decay_steps = decay_steps
+
+        self.no_exploration = torch.full_like(
+            self.model.policy.log_std[0:2], min_log_std
+        ).to(self.model.policy.log_std.device)
+
         if stage in (None, "w"):
             self.w_initial = initial_log_std
             self.v_initial = initial_log_std
@@ -265,10 +270,16 @@ class ExplorationRateCallback(BaseCallback):
                 torch.full_like(self.model.policy.log_std[:1], self.min_log_std),
                 self.model.policy.log_std[:1] - self.decay_rate
             )
+            self.last_log_std = new_log_std
             self.model.policy.log_std.data = new_log_std
 
             if self.verbose > 0:
                 print(f"Step {self.current_step}: Updated log_std to {new_log_std.detach().cpu().numpy()}")
+
+        if np.random.rand() < 0.5:
+            self.model.policy.log_std.data = self.no_exploration
+        else:
+            self.model.policy.log_std.data = self.last_log_std
 
         return True
 

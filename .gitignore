@@ -10,4 +10,5 @@ src/RL-Studio/rl_studio/installation/
 mlruns/
 src/RL-Studio/rl_studio/agents/auto_carla/hyperparameter_tuning/logs/
 src/RL-Studio/rl_studio/best_logs/
+RL_Unibotics
 *.v2

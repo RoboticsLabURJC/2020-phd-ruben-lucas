@@ -10,6 +10,7 @@ import cv2
 import torch
 from numpy import random
 import numpy as np
+from pyglet.libs.x11.xlib import None_
 from sympy.solvers.ode import infinitesimals
 
 from rl_studio.envs.carla.followlane.followlane_env import FollowLaneEnv
@@ -470,6 +471,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.location_actions = {}
         self.location_rewards = {}
         self.location_next_states = {}
+        self.last_centers = None
 
         # if self.episode % 20 == 0:
         #     self.tensorboard.save_location_stats(self.location_stats)
@@ -582,11 +584,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             avg_speed=self.avg_speed,
             max_speed=self.max_speed,
             abs_w_no_curves_avg=self.abs_w_no_curves_avg,
-            throttle_difference=self.throttle_action_difference,
-            throttle_curves=self.throttle_action_avg_curves,
-            throttle_no_curves=self.throttle_action_avg_no_curves,
-            throttle_curves_std=self.throttle_action_std_dev_curves,
-            throttle_no_curves_std=self.throttle_action_std_dev_no_curves,
+            # throttle_difference=self.throttle_action_difference,
+            # throttle_curves=self.throttle_action_avg_curves,
+            # throttle_no_curves=self.throttle_action_avg_no_curves,
+            # throttle_curves_std=self.throttle_action_std_dev_curves,
+            # throttle_no_curves_std=self.throttle_action_std_dev_no_curves,
             # cum_d_reward=cum_d_reward,
             # max_reward=max_reward,
             # steering_std_dev=steering_std_dev,
@@ -1006,8 +1008,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.all_steps += 1
         action[1] = action[1] * 0.5
         # action[0] = 0.9
-        if self.tensorboard is not None:
-            self.tensorboard.update_actions(action, self.all_steps)
+        # if self.tensorboard is not None:
+        #     self.tensorboard.update_actions(action, self.all_steps)
 
         params = self.control(action)
         self.episodes_speed.append(params["velocity"])
@@ -1063,6 +1065,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         final_curvature = self.calculate_curvature_from(right_lane_normalized_distances)
 
         states = right_lane_normalized_distances
+        if self.last_centers is None or not all(x == -1 for x in self.last_centers):
+            self.last_centers = states.copy()
         states.append(params["velocity"] / 40)
         states.append(params["steering_angle"])
         states.append(final_curvature)
@@ -1090,6 +1094,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 # return self.apply_step([0.1, 0.05 * random.choice([1, -1]), 0])
             else:
                 self.failures = 0
+                done = True
         else:
             self.failures = 0
         # print(np.array(states))
@@ -1207,7 +1212,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params["reward"] = 0
 
         # car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
-        car_deviated_punish = -5
+        car_deviated_punish = -10
 
         if done:
             print("car crashed")
@@ -1218,15 +1223,15 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
         #  En curvas
-        done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold,
-                                                               len(distance_error) // 3)
+        # done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold,
+        #                                                        len(distance_error) // 3)
         if done:
             print(f"car deviated after step {self.step_count}")
             self.deviated += 1
             return car_deviated_punish, done, crash
             # return -5 * action[0], done, crash
 
-        done = self.has_invaded()
+        done = self.has_invaded(distances)
         if done:
             print("car deviated")
             self.deviated += 1
@@ -1275,13 +1280,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         throttle = max(action[0], 0)  # TODO OJO que aquí aplicas el freno indistintamente de la v!
         # v_eff_reward = v/30  * d_reward
-        v_eff_reward = throttle * d_reward
+        # v_eff_reward = throttle * d_reward
         # v_eff_reward = throttle * pow(d_re-ward, (throttle + 1))
         # v_eff_reward = throttle * pow(d_reward, (abs(v) / 5) + 1) # reward pow curves
         # v_eff_reward = max(action[0], 0) * d_reward
         # v_eff_reward = v * pow(1 - distance_error[0], (abs(v) / 5) + 1)
         # v_eff_reward = np.log1p(v) * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
-        # v_eff_reward = np.log1p(v) * max(d_reward, 0)
+        v_eff_reward = np.log1p(v) * max(d_reward, 0)
         # v_eff_reward = max(action[0], 0)  * d_reward
         # v_eff_reward = v * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
 
@@ -1904,8 +1909,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         return False
 
-    def has_invaded(self):
+    def has_invaded(self, distances):
         if len(self.invasion_hist) > 0:  # te has chocado, baby
+            print("lane invaded!")
+            return True
+        if self.centers_switched(distances):
+            print("lane changed!")
             return True
 
         return False
@@ -2187,3 +2196,17 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         world.apply_settings(settings)
         print(f"Current World Settings: {world.get_settings()}")
         return world
+
+    def centers_switched(self, distances):
+        if self.last_centers is None:
+            return False
+        if all(x == -1 for x in distances):
+            return False # Tolerate some missing frames
+
+        similar_count = 0
+        for i in range(len(self.last_centers)):
+            if abs(distances[i] - self.last_centers[i]) < 0.2:
+                similar_count += 1
+        if similar_count > (len(self.last_centers) / 2):
+            return False
+        return True
