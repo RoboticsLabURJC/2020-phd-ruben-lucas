@@ -232,6 +232,17 @@ class ExplorationRateCallback(BaseCallback):
             self.tensorboard.update_stats(std_dev_v=self.v_exploration_rate)
             self.tensorboard.update_stats(std_dev_w=self.w_exploration_rate)
 
+        if np.random.rand() < 0.5:
+            self.model.action_noise = NormalActionNoise(
+                mean=np.zeros(self.n_actions),
+                sigma=np.array([0, 0])
+            )
+        else:
+            self.model.action_noise = NormalActionNoise(
+                mean=np.zeros(self.n_actions),
+                sigma=np.array([self.v_exploration_rate] + [self.w_exploration_rate])
+            )
+
         return True
 
 from stable_baselines3.common.buffers import ReplayBuffer
