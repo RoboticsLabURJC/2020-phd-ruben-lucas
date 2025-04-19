@@ -9,6 +9,7 @@ import random
 import cv2
 import torch
 from numpy import random
+import psutil
 import numpy as np
 from pyglet.libs.x11.xlib import None_
 from sympy.solvers.ode import infinitesimals
@@ -437,7 +438,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #     carla.Rotation(-90, location.rotation.yaw, 0))
         # spectator.set_transform(spectator_location)
 
-        time.sleep(0.5)
+        # time.sleep(0.5)
         return vehicle
 
     def close(self):
@@ -455,6 +456,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # self.actor_list.append(self.world)
 
         if self.episode % 200 == 0:  # Adjust step frequency as needed
+            print(psutil.Process(os.getpid()).memory_info().rss / 1e6, "MB")
             gc.collect()
 
         if self.stage == "w":
@@ -488,7 +490,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         else:
             self.world.wait_for_tick()
         self.episode_start = time.time()
-        time.sleep(2)
+        time.sleep(1)
 
         self.set_init_speed()
 
@@ -765,7 +767,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             while vehicle is None:
                 vehicle = self.world.try_spawn_actor(car_bp, location)
         self.actor_list.append(vehicle)
-        time.sleep(0.5)
+        # time.sleep(0.5)
         vehicle.reward = 0
         vehicle.error = 0
         return vehicle
@@ -1006,7 +1008,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def apply_step(self, action):
         self.all_steps += 1
-        action[1] = action[1] * 0.5
+        action[1] = action[1]
+        # action[1] = action[1] * 0.5
         # action[0] = 0.9
         # if self.tensorboard is not None:
         #     self.tensorboard.update_actions(action, self.all_steps)
@@ -1058,11 +1061,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         distance_error = [abs(x) for x in right_lane_normalized_distances]
 
+        final_curvature = self.calculate_curvature_from(right_lane_normalized_distances)
+        params["final_curvature"] = final_curvature
         reward, done, crash = self.rewards_easy(distance_error, right_lane_normalized_distances, action, params)
         self.car.reward = reward
         self.cumulated_reward = self.cumulated_reward + reward
-
-        final_curvature = self.calculate_curvature_from(right_lane_normalized_distances)
 
         states = right_lane_normalized_distances
         if self.last_centers is None or not all(x == -1 for x in self.last_centers):
@@ -1309,7 +1312,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         # PUNISH CALCULATION
         punish = 0
-        punish += self.punish_zig_zag_value * abs(action[1])
+        # Punish zig zag on straights
+        if params["final_curvature"] < 0.00001:
+            punish += self.punish_zig_zag_value * abs(action[1])
 
         if self.stage in ("v", "r"):
             punish += 1 if action[0] > 0.95 else 0
@@ -1913,9 +1918,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if len(self.invasion_hist) > 0:  # te has chocado, baby
             print("lane invaded!")
             return True
-        if self.centers_switched(distances):
-            print("lane changed!")
-            return True
+        # if self.centers_switched(distances):
+        #     print("lane changed!")
+        #     return True
 
         return False
 
