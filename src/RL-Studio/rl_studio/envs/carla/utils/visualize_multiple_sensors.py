@@ -91,6 +91,8 @@ class DisplayManager:
     def destroy(self):
         # print(f"entro en destroy()")
         for s in self.sensor_list:
+            if hasattr(s, 'is_listening') and actor.is_listening:
+                s.stop()
             s.destroy()
         self.sensor_list = []
 
@@ -171,8 +173,10 @@ class SensorManager:
         if sensor_type == "RGBCamera":
             camera_bp = self.world.get_blueprint_library().find("sensor.camera.rgb")
             disp_size = self.display_man.get_display_size()
-            camera_bp.set_attribute("image_size_x", str(disp_size[0]))
-            camera_bp.set_attribute("image_size_y", str(disp_size[1]))
+            # camera_bp.set_attribute("image_size_x", str(disp_size[0]))
+            # camera_bp.set_attribute("image_size_y", str(disp_size[1]))
+            camera_bp.set_attribute("image_size_x", "640")
+            camera_bp.set_attribute("image_size_y", "512")
 
             for key in sensor_options:
                 camera_bp.set_attribute(key, sensor_options[key])

@@ -1,6 +1,12 @@
 # This file contains all clasess to parser parameters from config.yaml into training RL
 
 
+def load_common_env_params(environment, config):
+    ###### Hot Reload
+    environment["debug_waypoints"] = config["hot_reload_settings"]["debug_waypoints"]
+    environment["show_monitoring"] = config["hot_reload_settings"].get("show_monitoring")
+    environment["visualize"] = config["hot_reload_settings"]["visualize"]
+
 class LoadAlgorithmParams:
     """
     Retrieves Algorithm params
@@ -145,8 +151,6 @@ class LoadGlobalParams:
         self.metrics_graphics_dir = f"{config['settings']['metrics_dir']}/{config['settings']['mode']}/{config['settings']['task']}_{config['settings']['algorithm']}_{config['settings']['agent']}_{config['settings']['framework']}/graphics"
         self.recorders_carla_dir = f"{config['settings']['recorder_carla_dir']}/{config['settings']['mode']}/{config['settings']['task']}_{config['settings']['algorithm']}_{config['settings']['agent']}_{config['settings']['framework']}"
         self.training_time = config["settings"]["training_time"]
-        self.debug_stats = config["settings"]["debug_stats"]
-        self.show_monitoring = config["settings"]["show_monitoring"]
         ####### States
         self.states = config["settings"]["states"]
         self.states_set = config["states"][self.states]
@@ -710,6 +714,9 @@ class LoadEnvVariablesDDPGCarla:
         self.environment["ROS_MASTER_URI"] = config["ros"]["ros_master_uri"]
         self.environment["GAZEBO_MASTER_URI"] = config["ros"]["gazebo_master_uri"]
 
+        ## common to all environments
+        load_common_env_params(self.environment, config)
+
 class LoadEnvVariablesSACCarla:
     """
     ONLY FOR sac algorithm
@@ -868,6 +875,9 @@ class LoadEnvVariablesSACCarla:
         self.environment["actor_lr"] = config["algorithm"][algorithm]["actor_lr"]
         self.environment["model_name"] = config["algorithm"][algorithm]["model_name"]
 
+        ## common to all environments
+        load_common_env_params(self.environment, config)
+
 
 class LoadEnvVariablesPPOCarla:
     """
@@ -1025,6 +1035,8 @@ class LoadEnvVariablesPPOCarla:
         self.environment["actor_lr"] = config["algorithm"]["ppo"]["actor_lr"]
         self.environment["model_name"] = config["algorithm"]["ppo"]["model_name"]
 
+        ## common to all environments
+        load_common_env_params(self.environment, config)
 
 class LoadEnvVariablesPPOGazebo:
     """

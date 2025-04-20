@@ -98,7 +98,7 @@ class TrainerFollowLanePPOCarla:
         self.cpu_usages = 0
         self.gpu_usages = 0
         self.environment.environment["estimated_steps"] = 5000
-        self.environment.environment["debug_waypoints"] = False
+        self.environment.environment["debug_waypoints"] = self.global_params.debug_waypoints
         self.environment.environment["entropy_factor"] = 0
 
         self.tensorboard = ModifiedTensorBoard(

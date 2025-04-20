@@ -343,7 +343,6 @@ class TrainerFollowLaneDDPGCarla:
         self.env_params = LoadEnvParams(config)
         self.global_params = LoadGlobalParams(config)
         self.environment = LoadEnvVariablesDDPGCarla(config)
-        self.environment.environment["debug_waypoints"] = False
         logs_dir = f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
         self.tensorboard = ModifiedTensorBoard(
             log_dir=logs_dir
@@ -363,9 +362,8 @@ class TrainerFollowLaneDDPGCarla:
         ## Load Carla server
         # CarlaEnv.__init__(self)
         self.environment.environment["actions"] = self.global_params.actions_set
-
-        self.environment.environment["entropy_factor"] = config["settings"]["entropy_factor"]
         self.environment.environment["use_curves_state"] = config["settings"]["use_curves_state"]
+
         self.env = gym.make(self.env_params.env_name, **self.environment.environment)
         self.all_steps = 0
         self.current_max_reward = 0

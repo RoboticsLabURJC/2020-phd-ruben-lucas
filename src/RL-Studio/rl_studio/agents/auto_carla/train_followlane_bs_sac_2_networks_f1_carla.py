@@ -352,7 +352,7 @@ class TrainerFollowLaneSACCarla:
         # CarlaEnv.__init__(self)
 
         self.environment.environment["entropy_factor"] = config["settings"]["entropy_factor"]
-        self.environment.environment["debug_waypoints"] = False
+        self.environment.environment["debug_waypoints"] = self.global_params.debug_waypoints
         self.w_net_dir = self.environment.environment['retrain_sac_tf_model_name_w']
         self.v_net_dir = self.environment.environment['retrain_sac_tf_model_name_v']
         self.stage = self.environment.environment.get("stage")
