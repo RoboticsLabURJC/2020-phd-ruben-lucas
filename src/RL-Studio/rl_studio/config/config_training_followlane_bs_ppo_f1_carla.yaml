@@ -19,8 +19,6 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  debug_stats: false
-  show_monitoring: false
   steps_to_decrease: 4000
   entropy_factor: 0
   decrease_substraction: 0.003
@@ -31,6 +29,9 @@ settings:
     punish_ineffective_vel: 1 # velocity below which reward is not calculated (0)
     beta_1: 0.3
 
+hot_reload_settings:
+  visualize: True
+  debug_waypoints: false
 
 ros:
   ros_master_uri: "11311"

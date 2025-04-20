@@ -1,6 +1,5 @@
 import argparse
-
-import yaml
+import rl_studio.config_loader as config_loader
 
 from rl_studio.agents import TrainerFactory, InferencerFactory
 
@@ -17,7 +16,8 @@ def main():
     )
 
     args = parser.parse_args()
-    config_file = yaml.load(args.file, Loader=yaml.FullLoader)
+    config_loader.set_config_path(args.file.name)
+    config_file = config_loader.load_config()
 
     if config_file["settings"]["mode"] == "inference":
         inferencer = InferencerFactory(config_file)

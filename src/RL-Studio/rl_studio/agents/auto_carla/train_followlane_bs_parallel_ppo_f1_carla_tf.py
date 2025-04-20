@@ -347,7 +347,7 @@ class TrainerFollowLanePPOCarla:
         # CarlaEnv.__init__(self)
 
         self.environment.environment["entropy_factor"] = config["settings"]["entropy_factor"]
-        self.environment.environment["debug_waypoints"] = False
+        self.environment.environment["debug_waypoints"] = self.global_params.debug_waypoints
         self.environment.environment["estimated_steps"] = 5000
 
         num_envs = 1

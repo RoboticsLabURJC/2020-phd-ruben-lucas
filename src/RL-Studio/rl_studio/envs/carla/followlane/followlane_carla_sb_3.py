@@ -13,6 +13,8 @@ import psutil
 import numpy as np
 from pyglet.libs.x11.xlib import None_
 from sympy.solvers.ode import infinitesimals
+import threading
+import rl_studio.config_loader as config_loader
 
 from rl_studio.envs.carla.followlane.followlane_env import FollowLaneEnv
 from rl_studio.envs.carla.followlane.settings import FollowLaneCarlaConfig
@@ -245,6 +247,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def __init__(self, **config):
 
         self.dashboard = config.get("dashboard")
+        self.estimated_steps = config.get("estimated_steps")
+
+        self.start = time.time()
 
         self.prev_throtle = 0
         self.episode_d_reward = 0
@@ -269,8 +274,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.show_all_points = False
         self.config = config
 
-        self.debug_waypoints = config.get("debug_waypoints")
-        self.estimated_steps = config.get("estimated_steps")
+        self.update_from_hot_config(config)
 
         self.actions = config.get("actions")
         self.stage = config.get("stage")
@@ -361,7 +365,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.cumulated_reward = 0
         ports = config["carla_client"]
         if isinstance(ports, list):
-            self.client = [
+            self.clients = [
                 carla.Client(config["carla_server"], port)
                 for port in ports
             ]
@@ -370,6 +374,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 config["carla_server"],
                 ports,
             )
+            self.clients = self.client
 
         self.towns = self.config["town"]
         self.worlds = []
@@ -446,6 +451,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.display_manager.destroy()
 
     def reset(self, seed=None, options=None):
+        print("Step time:", (time.time() - self.start)/self.step_count)
         if len(self.actor_list) > 0:
             self.destroy_all_actors()
             self.display_manager.destroy()
@@ -454,10 +460,18 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.map = self.world.get_map()
 
         # self.actor_list.append(self.world)
+        self.start = time.time()
 
         if self.episode % 200 == 0:  # Adjust step frequency as needed
+            self.reload_worlds()
             print(psutil.Process(os.getpid()).memory_info().rss / 1e6, "MB")
             gc.collect()
+            print(self.world.get_actors().filter("*"))
+            print("Thread count:", threading.active_count())
+
+        if self.episode % 10 == 0:
+            hot_config = config_loader.load_hot_config()
+            self.update_from_hot_config(hot_config)
 
         if self.stage == "w":
             self.fixed_random_throttle = random.uniform(0.4, 0.8)
@@ -489,7 +503,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.world.tick()
         else:
             self.world.wait_for_tick()
-        self.episode_start = time.time()
         time.sleep(1)
 
         self.set_init_speed()
@@ -501,8 +514,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # AutoCarlaUtils.show_image("image", self.front_camera_1_5.front_camera, 1)
         # AutoCarlaUtils.show_image("bird_view", self.birds_eye_camera.front_camera, 1)
 
-        raw_image = self.get_resized_image(self.front_camera_1_5.front_camera)
-        segmentated_image = self.get_resized_image(self.front_camera_1_5_segmentated.front_camera)
+        # raw_image = self.get_resized_image(self.front_camera_1_5.front_camera)
+        # segmentated_image = self.get_resized_image(self.front_camera_1_5_segmentated.front_camera)
+        raw_image = self.front_camera_1_5.front_camera
+        segmentated_image = self.front_camera_1_5_segmentated.front_camera
 
         curve = False
         if self.detection_mode == 'carla_segmentated':
@@ -940,6 +955,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def destroy_all_actors(self):
         for actor in self.actor_list[::-1]:
             # for actor in self.actor_list:
+            if hasattr(actor, 'is_listening') and actor.is_listening:
+                actor.stop()
             actor.destroy()
         # print(f"\nin self.destroy_all_actors(), actor : {actor}\n")
 
@@ -949,29 +966,30 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # )
 
     def show_debug_points(self, curve, right_lane_normalized_distances, distance_to_center_normalized):
-        if self.debug_waypoints:
-            average_abs = sum(abs(x) for x in right_lane_normalized_distances) / len(distance_to_center_normalized)
-            # if average_abs > 0.8:
-            #     color = carla.Color(r=255, g=0, b=0)
-            # else:
-            #     green_value = max(int((1 - average_abs * 2 ) * 255), 0 )
-            #     color = carla.Color(r=0, g=green_value, b=0)
-            if curve:
-                color = carla.Color(r=255, g=0, b=0)
-            else:
-                green_value = max(int((1 - average_abs * 2) * 255), 0)
-                color = carla.Color(r=0, g=green_value, b=0)
+        if not self.debug_waypoints:
+            return
+        average_abs = sum(abs(x) for x in right_lane_normalized_distances) / len(distance_to_center_normalized)
+        # if average_abs > 0.8:
+        #     color = carla.Color(r=255, g=0, b=0)
+        # else:
+        #     green_value = max(int((1 - average_abs * 2 ) * 255), 0 )
+        #     color = carla.Color(r=0, g=green_value, b=0)
+        if curve:
+            color = carla.Color(r=255, g=0, b=0)
+        else:
+            green_value = max(int((1 - average_abs * 2) * 255), 0)
+            color = carla.Color(r=0, g=green_value, b=0)
 
-            self.world.debug.draw_string(
-                self.car.get_transform().location,
-                "X",
-                draw_shadow=False,
-                color=color,
-                life_time=10000000,
-                persistent_lines=True,
-            )
-            if self.step_count % 100 == 1:
-                print(self.car.get_transform())
+        self.world.debug.draw_string(
+            self.car.get_transform().location,
+            "X",
+            draw_shadow=False,
+            color=color,
+            life_time=10000000,
+            persistent_lines=True,
+        )
+        if self.step_count % 100 == 1:
+            print(self.car.get_transform())
 
     def project_line(self, y_points, x_points, x_normalized, new_y_points):
         # Filter indices where x_normalized != 1
@@ -1008,7 +1026,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def apply_step(self, action):
         self.all_steps += 1
-        action[1] = action[1]
         # action[1] = action[1] * 0.5
         # action[0] = 0.9
         # if self.tensorboard is not None:
@@ -1032,8 +1049,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params["fps"] = 1 / (now - self.previous_time)
         self.previous_time = now
 
-        raw_image = self.get_resized_image(self.front_camera_1_5.front_camera)  # TODO Think it is not aligned with BM
-        segmentated_image = self.get_resized_image(self.front_camera_1_5_segmentated.front_camera)
+        # raw_image = self.get_resized_image(self.front_camera_1_5.front_camera)
+        # segmentated_image = self.get_resized_image(self.front_camera_1_5_segmentated.front_camera)
+        raw_image = self.front_camera_1_5.front_camera
+        segmentated_image = self.front_camera_1_5_segmentated.front_camera
 
         curve = False
         if self.detection_mode == 'carla_segmentated':
@@ -1052,18 +1071,16 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             right_center_lane, right_lane_normalized_distances = self.project_line(self.x_row, right_center_lane,
                                                                                    right_lane_normalized_distances,
                                                                                    self.projected_x)
-        self.show_ll_seg_image(right_center_lane, ll_segment)
-
-        # curvature = self.calculate_curvature_from(right_center_lane)
-        # print(curvature)
-
-        self.show_debug_points(curve, right_lane_normalized_distances, distance_to_center_normalized)
+        if self.visualize:
+            self.show_ll_seg_image(right_center_lane, ll_segment)
+            self.show_debug_points(curve, right_lane_normalized_distances, distance_to_center_normalized)
+            self.display_manager.render(vehicle=self.car)
 
         distance_error = [abs(x) for x in right_lane_normalized_distances]
 
         final_curvature = self.calculate_curvature_from(right_lane_normalized_distances)
         params["final_curvature"] = final_curvature
-        reward, done, crash = self.rewards_easy(distance_error, right_lane_normalized_distances, action, params)
+        reward, done, out = self.rewards_easy(distance_error, right_lane_normalized_distances, action, params)
         self.car.reward = reward
         self.cumulated_reward = self.cumulated_reward + reward
 
@@ -1081,21 +1098,19 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # if self.use_curves_state:
         #     states.append(curve)
 
-        self.display_manager.render(vehicle=self.car)
-
         params["bad_perception"], _ = self.has_bad_perception(right_lane_normalized_distances, threshold=0.999,
-                                                              max_bad_real_states=4)
-        params["crash"] = crash
+                                                              max_bad_real_states=2)
         params["distance_error"] = distance_error
 
         # TODO It is a known glitch. Remove when different environment than town04 long straight
-        if params["bad_perception"] and not params["crash"]:
-            if self.failures < 5:
+        if params["bad_perception"] and not out:
+            if self.failures < 3:
                 self.failures += 1
                 done = False
                 # return self.apply_step(action)
                 # return self.apply_step([0.1, 0.05 * random.choice([1, -1]), 0])
             else:
+                print("bad perception!")
                 self.failures = 0
                 done = True
         else:
@@ -1208,7 +1223,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # distance_error = error[3:]  # We are just rewarding the 3 lowest points!
         distance_error = error
         ## EARLY RETURNS
-        done = self.has_crashed()
         params["d_reward"] = 0
         params["v_reward"] = 0
         params["v_eff_reward"] = 0
@@ -1217,28 +1231,26 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
         car_deviated_punish = -10
 
+        done = self.has_crashed()
         if done:
             print("car crashed")
-            crash = True
-            return car_deviated_punish, done, crash
-
-        crash = False
+            return car_deviated_punish, done, True
 
         # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
         #  En curvas
         # done, states_above_threshold = self.has_bad_perception(distance_error, self.reset_threshold,
         #                                                        len(distance_error) // 3)
-        if done:
-            print(f"car deviated after step {self.step_count}")
-            self.deviated += 1
-            return car_deviated_punish, done, crash
+        #if done:
+        #    print(f"car deviated after step {self.step_count}")
+        #    self.deviated += 1
+        #    return car_deviated_punish, done, False
             # return -5 * action[0], done, crash
 
         done = self.has_invaded(distances)
         if done:
             print("car deviated")
             self.deviated += 1
-            return car_deviated_punish, done, crash
+            return car_deviated_punish, done, True
             # return -5 * action[0], done, crash
 
         # DISTANCE REWARD CALCULATION
@@ -1385,7 +1397,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # print(f"v_r = {v_reward_component}")
         # print(f"d_r = {d_reward_component}")
         # print(params["angular_velocity"])
-        return function_reward, done, crash
+        return function_reward, done, False
 
     def slice_image(self, red_mask):
         height = red_mask.shape[0]
@@ -1928,10 +1940,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         ## ---  Car
         waypoints_town = self.world.get_map().generate_waypoints(5.0)
         # set self driving car
+        init_waypoint = waypoints_town[self.waypoints_init]
         if self.alternate_pose:
             self.car = self.setup_car_random_pose(self.spawn_points)
         elif self.waypoints_init is not None:
-            init_waypoint = waypoints_town[self.waypoints_init]
             if self.show_all_points:
                 self.draw_waypoints(
                     waypoints_town,
@@ -2173,32 +2185,24 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def init_world(self):
         if isinstance(self.towns, list):
             for i in range(len(self.towns)):
-                world = self.load_world(self.client[i], self.towns[i])
+                world = self.load_world(self.clients[i], self.towns[i])
                 self.worlds.append(world)
             self.world = random.choice(self.worlds)
             self.map = self.world.get_map()
         else:
             self.world = self.load_world(self.client, self.towns)
+            self.worlds.append(self.world)
             self.map = self.world.get_map()
 
     def load_world(self, client, town):
         client.set_timeout(10.0)
         print(f"\n maps in carla 0.9.13: {client.get_available_maps()}\n")
 
-        traffic_manager = client.get_trafficmanager(self.config["manager_port"])
+        # traffic_manager = client.get_trafficmanager(self.config["manager_port"])
         world = client.load_world(town)
         print(f"loading world {town}")
-        time.sleep(5.0)  # Needed to the simulator to be ready. TODO May be decrease to 1?
-        settings = world.get_settings()
-        self.forced_freq = self.config.get("async_forced_delta_seconds")
-        if self.sync_mode:
-            settings.max_substep_delta_time = 0.02
-            settings.fixed_delta_seconds = self.config.get("fixed_delta_seconds")
-            settings.synchronous_mode = True
-            traffic_manager.set_synchronous_mode(True)
-        else:
-            traffic_manager.set_synchronous_mode(False)
-        world.apply_settings(settings)
+        time.sleep(2.0)  # Needed to the simulator to be ready. TODO May be decrease to 1?
+        self.load_world_settings(world)
         print(f"Current World Settings: {world.get_settings()}")
         return world
 
@@ -2215,3 +2219,25 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if similar_count > (len(self.last_centers) / 2):
             return False
         return True
+
+    def reload_worlds(self):
+        for client in self.clients:
+            client.reload_world()
+            world = client.get_world()
+            self.load_world_settings(world)
+
+    def load_world_settings(self, world):
+        settings = world.get_settings()
+        self.forced_freq = self.config.get("async_forced_delta_seconds")
+        if self.sync_mode:
+            settings.max_substep_delta_time = 0.02
+            settings.fixed_delta_seconds = self.config.get("fixed_delta_seconds")
+            settings.synchronous_mode = True
+            # traffic_manager.set_synchronous_mode(True)
+        # else:
+        # traffic_manager.set_synchronous_mode(False)
+        world.apply_settings(settings)
+
+    def update_from_hot_config(self, config):
+        self.debug_waypoints = config.get("debug_waypoints")
+        self.visualize = config.get("visualize")

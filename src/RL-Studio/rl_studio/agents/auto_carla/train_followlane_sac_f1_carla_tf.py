@@ -218,7 +218,7 @@ class TrainerFollowLaneSACCarla:
         self.env_params = LoadEnvParams(config)
         self.global_params = LoadGlobalParams(config)
         self.environment = LoadEnvVariablesSACCarla(config)
-        self.environment.environment["debug_waypoints"] = False
+        self.environment.environment["debug_waypoints"] = self.global_params.debug_waypoints
         self.loss = 0
         self.environment.environment["estimated_steps"] = 5000
 

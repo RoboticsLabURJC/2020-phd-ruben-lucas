@@ -117,7 +117,7 @@ class TrainerFollowLaneDDPGCarla:
         self.env_params = LoadEnvParams(config)
         self.global_params = LoadGlobalParams(config)
         self.environment = LoadEnvVariablesDDPGCarla(config)
-        self.environment.environment["debug_waypoints"] = False
+        self.environment.environment["debug_waypoints"] = self.global_params.debug_waypoints
         self.loss = 0
 
         self.tensorboard = ModifiedTensorBoard(

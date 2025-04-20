@@ -519,8 +519,6 @@ class TrainerFollowLanePPOCarla:
         ## Load Carla server
         # CarlaEnv.__init__(self)
 
-        self.environment.environment["entropy_factor"] = config["settings"]["entropy_factor"]
-        self.environment.environment["debug_waypoints"] = False
         self.rebuild_env()
         self.all_steps = 0
         self.current_max_reward = 0

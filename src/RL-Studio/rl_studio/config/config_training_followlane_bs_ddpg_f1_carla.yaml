@@ -18,8 +18,6 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  debug_stats: false
-  show_monitoring: false
   steps_to_decrease: 3000
   decrease_substraction: 0.003
   decrease_min: 0.01
@@ -31,6 +29,10 @@ settings:
     punish_braking: 0
     punish_ineffective_vel: 1
     beta_1: 0
+
+hot_reload_settings:
+  visualize: True
+  debug_waypoints: false
 
 ros:
   ros_master_uri: "11311"

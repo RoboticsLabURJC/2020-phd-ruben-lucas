@@ -5,6 +5,7 @@ import time
 import pynvml
 import psutil
 from typing import Callable
+from stable_baselines3.common.vec_env import DummyVecEnv
 
 import mlflow
 import mlflow.sklearn
@@ -189,8 +190,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = 0.4
             self.v_initial = 0
         elif stage == "v":
-            self.w_initial = 0.7
-            self.v_initial = 0.7
+            self.w_initial = 0.5
+            self.v_initial = 0.5
         else:
             self.w_initial = 0.2
             self.v_initial = 0.2
@@ -375,8 +376,6 @@ class TrainerFollowLaneSACCarla:
         ## Load Carla server
         # CarlaEnv.__init__(self)
 
-        self.environment.environment["entropy_factor"] = config["settings"]["entropy_factor"]
-        self.environment.environment["debug_waypoints"] = False
         self.env = gym.make(self.env_params.env_name, **self.environment.environment)
 
         self.exploration = self.algoritmhs_params.std_dev if self.global_params.mode != "inference" else 0
@@ -414,17 +413,18 @@ class TrainerFollowLaneSACCarla:
             "batch_size": 1024
         }
 
+        env = DummyVecEnv([lambda: self.env])
         # Init Agents
         if self.environment.environment["mode"] in ["inference", "retraining"]:
             actor_retrained_model = self.environment.environment['retrain_sac_tf_model_name']
             self.sac_agent = SAC.load(actor_retrained_model)
             # Set the environment on the loaded model
-            self.sac_agent.set_env(self.env)
+            self.sac_agent.set_env(env)
         else:
             # Assuming `self.params` and `self.global_params` are defined properly
             self.sac_agent = SAC(
                 'MlpPolicy',
-                self.env,
+                env,
                 policy_kwargs=dict(
                     net_arch=dict(
                         pi=[256, 256, 256],  # The architecture for the policy network
@@ -433,21 +433,22 @@ class TrainerFollowLaneSACCarla:
                     # activation_fn=nn.ReLU,
                     # ortho_init=True,
                 ),
-                learning_rate=2e-4,
-                buffer_size=100000,
+                learning_rate=3e-4,
+                buffer_size=10000,
                 batch_size=128,
                 tau=0.005,
                 gamma=0.90,
-                train_freq=1,
-                gradient_steps=1,
-                verbose=1
+                train_freq=128,
+                gradient_steps=32,
+                verbose=0
             )
             
         print(self.sac_agent.policy)
 
-        agent_logger = configure(agent_log_file, ["stdout", "csv", "tensorboard"])
+        # agent_logger = configure(agent_log_file, ["stdout", "csv", "tensorboard"])
+        # agent_logger = configure(agent_log_file, ["tensorboard"])
 
-        self.sac_agent.set_logger(agent_logger)
+        # self.sac_agent.set_logger(agent_logger)
         random.seed(1)
         np.random.seed(1)
         tf.compat.v1.random.set_random_seed(1)
