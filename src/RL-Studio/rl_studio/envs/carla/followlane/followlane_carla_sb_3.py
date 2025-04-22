@@ -1229,7 +1229,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params["reward"] = 0
 
         # car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
-        car_deviated_punish = -10
+        car_deviated_punish = -100
 
         done = self.has_crashed()
         if done:
@@ -1940,10 +1940,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         ## ---  Car
         waypoints_town = self.world.get_map().generate_waypoints(5.0)
         # set self driving car
-        init_waypoint = waypoints_town[self.waypoints_init]
         if self.alternate_pose:
             self.car = self.setup_car_random_pose(self.spawn_points)
         elif self.waypoints_init is not None:
+            init_waypoint = waypoints_town[self.waypoints_init]
             if self.show_all_points:
                 self.draw_waypoints(
                     waypoints_town,
@@ -1954,6 +1954,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 )
             self.car = self.setup_car_fix_pose(init_waypoint)
         else:  # TODO: hacer en el caso que se quiera poner el target con .next()
+            init_waypoint = waypoints_town[self.waypoints_init]
             waypoints_lane = init_waypoint.next_until_lane_end(1000)
             waypoints_next = init_waypoint.next(1000)
             print(f"{init_waypoint.transform.location.x = }")
