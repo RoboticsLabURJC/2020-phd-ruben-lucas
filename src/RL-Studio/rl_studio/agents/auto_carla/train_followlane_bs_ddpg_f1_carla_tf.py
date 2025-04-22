@@ -187,8 +187,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = 0
             self.v_initial = initial_exploration_rate
         elif stage == "r":
-            self.w_initial = 0.6
-            self.v_initial = 0.6
+            self.w_initial = 0.5
+            self.v_initial = 0.5
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
         self.n_actions = None  # Will be initialized at training start
@@ -232,7 +232,7 @@ class ExplorationRateCallback(BaseCallback):
             self.tensorboard.update_stats(std_dev_v=self.v_exploration_rate)
             self.tensorboard.update_stats(std_dev_w=self.w_exploration_rate)
 
-        if np.random.rand() < 0.5:
+        if np.random.rand() < 0.6:
             self.model.action_noise = NormalActionNoise(
                 mean=np.zeros(self.n_actions),
                 sigma=np.array([0, 0])
@@ -441,7 +441,7 @@ class TrainerFollowLaneDDPGCarla:
         hyperparams = combine_attributes(self.algoritmhs_params,
                                          self.environment,
                                          self.global_params)
-        reward_filename = '/home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/envs/carla/followlane/followlane_carla_sb_3.py'
+        reward_filename = '/home/alumnos/rlucasz/Escritorio/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/envs/carla/followlane/followlane_carla_sb_3.py'
         reward_method = 'rewards_easy'
         reward_function = extract_reward_function(reward_filename, reward_method)
         hyperparams['reward_function'] = reward_function
