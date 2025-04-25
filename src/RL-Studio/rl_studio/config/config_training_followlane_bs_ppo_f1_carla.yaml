@@ -1,5 +1,5 @@
 settings:
-  mode: retraining # training, retraining, inference
+  mode: training # training, retraining, inference
 #  task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: ppo_continuous # qlearn, dqn, ddpg, ppo
@@ -9,7 +9,7 @@ settings:
   agent: auto_carla # f1, autoparkingRL, auto_carla, mountain_car, robot_mesh, cartpole, turtlebot
   actions: slow # slow, fast
   states: sp10 #image, sp1 (simplified perception with 1 point), sp3 (simplified perception with 3 points), spn (simplified perception with n points)
-  appended_states: 5
+  appended_states: 6
   stage: v
   rewards: followline_center # followline_center, followline_center_v_w_linear
   framework: baselines # TensorFlow, Pytorch
@@ -19,7 +19,7 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 4000
+  steps_to_decrease: 3000
   entropy_factor: 0
   decrease_substraction: 0.003
   decrease_min: -3.5
@@ -30,8 +30,8 @@ settings:
     beta_1: 0.3
 
 hot_reload_settings:
-  visualize: True
-  debug_waypoints: false
+  visualize: False
+  debug_waypoints: False
 
 ros:
   ros_master_uri: "11311"
@@ -106,7 +106,8 @@ rewards:
 carla_environments:
   follow_lane:
     env_name: CarlaEnv-v0
-    town: Town04 #Town01, Town02, Town03, Town04, Town05, Town10HD
+#    town: Town03 #Town01, Town02, Town03, Town04, Town05, Town10HD
+    town: [Town03, Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
     # Town01_Opt, Town02_Opt, Town03_Opt, Town04_Opt, Town05_Opt, Town10HD_Opt
     car: model1
     weather: ClearNoon #dynamic, argparse
@@ -150,5 +151,5 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: 4013
+  carla_client: [4013, 4015]
   manager_port: 8029
