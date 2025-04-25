@@ -149,9 +149,9 @@ class PeriodicSaveCallback(BaseCallback):
         if self.step_count % self.save_freq == 0:
             model_save_path = os.path.join(self.save_path, f"model_{self.step_count}_steps_{time.strftime('%Y%m%d-%H%M%S')}")
             self.model.save(model_save_path)
-            date_time = time.strftime('%Y%m%d-%H%M%S')
+            # date_time = time.strftime('%Y%m%d-%H%M%S')
 
-            mlflow.set_experiment("followlane_carla")
+            # mlflow.set_experiment("followlane_carla")
             # with mlflow.start_run(nested=True):
             #     mlflow.log_param("model_type", "sac_bs")
             #     mlflow.log_metric("avg_speed", self.env.last_avg_speed)
@@ -190,11 +190,11 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = 0.4
             self.v_initial = 0
         elif stage == "v":
-            self.w_initial = 0.5
-            self.v_initial = 0.5
+            self.w_initial = 0.1
+            self.v_initial = 0.3
         else:
-            self.w_initial = 0.2
-            self.v_initial = 0.2
+            self.w_initial = 0.02
+            self.v_initial = 0.02
 
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
@@ -464,7 +464,6 @@ class TrainerFollowLaneSACCarla:
         #     sync_tensorboard=True,
         # )
 
-        # log_std = -0.223 <= 0.8;  -1 <= 0.36
         exploration_rate_callback = ExplorationRateCallback(self.tensorboard,
                                                             stage=self.environment.environment.get("stage"),
                                                             initial_exploration_rate=self.exploration,

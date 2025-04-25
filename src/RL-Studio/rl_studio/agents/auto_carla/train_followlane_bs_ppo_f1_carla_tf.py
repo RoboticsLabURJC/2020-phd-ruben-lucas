@@ -213,16 +213,13 @@ class ExplorationRateCallback(BaseCallback):
         self.decay_rate = decay_rate
         self.decay_steps = decay_steps
 
-        self.no_exploration = torch.full_like(
-            self.model.policy.log_std[0:2], min_log_std
-        ).to(self.model.policy.log_std.device)
-
+        # log_std = -0.223 <= 0.8;  -1 <= 0.36
         if stage in (None, "w"):
             self.w_initial = initial_log_std
             self.v_initial = initial_log_std
         else:
-            self.w_initial = -0.8
-            self.v_initial = -0.8
+            self.w_initial = -0.5
+            self.v_initial = -0.5
         self.current_step = 0
 
     def _on_training_start(self):
@@ -236,6 +233,11 @@ class ExplorationRateCallback(BaseCallback):
         self.model.policy.log_std.data[:1] = torch.full_like(
            self.model.policy.log_std[:1], self.v_initial
         ).to(self.model.policy.log_std.device)
+
+        self.no_exploration = torch.full_like(
+            self.model.policy.log_std[0:2], self.min_log_std
+        ).to(self.model.policy.log_std.device)
+        self.last_log_std = self.model.policy.log_std.data
 
     def _on_step(self) -> bool:
         self.current_step += 1
@@ -276,10 +278,10 @@ class ExplorationRateCallback(BaseCallback):
             if self.verbose > 0:
                 print(f"Step {self.current_step}: Updated log_std to {new_log_std.detach().cpu().numpy()}")
 
-        if np.random.rand() < 0.5:
-            self.model.policy.log_std.data = self.no_exploration
-        else:
-            self.model.policy.log_std.data = self.last_log_std
+        # if np.random.rand() < 0.5:
+        #     self.model.policy.log_std.data = self.no_exploration
+        # else:
+        #     self.model.policy.log_std.data = self.last_log_std
 
         return True
 
