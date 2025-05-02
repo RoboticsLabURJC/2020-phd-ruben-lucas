@@ -23,7 +23,7 @@ pinned: false
 ---
 
 Objetivos de esta semana:
-* ncluir en entrenamiento Town01
+* Incluir en entrenamiento Town01
 * Incluir en inferencia Town02 
 * Solucionar problemas en town05 y town06 
 * Versión formal para pedir feedback sobre “introducción” y “trabajo relacionado” 
