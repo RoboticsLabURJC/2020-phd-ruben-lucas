@@ -193,8 +193,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = 0.1
             self.v_initial = 0.3
         else:
-            self.w_initial = 0.02
-            self.v_initial = 0.02
+            self.w_initial = 0.6
+            self.v_initial = 0.6
 
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
@@ -235,7 +235,8 @@ class ExplorationRateCallback(BaseCallback):
             if self.verbose > 0:
                 print(f"Step {self.current_step}: Updated exploration rates to v={self.v_exploration_rate}, w={self.w_exploration_rate}")
 
-        if np.random.rand() < 0.5:
+        exp_rand = np.random.rand()
+        if exp_rand < 0.7:
             self.model.action_noise = NormalActionNoise(
                 mean=np.zeros(self.n_actions),
                 sigma=np.array([0, 0])
@@ -427,8 +428,8 @@ class TrainerFollowLaneSACCarla:
                 env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[256, 256, 256],  # The architecture for the policy network
-                        qf=[256, 256, 256, 256]  # The architecture for the value network
+                        pi=[64, 128, 128, 64],  # The architecture for the policy network
+                        qf=[64, 128, 128, 64]   # The architecture for the value network
                     ),
                     # activation_fn=nn.ReLU,
                     # ortho_init=True,
@@ -438,8 +439,8 @@ class TrainerFollowLaneSACCarla:
                 batch_size=128,
                 tau=0.005,
                 gamma=0.90,
-                train_freq=128,
-                gradient_steps=32,
+                train_freq=2,
+                gradient_steps=2,
                 verbose=0
             )
             

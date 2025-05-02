@@ -9,7 +9,7 @@ settings:
   agent: auto_carla # f1, autoparkingRL, auto_carla, mountain_car, robot_mesh, cartpole, turtlebot
   actions: slow # slow, fast
   states: sp10 #image, sp1 (simplified perception with 1 point), sp3 (simplified perception with 3 points), spn (simplified perception with n points)
-  appended_states: 6
+  appended_states: 5
   stage: v
   rewards: followline_center # followline_center, followline_center_v_w_linear
   framework: baselines # TensorFlow, Pytorch
@@ -25,12 +25,12 @@ settings:
   decrease_min: -3.5
   reward_params:
     function: pow
-    punish_zig_zag_value: 2
+    punish_zig_zag_value: 3
     punish_ineffective_vel: 1 # velocity below which reward is not calculated (0)
-    beta_1: 0.3
+    beta_1: 0
 
 hot_reload_settings:
-  visualize: False
+  visualize: True
   debug_waypoints: False
 
 ros:
@@ -106,8 +106,8 @@ rewards:
 carla_environments:
   follow_lane:
     env_name: CarlaEnv-v0
-#    town: Town03 #Town01, Town02, Town03, Town04, Town05, Town10HD
-    town: [Town03, Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
+    town: Town04 #Town01, Town02, Town03, Town04, Town05, Town10HD
+#    town: [Town03, Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
     # Town01_Opt, Town02_Opt, Town03_Opt, Town04_Opt, Town05_Opt, Town10HD_Opt
     car: model1
     weather: ClearNoon #dynamic, argparse
@@ -151,5 +151,5 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: [4013, 4015]
-  manager_port: 8029
+  carla_client: 4040
+  manager_port: 8040

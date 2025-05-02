@@ -392,7 +392,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         )
 
         self.car = None
-        self.anticlock = False
 
         self.perfect_distance_pixels = None
         self.perfect_distance_normalized = None
@@ -488,7 +487,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.location_rewards = {}
         self.location_next_states = {}
         self.last_centers = None
-        self.anticlock = False
 
         # if self.episode % 20 == 0:
         #     self.tensorboard.save_location_stats(self.location_stats)
@@ -507,7 +505,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         time.sleep(1)
 
         self.vary_car_orientation()  # Call the orientation variation method
-        self.set_init_speed()
+        # self.set_init_speed()
 
         self.car.apply_control(carla.VehicleControl(steer=0.0))
 
@@ -547,7 +545,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         states.append(0)
         states.append(0)
         states.append(0)
-        states.append(misalignment)
+        # states.append(misalignment)
         states.append(0)
         states.append(0)
         if self.use_curves_state:
@@ -1094,7 +1092,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         states.append(params["velocity"] / 40)
         states.append(params["steering_angle"])
         states.append(final_curvature)
-        states.append(misalignment)
+        # states.append(misalignment)
         states.append(action[0])
         states.append(action[1])
         # states.append(self.lidar_front_distance/100)
@@ -1216,12 +1214,33 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         v = self.car.get_velocity()
         params["velocity"] = math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)
-        params["angular_velocity"] = self.car.get_angular_velocity().z
+        # params["angular_velocity"] = self.car.get_angular_velocity().z
+        params["angular_velocity"] = self.get_lateral_velocity()
 
         w_angle = self.car.get_control().steer
         params["steering_angle"] = w_angle
 
         return params
+
+    def get_lateral_velocity(self):
+        # Get velocity and rotation
+        velocity = self.car.get_velocity()
+        transform = self.car.get_transform()
+        yaw_rad = np.deg2rad(transform.rotation.yaw)
+
+        # Create unit vector for vehicle's **right** direction
+        right_vector = np.array([
+            -np.sin(yaw_rad),  # x component
+            np.cos(yaw_rad),  # y component
+            0
+        ])
+
+        # Vehicle velocity vector
+        vel_vector = np.array([velocity.x, velocity.y, velocity.z])
+
+        # Project velocity onto right_vector
+        lateral_vel = np.dot(vel_vector, right_vector)
+        return lateral_vel
 
     def rewards_followlane_dist_v_angle(self, error, params):
         # rewards = []
@@ -1255,7 +1274,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params["reward"] = 0
 
         # car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
-        car_deviated_punish = -100
+        car_deviated_punish = -10
 
         # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
         #  En curvas
@@ -1265,7 +1284,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #    print(f"car deviated after step {self.step_count}")
         #    self.deviated += 1
         #    return car_deviated_punish, done, False
-            # return -5 * action[0], done, crash
+        # return -5 * action[0], done, crash
 
         done = self.is_out(center_distance)
         if done:
@@ -1313,7 +1332,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # print(f"sRew {speed_reward}")
 
         throttle = max(action[0], 0)  # TODO OJO que aquí aplicas el freno indistintamente de la v!
-        v_eff_reward = v/30  * d_reward
+        v_eff_reward = v/3  * d_reward
+        # v_eff_reward = v/20  * d_reward
         # v_eff_reward = throttle * d_reward
         # v_eff_reward = throttle * pow(d_reward, (throttle + 1))
         # v_eff_reward = throttle * pow(d_reward, (abs(v) / 5) + 1) # reward pow curves
@@ -1327,9 +1347,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # v_eff_reward = -action[0] * 5 if is_not_aligned and v > 20 else v_eff_rewar
 
         if self.stage in ("v", "r"):
-            if v > 29:
+            if v > 32:
                 return -1 * max(action[0], 0), True, False
-            if v > 23:
+            if v > 28:
                 v_eff_reward = 0
                 # v_eff_reward = -max(action[0], 0)
 
@@ -1346,7 +1366,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # Punish zig zag on straights
         if params["final_curvature"] < 0.00001:
             punish += self.punish_zig_zag_value * abs(action[1])
-        punish =+ misalignment
+        #punish =+ misalignment
 
         if self.stage in ("v", "r"):
             punish += 1 if action[0] > 0.95 else 0
@@ -1360,7 +1380,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # if distance_error[0] > 0.05 and v > 20:
         #     punish += 0.5 * (v - 20)
 
-        punish += abs(params["angular_velocity"]) / 30
+        # punish += abs(params["angular_velocity"]) / 60
+        # ang = abs(params["angular_velocity"])
+        # if ang > 0.4:
+        #     punish += ang * 10
         # punish += (1-self.beta) * v_reward * math.pow((1-d_reward), 2)
         # if function_reward > punish:  # to avoid negative rewards
         #     function_reward -= punish
@@ -2183,12 +2206,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         rotation = transform.rotation
 
         # Generate a small random yaw offset (e.g., between -5 and 5 degrees)
-        yaw_offset = random.uniform(-20.0, 20.0)  # Adjust range as needed
+        yaw_offset = random.uniform(-10.0, 10.0)  # Adjust range as needed
 
         # and randomly just get the car around 180%
-        # if random.random() < 0.5:
-        #     yaw_offset += 180.0
-        #     self.anticlock = True
+        if random.random() < 0.5:
+            yaw_offset += 180.0
 
         # Create a new rotation with the modified yaw
         new_rotation = carla.Rotation(pitch=rotation.pitch, yaw=rotation.yaw + yaw_offset, roll=rotation.roll)
@@ -2199,21 +2221,40 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # Apply the new transform to the vehicle
         self.car.set_transform(new_transform)
 
+    def is_facing_lane_direction(self, threshold_degrees=90):
+        car_forward = self.car.get_transform().get_forward_vector()
+        waypoint = self.map.get_waypoint(self.car.get_location())
+        lane_forward = waypoint.transform.get_forward_vector()
+
+        # Normalize vectors
+        def normalize(v):
+            mag = math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)
+            return carla.Vector3D(v.x / mag, v.y / mag, v.z / mag)
+
+        car_f = normalize(car_forward)
+        lane_f = normalize(lane_forward)
+
+        dot = car_f.x * lane_f.x + car_f.y * lane_f.y + car_f.z * lane_f.z
+
+        angle = math.degrees(math.acos(dot))
+
+        return angle < threshold_degrees
+
     def set_init_speed(self):
         transform = self.car.get_transform()
         forward_vector = transform.get_forward_vector()
         rnd = random.random()
-        self.speed = 0 if rnd < 0.3 else 15 \
-            if rnd < 0.6 else random.randint(0, 30)
-        if self.anticlock:
-            self.speed *= -1
-        # self.speed = 0
+        # self.speed = 22 if rnd < 0.5 else 10
         # self.speed = 32 if rnd < 0.5 else random.randint(10, 36)
-        # Scale the forward vector by the desired speed
+        self.speed = 0 if rnd < 0.3 else 24 \
+            if rnd < 0.6 else random.randint(0, 30)
+        # if not self.is_facing_lane_direction():
+            # self.speed *= -1
+
         target_velocity = carla.Vector3D(
             x=forward_vector.x * self.speed,
             y=forward_vector.y * self.speed,
-            z=forward_vector.z * self.speed  # Typically 0 unless you want vertical motion
+            z=0
         )
         self.car.set_target_velocity(target_velocity)
 
