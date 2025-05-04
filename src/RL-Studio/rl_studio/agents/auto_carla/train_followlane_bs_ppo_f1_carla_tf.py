@@ -218,8 +218,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = initial_log_std
             self.v_initial = initial_log_std
         else:
-            self.w_initial = -0.6
-            self.v_initial = -0.6
+            self.w_initial = -20
+            self.v_initial = -0.7
         self.current_step = 0
 
     def _on_training_start(self):
@@ -235,7 +235,7 @@ class ExplorationRateCallback(BaseCallback):
         ).to(self.model.policy.log_std.device)
 
         self.no_exploration = torch.full_like(
-            self.model.policy.log_std[0:2], self.min_log_std
+            self.model.policy.log_std[0:2], -20
         ).to(self.model.policy.log_std.device)
         self.last_log_std = self.model.policy.log_std.data
 
