@@ -193,8 +193,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = 0.1
             self.v_initial = 0.3
         else:
-            self.w_initial = 0.6
-            self.v_initial = 0.6
+            self.w_initial = 0.05
+            self.v_initial = 0.5
 
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
@@ -236,7 +236,7 @@ class ExplorationRateCallback(BaseCallback):
                 print(f"Step {self.current_step}: Updated exploration rates to v={self.v_exploration_rate}, w={self.w_exploration_rate}")
 
         exp_rand = np.random.rand()
-        if exp_rand < 0.7:
+        if exp_rand < 0.3:
             self.model.action_noise = NormalActionNoise(
                 mean=np.zeros(self.n_actions),
                 sigma=np.array([0, 0])
@@ -428,7 +428,7 @@ class TrainerFollowLaneSACCarla:
                 env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[64, 128, 128, 64],  # The architecture for the policy network
+                        pi=[128, 128, 128],  # The architecture for the policy network
                         qf=[64, 128, 128, 64]   # The architecture for the value network
                     ),
                     # activation_fn=nn.ReLU,
@@ -495,7 +495,7 @@ class TrainerFollowLaneSACCarla:
         )
 
         if self.environment.environment["mode"] in ["inference"]:
-            self.evaluate_ddpg_agent(self.env, self.sac_agent, 10000, 200)
+            self.evaluate_ddpg_agent(self.env, self.sac_agent, 10000, 2000)
 
         callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
         #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
