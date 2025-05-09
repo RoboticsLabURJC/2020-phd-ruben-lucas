@@ -1310,7 +1310,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             if self.steps_stopped > 100:
                 print("too much time stopped")
                 return car_deviated_punish, True, False
-            return action[0] * d_reward, False, False
+            #return action[0] * d_reward, False, False
             # beta = 0  # por debajo de v_ineffective solo vale la v
         else:
             self.steps_stopped = 0
@@ -1332,7 +1332,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # print(f"sRew {speed_reward}")
 
         throttle = max(action[0], 0)  # TODO OJO que aquí aplicas el freno indistintamente de la v!
-        v_eff_reward = v/3  * d_reward
+        v_component = throttle if v < 3 else v/3
+        v_eff_reward = v_component  * d_reward
         # v_eff_reward = v/20  * d_reward
         # v_eff_reward = throttle * d_reward
         # v_eff_reward = throttle * pow(d_reward, (throttle + 1))
@@ -1380,7 +1381,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # if distance_error[0] > 0.05 and v > 20:
         #     punish += 0.5 * (v - 20)
 
-        # punish += abs(params["angular_velocity"]) / 60
         # ang = abs(params["angular_velocity"])
         # if ang > 0.4:
         #     punish += ang * 10
@@ -1397,7 +1397,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # function_reward = d_reward * v_reward
         params["reward"] = function_reward
         avg_error = sum(distance_error) / len(distance_error)
-        self.car.error = avg_error
+        # self.car.error = avg_error
+        self.car.error = center_distance
 
         self.episode_d_reward = self.episode_d_reward + (d_reward - self.episode_d_reward) / self.step_count
         self.episode_d_deviation = self.episode_d_deviation + (avg_error - self.episode_d_deviation) / self.step_count
@@ -1578,7 +1579,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         lane_offset = np.dot(waypoint_to_vehicle_np, lane_right_np)
         lane_offset /= np.linalg.norm(lane_right_np)
 
-        # 3. Lane Alignment (Forward/Backward)
+        # 3. Lane Alignment (Forward/Backward)/home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20250506-082233/best_model.zip
         lane_alignment = np.dot(vehicle_forward_np, waypoint_forward_np)
 
         return lane_side, lane_offset, lane_alignment
@@ -2206,7 +2207,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         rotation = transform.rotation
 
         # Generate a small random yaw offset (e.g., between -5 and 5 degrees)
-        yaw_offset = random.uniform(-10.0, 10.0)  # Adjust range as needed
+        yaw_offset = random.uniform(-7.0, 7.0)  # Adjust range as needed
 
         # and randomly just get the car around 180%
         if random.random() < 0.5:
@@ -2244,10 +2245,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         transform = self.car.get_transform()
         forward_vector = transform.get_forward_vector()
         rnd = random.random()
-        # self.speed = 22 if rnd < 0.5 else 10
+        self.speed = 30
         # self.speed = 32 if rnd < 0.5 else random.randint(10, 36)
-        self.speed = 0 if rnd < 0.3 else 24 \
-            if rnd < 0.6 else random.randint(0, 30)
+        # self.speed = 0 if rnd < 0.3 else 24 \
+        #     if rnd < 0.6 else random.randint(0, 30)
         # if not self.is_facing_lane_direction():
             # self.speed *= -1
 
