@@ -7,7 +7,7 @@ settings:
   env: follow_lane # Town01, simple, nurburgring, montreal, curves, simple_laser, manual, autoparking
   agent: auto_carla # auto_carla, autoparkingRL, auto_carla, mountain_car, robot_mesh, cartpole, turtlebot
   actions: continuous # slow, fast
-  appended_states: 5
+  appended_states: 6
   stage: r
   states: sp10 #image, sp1 (simplified perception with 1 point), sp3 (simplified perception with 3 points), spn (simplified perception with n points)
   rewards: followlane_center # followline_center, followline_center_v_w_linear
@@ -18,21 +18,21 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 1500
+  steps_to_decrease: 2000
   decrease_substraction: 0.003
   decrease_min: 0.01
   entropy_factor: 0
   use_curves_state: False
   reward_params:
     function: pow
-    punish_zig_zag_value: 3
+    punish_zig_zag_value: 5
     punish_braking: 0
     punish_ineffective_vel: 1
     beta_1: 0
 
 hot_reload_settings:
   visualize: True
-  debug_waypoints: False
+  debug_waypoints: True
 
 ros:
   ros_master_uri: "11311"
@@ -41,14 +41,14 @@ ros:
 retraining:
   ddpg:
 #    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250429-225407/best_model.zip
-    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250430-185948/model_50000_steps.zip
+    retrain_ddpg_tf_model_name: /home/alumnos/rlucasz/Escritorio/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250514-083520/best_model.zip
 inference:
   ddpg:
     retrain_ddpg_tf_model_name: /whatever
 
 algorithm:
   ddpg:
-    gamma: 0.92
+    gamma: 0.7
     tau: 0.005
     std_dev: 0.3 # Note this std dev is applied to normalized actions (-1, 1) and generates noise between +-2*std_dev
     model_name: DDPG_Actor_conv2d32x64_Critic_conv2d32x64
@@ -99,7 +99,7 @@ carla_environments:
   follow_lane:
     env_name: CarlaEnv-v0
 #    town: [Town03, Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
-    town: Town04 #Town01, Town02, Town03, Town04, Town05, Town10HD
+    town: Town01 #Town01, Town02, Town03, Town04, Town05, Town10HD
     # Town01_Opt, Town02_Opt, Town03_Opt, Town04_Opt, Town05_Opt, Town10HD_Opt
     car: model1
     weather: ClearNoon #dynamic, argparse
@@ -122,16 +122,22 @@ carla_environments:
     reset_threshold: 0.35
     alternate_pose: True
     spawn_points: [
+    # TOWN04 -------------------
 #      [ -320.872070, 15.83397, 0.416225, 0.118217, 176.971695, 0.924344 ], # sharp to left
 #      [278.050293, -368.798950, 0.807949, 0.095828, 16.101439, -2.257110], #slight curve to right
 #      [ -475.506342, 352.208710, 0.807793, 0.051254, 55.662395, 0.072115 ], #slight curve to left
 #    #  [12.93741, 157.040146, 0.09260, 0.051254, -90.375160, 0.1006703], # straight
-       [384.71470, -170.460329, 0.307339, 0.031453, 90.310402, 0.008101], # sharp to right
+#       [384.71470, -170.460329, 0.307339, 0.031453, 90.310402, 0.008101], # sharp to right
 #    #  [199.221252, -367.893829, 0.809260, 0.248796, 0.152361, -0.002625], # straight
-      [ 305.204407, 14.015439, 1.508849, 1.506945, -179.198761, -1.299316] # long straight or sharp left
+#      [ 305.204407, 14.015439, 1.508849, 1.506945, -179.198761, -1.299316] # long straight or sharp left
 #    #  [ 334.204407,  14.515439, 0.608849, 1.506945, -179.198761, -1.299316] # long straight slightly right
 #      #   [235.603699, 12.395636, 5.228042, 3.577455, 0.124573, -0.008118], # straight reverse
 #   #   [389.385938, -179.152158, 0.457793, 0.082516, 270.889893, 0.078263] # straight reverse
+    # TOWN01 -----------------------
+         [ 271.620453, 129.484360, 0.308446, 0.075911, 0.075653, 0.119354 ], # intersection right BIT NOISY
+#         [ 306.1, 55.492641, 0.307581, -0.02, 0.226, 0.024 ], # intersection left THIS IS NOISY
+         [ 374.528381, -1.992010, 0.510610, 0.401014, 0.017142, -0.004486 ], # To right on corner
+         [396.330078, 54.040039, 0.509727, 0.300720, 270.032318, 0.027174]  # sharp left corner
     ]
     front_car: none # none, fixed, stopped, driving, incoming, outgoing
     front_car_spawn_points: [

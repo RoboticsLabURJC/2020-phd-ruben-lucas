@@ -187,8 +187,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = 0.05
             self.v_initial = 0.5
         elif stage == "r":
-            self.w_initial = 0.2
-            self.v_initial = 0.2
+            self.w_initial = 0.5
+            self.v_initial = 0.5
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
         self.n_actions = None  # Will be initialized at training start
@@ -232,7 +232,7 @@ class ExplorationRateCallback(BaseCallback):
             self.tensorboard.update_stats(std_dev_v=self.v_exploration_rate)
             self.tensorboard.update_stats(std_dev_w=self.w_exploration_rate)
 
-        if np.random.rand() < 0.5:
+        if np.random.rand() < 0.3:
             self.model.action_noise = NormalActionNoise(
                 mean=np.zeros(self.n_actions),
                 sigma=np.array([0, 0])
@@ -395,8 +395,8 @@ class TrainerFollowLaneDDPGCarla:
             "learning_rate": 0.00035,
             "buffer_size": 100000,
             "batch_size": 256,
-            "gamma": 0.90,
-            "tau": 0.005,
+            "gamma": self.algoritmhs_params.gamma,
+            "tau": self.algoritmhs_params.tau,
             "total_timesteps": 5000000
         }
 
@@ -415,7 +415,7 @@ class TrainerFollowLaneDDPGCarla:
                 # CustomDDPGPolicy,
                 "MlpPolicy",
                 self.env,
-                policy_kwargs=dict(net_arch=dict(pi=[32, 32, 32], qf=[32, 32, 32])),
+                policy_kwargs=dict(net_arch=dict(pi=[128, 128, 128, 128], qf=[128, 128, 128, 128])),
                 learning_rate=self.params["learning_rate"],
                 buffer_size=self.params["buffer_size"],
                 batch_size=self.params["batch_size"],
