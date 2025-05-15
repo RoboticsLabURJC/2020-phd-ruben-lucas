@@ -218,7 +218,7 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = initial_log_std
             self.v_initial = initial_log_std
         else:
-            self.w_initial = -20
+            self.w_initial = -0.7
             self.v_initial = -0.7
         self.current_step = 0
 
