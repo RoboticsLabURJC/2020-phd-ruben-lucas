@@ -1,5 +1,5 @@
 settings:
-  mode: retraining # training, retraining, inference
+  mode: training # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: ddpg # qlearn, dqn, ddpg, ppo
   simulator: carla # openairee, carla, gazebo, sumo
@@ -18,7 +18,7 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 2000
+  steps_to_decrease: 1000
   decrease_substraction: 0.003
   decrease_min: 0.01
   entropy_factor: 0
@@ -98,8 +98,8 @@ rewards:
 carla_environments:
   follow_lane:
     env_name: CarlaEnv-v0
-#    town: [Town03, Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
-    town: Town01 #Town01, Town02, Town03, Town04, Town05, Town10HD
+    town: [Town03, Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
+#    town: Town01 #Town01, Town02, Town03, Town04, Town05, Town10HD
     # Town01_Opt, Town02_Opt, Town03_Opt, Town04_Opt, Town05_Opt, Town10HD_Opt
     car: model1
     weather: ClearNoon #dynamic, argparse
@@ -121,7 +121,7 @@ carla_environments:
     async_forced_delta_seconds: 0
     reset_threshold: 0.35
     alternate_pose: True
-    spawn_points: [
+    spawn_points: # [
     # TOWN04 -------------------
 #      [ -320.872070, 15.83397, 0.416225, 0.118217, 176.971695, 0.924344 ], # sharp to left
 #      [278.050293, -368.798950, 0.807949, 0.095828, 16.101439, -2.257110], #slight curve to right
@@ -134,11 +134,11 @@ carla_environments:
 #      #   [235.603699, 12.395636, 5.228042, 3.577455, 0.124573, -0.008118], # straight reverse
 #   #   [389.385938, -179.152158, 0.457793, 0.082516, 270.889893, 0.078263] # straight reverse
     # TOWN01 -----------------------
-         [ 271.620453, 129.484360, 0.308446, 0.075911, 0.075653, 0.119354 ], # intersection right BIT NOISY
+#         [ 271.620453, 129.484360, 0.308446, 0.075911, 0.075653, 0.119354 ], # intersection right BIT NOISY
 #         [ 306.1, 55.492641, 0.307581, -0.02, 0.226, 0.024 ], # intersection left THIS IS NOISY
-         [ 374.528381, -1.992010, 0.510610, 0.401014, 0.017142, -0.004486 ], # To right on corner
-         [396.330078, 54.040039, 0.509727, 0.300720, 270.032318, 0.027174]  # sharp left corner
-    ]
+#         [ 374.528381, -1.992010, 0.510610, 0.401014, 0.017142, -0.004486 ], # To right on corner
+#         [396.330078, 54.040039, 0.509727, 0.300720, 270.032318, 0.027174]  # sharp left corner
+#    ]
     front_car: none # none, fixed, stopped, driving, incoming, outgoing
     front_car_spawn_points: [
       [ 382.315643, -263.973114, 0.805201, -0.211087, 76.833618, -0.360352 ]
@@ -151,6 +151,6 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: 4013
-#  carla_client: [4013, 4015]
+#  carla_client: 4013
+  carla_client: [4013, 4019]
   manager_port: 8024
