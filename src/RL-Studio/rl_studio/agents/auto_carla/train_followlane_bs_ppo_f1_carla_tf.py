@@ -642,9 +642,9 @@ class TrainerFollowLanePPOCarla:
         #callback_list = CallbackList([periodic_save_callback, eval_callback])
         callback_list = CallbackList([
             exploration_rate_callback,
-            entropy_callback,
+            # entropy_callback,
             periodic_save_callback,
-            epsilon_callback,
+            # epsilon_callback,
             eval_callback])
 
         if self.environment.environment["mode"] in ["inference"]:
