@@ -1,5 +1,5 @@
 ---
-title: "Carla follow lane DDPG Vs PPO Vs SAC [May 1st]"
+title: "Carla follow lane DDPG Vs PPO Vs SAC [May 2nd]"
 excerpt: "Finish training and start comparing performance"
 
 sidebar:

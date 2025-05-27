@@ -16,15 +16,22 @@ def get_intrinsic_matrix(field_of_view_deg, image_width, image_height):
                      [0, alpha, Cv],
                      [0, 0, 1.0]])
 
-def project_polyline(polyline_world, trafo_world_to_cam, K):
 
-    x,y,z = polyline_world[:,0], polyline_world[:,1], polyline_world[:,2]
-    homvec = np.stack((x,y,z,np.ones_like(x)))
-    proj_mat = K @ trafo_world_to_cam[:3,:]
-    pl_uv_cam = (proj_mat @ homvec).T
-    u = pl_uv_cam[:,0] / pl_uv_cam[:,2]
-    v = pl_uv_cam[:,1] / pl_uv_cam[:,2]
-    return np.stack((u,v)).T
+def project_polyline(points_3d, trafo, K):
+    # Step 1: Homogeneous coordinates
+    points_3d_h = np.concatenate([points_3d, np.ones((points_3d.shape[0], 1))], axis=1)  # Nx4
+
+    # Step 2: Transform to camera space
+    points_cam = (trafo @ points_3d_h.T).T  # Nx4
+
+    if len(points_cam) == 0:
+        return np.empty((0, 2))
+
+    # Step 4: Project to image plane
+    points_2d = (K @ points_cam[:, :3].T).T
+    points_2d = points_2d[:, :2] / points_cam[:, 2:3]
+
+    return points_2d
 
 def check_inside_image(pixel_array, width, height):
     ok = (0 < pixel_array[:, 0]) & (pixel_array[:, 0] < width)
@@ -39,7 +46,7 @@ def carla_vec_to_np_array(vec):
                      vec.z])
 
 
-def get_matrix_global (vehicle, trafo_matrix_vehicle_to_cam):
+def get_matrix_global(vehicle, trafo_matrix_vehicle_to_cam, opposite=False):
 
     # draw lane boundaries as augmented reality
     trafo_matrix_world_to_vehicle = np.array(
@@ -48,9 +55,15 @@ def get_matrix_global (vehicle, trafo_matrix_vehicle_to_cam):
     trafo_matrix_global_to_camera = (
         trafo_matrix_vehicle_to_cam @ trafo_matrix_world_to_vehicle
     )
-    mat_swap_axes = np.array(
-        [[0, 1, 0, 0], [0, 0, -1, 0], [1, 0, 0, 0], [0, 0, 0, 1]]
-    )
+    if opposite:
+        mat_swap_axes = np.array(
+            [[0, 1, 0, 0], [0, 0, 1, 0], [1, 0, 0, 0], [0, 0, 0, 1]]
+        )
+    else:
+        mat_swap_axes = np.array(
+            [[0, 1, 0, 0], [0, 0, -1, 0], [1, 0, 0, 0], [0, 0, 0, 1]]
+        )
+
     trafo_matrix_global_to_camera = (
         mat_swap_axes @ trafo_matrix_global_to_camera
     )
@@ -62,7 +75,7 @@ def create_lane_lines(waypoint, vehicle, opposite=False, exclude_junctions=True,
     center_list, left_boundary, right_boundary = [], [], []
 
     # This number represents how high we go in the line detection
-    N = 30
+    N = 80
     
     for i in range(N):
                 

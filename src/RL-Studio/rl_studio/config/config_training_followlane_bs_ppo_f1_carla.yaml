@@ -9,7 +9,7 @@ settings:
   agent: auto_carla # f1, autoparkingRL, auto_carla, mountain_car, robot_mesh, cartpole, turtlebot
   actions: slow # slow, fast
   states: sp10 #image, sp1 (simplified perception with 1 point), sp3 (simplified perception with 3 points), spn (simplified perception with n points)
-  appended_states: 6
+  appended_states: 5
   stage: v
   rewards: followline_center # followline_center, followline_center_v_w_linear
   framework: baselines # TensorFlow, Pytorch
