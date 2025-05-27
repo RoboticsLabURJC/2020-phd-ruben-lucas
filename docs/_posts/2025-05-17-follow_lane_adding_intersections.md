@@ -23,9 +23,9 @@ pinned: false
 ---
 
 Objetivos de esta semana:
-* Revisar si cubrimos numero de horas de formación con los cursos de Udemy
+* Revisar si cubrimos numero de horas de formación con los cursos
 * Castigar casos en los que el agente no sigue las recomendación de la percepción y resetear el entrenamiento. cambios abruptos de percepción. Por posición GPS.
-* Revisar percepciones en curvas (sacar puntos no en posiciones fijas si no en las prolongaciones del radio de curvatura
+* Revisar percepciones en curvas 
 * Primero resolver entrenamiento en intersecciones para reaplicar entrenamiento en  
   * Town01 
   * Town03 
