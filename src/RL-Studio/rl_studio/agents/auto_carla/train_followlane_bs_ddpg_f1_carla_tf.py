@@ -140,23 +140,23 @@ class PeriodicSaveCallback(BaseCallback):
         if self.step_count % self.save_freq == 0:
             model_save_path = os.path.join(self.save_path, f"model_{self.step_count}_steps")
             self.model.save(model_save_path)
-            date_time = time.strftime('%Y%m%d-%H%M%S')
+            # date_time = time.strftime('%Y%m%d-%H%M%S')
 
-            mlflow.set_experiment("followlane_carla")
-            with mlflow.start_run(nested=True):
-                mlflow.log_param("model_type", "ddpg_bs")
-                mlflow.log_metric("avg_speed", self.env.last_avg_speed)
-                mlflow.log_metric("max_speed", self.env.last_max_speed)
-                mlflow.log_metric("deviation", self.env.episode_last_d_deviation)
-                mlflow.log_metric("cum_reward", self.env.last_cum_reward)
-                mlflow.set_tag("detection_mode", self.params["detection_mode"])
-                mlflow.log_param("actions", self.params["actions"])
-                mlflow.log_param("zig_zag_punish", self.params["zig_zag_punish"])
-                mlflow.set_tag("running_mode", self.params["running_mode"])
-                mlflow.log_param("datetime", date_time)
-                mlflow.log_metric("last_episode_steps", self.env.last_steps)
-                mlflow.log_metric("steps", self.step_count)
-                mlflow.log_artifact(model_save_path + ".zip", artifact_path="saved_models")
+            # mlflow.set_experiment("followlane_carla")
+            # with mlflow.start_run(nested=True):
+            #     mlflow.log_param("model_type", "ddpg_bs")
+            #     mlflow.log_metric("avg_speed", self.env.last_avg_speed)
+            #     mlflow.log_metric("max_speed", self.env.last_max_speed)
+            #     mlflow.log_metric("deviation", self.env.episode_last_d_deviation)
+            #     mlflow.log_metric("cum_reward", self.env.last_cum_reward)
+            #     mlflow.set_tag("detection_mode", self.params["detection_mode"])
+            #     mlflow.log_param("actions", self.params["actions"])
+            #     mlflow.log_param("zig_zag_punish", self.params["zig_zag_punish"])
+            #     mlflow.set_tag("running_mode", self.params["running_mode"])
+            #     mlflow.log_param("datetime", date_time)
+            #     mlflow.log_metric("last_episode_steps", self.env.last_steps)
+            #     mlflow.log_metric("steps", self.step_count)
+            #     mlflow.log_artifact(model_save_path + ".zip", artifact_path="saved_models")
             # mlflow.log_metric("gamma", self.env.episode_d_deviation)
             # mlflow.log_metric("tau", self.env.episode_d_deviation)
             # mlflow.log_metric("lr", self.env.episode_d_deviation)
@@ -345,9 +345,10 @@ class TrainerFollowLaneDDPGCarla:
         self.environment = LoadEnvVariablesDDPGCarla(config)
         logs_dir = f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
         self.tensorboard = ModifiedTensorBoard(
-            log_dir=logs_dir
+            log_dir=f"{logs_dir}/overall"
         )
         self.environment.environment["tensorboard"] = self.tensorboard
+        self.environment.environment["tensorboard_logs_dir"] = logs_dir
 
         self.loss = 0
 

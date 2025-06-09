@@ -1569,7 +1569,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def set_init_pose(self):
         ## ---  Car
         waypoints_town = self.world.get_map().generate_waypoints(5.0)
-        init_waypoint = waypoints_town[self.waypoints_init]
 
         # set self driving car
         if self.alternate_pose:
@@ -1583,8 +1582,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                    self.waypoints_lane_id,
                    2000,
                 )
+            init_waypoint = waypoints_town[self.waypoints_init]
+
             self.car = self.setup_car_fix_pose(init_waypoint)
         else:  # TODO: hacer en el caso que se quiera poner el target con .next()
+            init_waypoint = waypoints_town[self.waypoints_init]
+
             waypoints_lane = init_waypoint.next_until_lane_end(1000)
             waypoints_next = init_waypoint.next(1000)
             print(f"{init_waypoint.transform.location.x = }")

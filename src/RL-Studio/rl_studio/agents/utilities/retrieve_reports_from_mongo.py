@@ -8,6 +8,15 @@ from io import BytesIO
 from PIL import Image
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import math
+
+def smallest_non_trivial_divisor(n):
+    if n <= 1:
+        return None  # or raise ValueError("Input must be greater than 1")
+    for i in range(2, n + 1):
+        if n % i == 0:
+            return i
+
 
 # Connect to MongoDB
 client = MongoClient('mongodb://localhost:27017/')
@@ -15,8 +24,8 @@ db = client['training_db']
 collection = db['training_results']
 
 # Query by date range
-start_date = datetime(2024, 12, 1)
-end_date = datetime(2025, 2, 25)
+start_date = datetime(2025, 6, 1)
+end_date = datetime(2025, 6, 25)
 
 query = {"timestamp": {"$gte": start_date, "$lt": end_date}}
 documents = list(collection.find(query))  # Convert cursor to list for multiple iterations
@@ -58,19 +67,21 @@ for index, doc in enumerate(documents):
     lesson_text.pack(fill='both', expand=True)
     lesson_text.insert(tk.END, doc['lessons'])
 
-    # --- Display Plots ---
-    fig, axes = plt.subplots(2, 4, figsize=(10, 8))
-    plots = doc['results']['plots']
-
     plot_keys = [
         "reward_plot", "advanced_meters_plot", "avg_speed_plot",
         "abs_w_no_curves_avg_plot", "std_dev_v_plot", "std_dev_w_plot",
-        "throttle_curves_plot", "throttle_no_curves_plot"
+        # "throttle_curves_plot", "throttle_no_curves_plot"
     ]
+
+    divisor = smallest_non_trivial_divisor(len(plot_keys))
+
+    # --- Display Plots ---
+    fig, axes = plt.subplots(divisor, len(plot_keys) // divisor, figsize=(10, 8))
+    plots = doc['results']['plots']
 
     for i, key in enumerate(plot_keys):
         try:
-            row, col = divmod(i, 4)  # Convert to 2x4 grid
+            row, col = divmod(i, len(plot_keys) // divisor)
             img = decode_base64_image(plots.get(key, ""))
             axes[row, col].imshow(img)
             axes[row, col].set_title(key.replace('_', ' ').title())

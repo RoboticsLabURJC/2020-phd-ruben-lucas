@@ -91,7 +91,7 @@ class DisplayManager:
     def destroy(self):
         # print(f"entro en destroy()")
         for s in self.sensor_list:
-            if hasattr(s, 'is_listening') and actor.is_listening:
+            if hasattr(s, 'is_listening'):
                 s.stop()
             s.destroy()
         self.sensor_list = []
@@ -163,6 +163,7 @@ class SensorManager:
         self.tics_processing = 0
         self.display_man.add_sensor(self)
 
+        self.raw_data = None
         self.birdview = None
         self.front_camera = None
         self.front_camera_red_mask = None
@@ -200,9 +201,9 @@ class SensorManager:
             camera_bp = self.world.get_blueprint_library().find(
                 "sensor.camera.semantic_segmentation"
             )
-            disp_size = self.display_man.get_display_size()
-            camera_bp.set_attribute("image_size_x", str(disp_size[0]))
-            camera_bp.set_attribute("image_size_y", str(disp_size[1]))
+            # disp_size = self.display_man.get_display_size()
+            camera_bp.set_attribute("image_size_x", "640")
+            camera_bp.set_attribute("image_size_y", "512")
 
             for key in sensor_options:
                 camera_bp.set_attribute(key, sensor_options[key])
@@ -269,9 +270,20 @@ class SensorManager:
 
         self.birdview = array
 
+
     def save_semantic_image(self, image):
         t_start = self.timer.time()
         self.step+=1
+        raw_copy = bytes(image.raw_data)  # Safe copy of original buffer
+        self.raw_data = {
+            'frame': image.frame,
+            'timestamp': image.timestamp,
+            'width': image.width,
+            'height': image.height,
+            'fov': image.fov,
+            'transform': image.transform,
+            'raw_data': raw_copy
+        }
         image.convert(carla.ColorConverter.CityScapesPalette)
         array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
         array = np.reshape(array, (image.height, image.width, 4))
