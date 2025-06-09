@@ -1,0 +1,15 @@
+experiments:
+  - algorithm: sac
+    config: config/config_training_followlane_bs_sac_f1_carla.yaml
+    town: Town01
+    carla_client: 5013
+
+  - algorithm: ppo
+    config: config/config_training_followlane_bs_ppo_f1_carla.yaml
+    town: Town01
+    carla_client: 5013
+
+  - algorithm: ddpg
+    config: config/config_training_followlane_bs_ddpg_f1_carla.yaml
+    town: Town01
+    carla_client: 5013

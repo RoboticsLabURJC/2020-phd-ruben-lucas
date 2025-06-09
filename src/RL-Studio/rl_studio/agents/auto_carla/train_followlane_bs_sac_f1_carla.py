@@ -193,7 +193,7 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = 0.1
             self.v_initial = 0.3
         else:
-            self.w_initial = 0.05
+            self.w_initial = 0.5
             self.v_initial = 0.5
 
         self.w_exploration_rate = self.w_initial
@@ -360,9 +360,10 @@ class TrainerFollowLaneSACCarla:
         self.environment = LoadEnvVariablesSACCarla(config)
         logs_dir = f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
         self.tensorboard = ModifiedTensorBoard(
-            log_dir=logs_dir
+            log_dir=f"{logs_dir}/overall"
         )
         self.environment.environment["tensorboard"] = self.tensorboard
+        self.environment.environment["tensorboard_logs_dir"] = logs_dir
 
         self.loss = 0
 

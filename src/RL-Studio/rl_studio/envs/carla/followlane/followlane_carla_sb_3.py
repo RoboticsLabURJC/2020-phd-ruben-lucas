@@ -11,10 +11,13 @@ import torch
 from numpy import random
 import psutil
 import numpy as np
+import json
+
 from pyglet.libs.x11.xlib import None_
 from sympy.solvers.ode import infinitesimals
 import threading
 import rl_studio.config_loader as config_loader
+from rl_studio.envs.carla.utils.modified_tensorboard import ModifiedTensorBoard
 
 from rl_studio.envs.carla.followlane.followlane_env import FollowLaneEnv
 from rl_studio.envs.carla.followlane.settings import FollowLaneCarlaConfig
@@ -268,12 +271,36 @@ def is_curve(ll_segment):
         return True
 
 
-def calculate_v_goal(final_curvature, center_distance):
-    curv = (abs(final_curvature) * 120000)
+def calculate_v_goal(final_curvature, center_distance, curvature_weight=120000):
+    curv = (abs(final_curvature) * curvature_weight)
     dist_error = abs(center_distance) * 15
-    v_goal = max(5, 25 - (curv + dist_error))
+    v_goal = max(3, 25 - (curv + dist_error))
+    # print(f"monitoring last modification bro! dist_minus -> {dist_error}")
+    # print(f"monitoring last modification bro! curv_minus -> {curv}")
+    # print(f"monitoring last modification bro! v_goal -> {v_goal}")
     return  v_goal
 
+def curvature_from_three_points(p1, p2, p3):
+    a = np.linalg.norm(p2 - p1)
+    b = np.linalg.norm(p3 - p2)
+    c = np.linalg.norm(p1 - p3)
+    s = (a + b + c) / 2
+    area = np.sqrt(max(s * (s - a) * (s - b) * (s - c), 0))
+    if area == 0:
+        return 0
+    return (4 * area) / (a * b * c)
+
+
+def calculate_max_curveture_from_centers(center_points):
+    curvatures = []
+    for i in range(1, len(center_points) - 1):
+        k = curvature_from_three_points(
+            np.array(center_points[i - 1]),
+            np.array(center_points[i]),
+            np.array(center_points[i + 1])
+        )
+        curvatures.append(k)
+    return max(curvatures)
 
 def calculate_curvature_from(x, y):
     try:
@@ -343,6 +370,167 @@ def intersect_with_image_border(p1, p2, w, h):
         return np.array(inter.geoms[0].coords[0])  # Pick one
     return None
 
+
+import numpy as np
+
+def get_closest_to_center_border(x_left_points, x_right_points):
+    center = 320  # Image center
+
+    # Convert to numpy arrays for efficient computation
+    x_left_points = np.array(x_left_points)
+    x_right_points = np.array(x_right_points)
+
+    # Filter out points that are -1 and consider only points from index 300 onwards
+    valid_left_points = x_left_points[300:][x_left_points[300:] != -1]
+    valid_right_points = x_right_points[300:][x_right_points[300:] != -1]
+
+    # Compute mean distance to center for each list
+    left_dist = np.mean(np.abs(valid_left_points - center)) if valid_left_points.size > 0 else float('inf')
+    right_dist = np.mean(np.abs(valid_right_points - center)) if valid_right_points.size > 0 else float('inf')
+
+    # Return the list closer to center
+    return x_left_points if left_dist < right_dist else x_right_points
+
+def get_more_separated_line(line1_points, line2_points, middle_line_points):
+    """
+    Given two lane lines and a reference middle line (all as y-indexed x-values),
+    return the one (line1 or line2) whose points are more separated on average from the middle line.
+
+    Points with value -1 in either line or middle_line are excluded.
+    """
+    def average_separation(line_points, middle_line_points):
+        separations = []
+        for y in range(300, len(line_points)):
+            x1 = line_points[y]
+            xm = middle_line_points[y]
+            if x1 != -1 and xm != -1:
+                separations.append(abs(x1 - xm))
+        return sum(separations) / len(separations) if separations else 0
+
+    sep1 = average_separation(line1_points, middle_line_points)
+    sep2 = average_separation(line2_points, middle_line_points)
+
+    return line1_points if sep1 > sep2 else line2_points
+
+
+
+def get_evenly_separated_points(closest_border, num_points):
+    """
+    Selects `num_points` evenly spaced (x, y) pairs along closest_border.
+    If exact y-values don't exist or are -1, interpolates between valid points.
+    Guarantees exactly `num_points` output, using (-1, -1) as fallback.
+    """
+    closest_border = list(closest_border)
+    height = len(closest_border)
+
+    # Collect all valid (y, x) pairs
+    valid_points = [(y, closest_border[y]) for y in range(height) if closest_border[y] != -1]
+
+    if len(valid_points) < 2:
+        # Not enough valid points to interpolate
+        return [(-1, -1)] * num_points
+
+    # Sort by y to ensure order
+    valid_points.sort()
+
+    # Interpolate over y-axis
+    y_vals, x_vals = zip(*valid_points)
+
+    # Generate num_points evenly spaced y-values
+    min_y = y_vals[0]
+    max_y = y_vals[-1]
+    if num_points == 1:
+        sampled_y = [int(round((min_y + max_y) / 2))]
+    else:
+        step = (max_y - min_y) / (num_points - 1)
+        sampled_y = [min(height - 1, max(0, int(round(min_y + i * step)))) for i in range(num_points)]
+
+    # Interpolate x at sampled_y
+    interpolated_points = []
+    for y in sampled_y:
+        # Find two closest known points around y
+        lower = None
+        upper = None
+        for i in range(len(y_vals)):
+            if y_vals[i] <= y:
+                lower = (y_vals[i], x_vals[i])
+            if y_vals[i] >= y:
+                upper = (y_vals[i], x_vals[i])
+                break
+
+        if lower and upper:
+            y0, x0 = lower
+            y1, x1 = upper
+            if y0 == y1:
+                x = x0
+            else:
+                # Linear interpolation
+                x = x0 + (x1 - x0) * (y - y0) / (y1 - y0)
+            interpolated_points.append((int(round(x)), int(y)))
+        else:
+            interpolated_points.append((-1, -1))
+
+    return interpolated_points
+
+
+def flatten_points_and_merge(border_points, line_points):
+    # Flatten each list: [x1, y1, x2, y2, ..., xN, yN]
+    flat_border = [coord for point in border_points for coord in point]
+    flat_line = [coord for point in line_points for coord in point]
+
+    # Concatenate them
+    state = flat_border + flat_line
+    return state
+
+def flatten_points(points):
+    # Flatten each list: [x1, y1, x2, y2, ..., xN, yN]
+    flat_line = [coord for point in points for coord in point]
+
+    return flat_line
+
+def get_center_points(line_points, border_points):
+    """
+    For each (x_border, y) in border_points, finds the corresponding x_line from line_points
+    (or interpolated via polynomial regression), and returns the midpoint between (x_line, y)
+    and (x_border, y).
+
+    Returns:
+    - List of (int(center_x), int(y)) center points.
+    """
+    if not line_points or not border_points:
+        return []
+
+    # Extract valid (y, x) points from line_points
+    yx_valid = [(y, x) for y, x in enumerate(line_points) if x != -1]
+
+    if len(yx_valid) < 2:
+        # Not enough points to fit curve → fallback to using border x-values
+        return [(int(x), int(y)) for x, y in border_points]
+
+    # Fit polynomial x = f(y)
+    y_vals, x_vals = zip(*yx_valid)
+    y_vals = np.array(y_vals)
+    x_vals = np.array(x_vals)
+
+    try:
+        degree = 3 if len(y_vals) > 2 else 1
+        poly = np.poly1d(np.polyfit(y_vals, x_vals, deg=degree))
+    except Exception as e:
+        raise RuntimeError(f"Polynomial fitting failed: {e}")
+
+    # For each border_point, estimate x_line and compute center
+    center_points = []
+    for x_border, y in border_points:
+        if 0 <= y < len(line_points):
+            if line_points[y] != -1:
+                x_line = line_points[y]
+            else:
+                x_line = poly(y)
+            x_center = (x_border + x_line) / 2
+            center_points.append((int(round(x_center)), int(y)))
+
+    return center_points
+
 class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def __init__(self, **config):
 
@@ -363,8 +551,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.throttle_action_std_dev_no_curves = 0
         self.throttle_action_variance_no_curves = 0
         self.episode_d_deviation = 0
-        self.episode_last_d_deviation = 0
-        self.last_cum_reward = 0
         self.episode_v_eff_reward = 0
         self.location_actions = {}
         self.location_rewards = {}
@@ -373,6 +559,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.show_images = False
         self.show_all_points = False
         self.config = config
+        self.tensorboard_location_writers = {}
 
         self.update_from_hot_config(config)
 
@@ -386,12 +573,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.failures = 0
         self.tensorboard = config.get("tensorboard")
+        self.tensorboard_logs_dir = config.get("tensorboard_logs_dir")
 
         self.actor_list = []
         self.episodes_speed = []
-        self.last_avg_speed = 0
-        self.last_max_speed = 0
-        self.last_steps = 0
 
         ###### init class variables
         FollowLaneCarlaConfig.__init__(self, **config)
@@ -440,13 +625,15 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 'envs/carla/utils/lane_det/best_model_torch.pth').to(self.device)
             self.lane_model.eval()
         else:
-            camera_transform = carla.Transform(carla.Location(x=0.14852, y=0.0, z=2.5),
-                                               carla.Rotation(pitch=-3.248, yaw=-0.982, roll=0.0))
+            self.camera_transform = carla.Transform(
+                carla.Location(x=2, y=0, z=2),
+                carla.Rotation(pitch=-2, yaw=0, roll=0.0)
+            )
 
             # Translation matrix, convert vehicle reference system to camera reference system
 
             self.trafo_matrix_vehicle_to_cam = np.array(
-                camera_transform.get_inverse_matrix()
+                self.camera_transform.get_inverse_matrix()
             )
             self.k = None
 
@@ -461,28 +648,14 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.deviated = 0
         self.all_steps = 0
         self.cumulated_reward = 0
-        ports = config["carla_client"]
-        if isinstance(ports, list):
-            self.clients = [
-                carla.Client(config["carla_server"], port)
-                for port in ports
-            ]
-        else:
-            self.client = carla.Client(
-                config["carla_server"],
-                ports,
-            )
-            self.clients = [self.client]
+        self.ports = config["carla_client"]
+        self.carla_ip = config["carla_server"]
 
-        self.towns = self.config["town"]
-        self.worlds = []
-        self.world = None
-        self.init_world()
-
-        # self.camera = None
-        # self.vehicle = None
-        # self.display = None
-        # self.image = None
+        try:
+            self.initialize_carla()
+        except RuntimeError:
+            print("Waiting for CARLA to become available to reconnect...")
+            self.reconnect_to_carla()
 
         ## -- display manager
         self.display_manager = DisplayManager(
@@ -497,7 +670,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.no_detected = [[0]] * len(self.x_row)
 
-        num_states = 40
+        num_states = 20 * 2
         # num_states = 0
         # num_states += len(self.x_row) if self.x_row is not None else 0
         # num_states += len(self.projected_x) if self.projected_x is not None else 0
@@ -551,9 +724,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.destroy_all_actors()
         self.display_manager.destroy()
 
-    def reset(self, seed=None, options=None):
+    def doReset(self):
         ep_time = time.time() - self.start
-        print("Step time:", ep_time/self.step_count)
+        print("Step time:", ep_time / self.step_count)
         if len(self.actor_list) > 0:
             self.destroy_all_actors()
             self.display_manager.destroy()
@@ -597,7 +770,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.actor_list = []
         self.previous_time = 0
 
-        self.set_init_pose()
+        init_pose = self.set_init_pose()
         if self.sync_mode:
             self.world.tick()
         else:
@@ -606,6 +779,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.vary_car_orientation()  # Call the orientation variation method
         # self.set_init_speed()
+
+        self.start_location_tag = get_car_location_tag(init_pose)
 
         self.car.apply_control(carla.VehicleControl(steer=0.0))
 
@@ -616,55 +791,79 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # segmentated_image = self.get_resized_image(self.front_camera_1_5_segmentated.front_camera)
         raw_image = self.front_camera_1_5.front_camera
         segmentated_image = self.front_camera_1_5_segmentated.front_camera
+        segmentated_raw_data = self.front_camera_1_5_segmentated.raw_data
 
-        curve = False
         if self.detection_mode == 'carla_segmentated':
-            ll_segment_post_process = self.detect_lines_from_segmentated(segmentated_image)
-        elif self.detection_mode == 'carla_perfect':
-            (ll_segment_post_process,
+            # ll_segment = self.detect_lines_from_segmentated(segmentated_image)
+            ll_segment, line_points, x_left_points, x_right_points = self.detect_all_from_segmentated(
+                segmentated_raw_data)
+            closest_border = get_closest_to_center_border(x_left_points, x_right_points)
+            border_points = get_evenly_separated_points(closest_border, 10)
+            # line_points = get_evenly_separated_points(line_points, 10)
+            center_points = get_center_points(line_points, border_points)
+            states = flatten_points(center_points)
+            for index in range(len(center_points)):
+                cv2.circle(ll_segment, (center_points[index][0], center_points[index][1]), radius=3,
+                           color=(255, 255, 0), thickness=-1)
+                # cv2.circle(ll_segment, (line_points[index][0], line_points[index][1]), radius=3, color=(0, 0, 255),
+                #            thickness=-1)
+        # if self.detection_mode == 'carla_perfect_fixed':
+        #     ll_segment = self.detect_lines_perfect(raw_image)
+        #
+        #     center_distance, final_curvature = self.detect_centers_from_Image(ll_segment)
+        #     states = center_distance
+        elif self.detection_mode == 'carla_perfect_center':
+            (ll_segment,
+             misalignment,
+             center_distance,
+             center_points) = self.detect_center_line_perfect(raw_image)
+
+            final_curvature = calculate_max_curveture_from_centers(center_points)
+
+            x_centers = center_points[:, 0]
+            states = (x_centers / 512).tolist()
+            y_centers = center_points[:, 1]
+            states = states + (y_centers / 512).tolist()  # Returns a list
+            # OJO, AÚN HACE COSAS RARAS EN CURVAS... REVISAR SI SE SIGUE POR AQUÍ
+        elif self.detection_mode == 'carla_perfect_lines':
+            (ll_segment,
              misalignment,
              center_distance,
              lane_left_points,
-             lane_right_points) = self.detect_lines_perfect(raw_image)
+             lane_right_points) = self.detect_center_line_perfect(raw_image)
+
+            final_curvature_left = calculate_curvature_from(lane_left_points[:, 0], lane_left_points[:, 1])
+            final_curvature_right = calculate_curvature_from(lane_right_points[:, 0], lane_right_points[:, 1])
+
+            final_curvature = (final_curvature_left + final_curvature_right) / 2
+
+            x_left = lane_left_points[:, 0]
+            x_right = lane_right_points[:, 0]
+            x_midpoints = (x_left + x_right) / 2
+            states = (x_midpoints / 512).tolist()
+            y_left = lane_left_points[:, 1]
+            y_right = lane_right_points[:, 1]
+            y_midpoints = (y_left + y_right) / 2
+            states = states + (y_midpoints / 512).tolist()  # Returns a list
+            centers = list(zip(x_midpoints.astype(int), y_midpoints.astype(int)))  # Each element is (x, y)
+            # OJO, AÚN HACE COSAS RARAS EN CURVAS... REVISAR SI SE SIGUE POR AQUÍ
         else:
-            ll_segment_post_process, curve = self.detect_lines(raw_image)
+            ll_segment, curve = self.detect_lines(raw_image)
+            center_distance, final_curvature = self.detect_centers_from_image(ll_segment)
+            states = center_distance
 
-        (
-            center_lanes,
-            distance_to_center_normalized,
-            last_points
-        ) = self.calculate_center(ll_segment_post_process)
-        right_lane_normalized_distances, right_center_lane = choose_lane(distance_to_center_normalized, center_lanes)
-
-        # if self.projected_x is not None:
-        #     right_center_lane, right_lane_normalized_distances = self.project_line(self.x_row, right_center_lane,
-        #                                                                            right_lane_normalized_distances,
-        #                                                                            self.projected_x)
-
-        # self.show_ll_seg_image(right_center_lane, ll_segment_post_process) if self.sync_mode and self.show_images else None
-
-        # states = right_lane_normalized_distances
-
-        x_left = lane_left_points[:, 0]
-        x_right = lane_right_points[:, 0]
-        midpoints = (x_left + x_right) / 2
-        states = (midpoints / 512).tolist()  # Returns a list
-        y_left = lane_left_points[:, 1]
-        y_right = lane_right_points[:, 1]
-        y_midpoints = (y_left + y_right) / 2
-        states = states + (y_midpoints / 512).tolist()  # Returns a list
+        v_goal = calculate_v_goal(final_curvature, center_distance)
 
         states.append(0)
         states.append(0)
+        # states.append(final_curvature)
         states.append(0)
-        # states.append(misalignment)
         states.append(0)
-        states.append(0)
+        states.append(v_goal)
         # states.append(0)
         # states.append(0)
-       # states.append(0)
-        if self.use_curves_state:
-            states.append(curve)
+        # if self.use_curves_state:
+        #     states.append(curve)
         state_size = len(states)
 
         if self.tensorboard is not None:
@@ -690,6 +889,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.start = time.time()
         return np.array(states), state_size
 
+    def reset(self, seed=None, options=None):
+        try:
+            return self.doReset()
+        except RuntimeError:
+            print("Waiting for CARLA to become available to reset...")
+            self.reconnect_to_carla()
+
     def calculate_and_report_episode_stats(self):
         if len(self.episodes_speed) == 0:
             return
@@ -708,37 +914,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.throttle_action_std_dev_curves = None
             self.throttle_action_variance_curves = None
         # completed = 1 if self.step_count >= self.env_params.estimated_steps else 0
-        self.tensorboard.update_stats(
-            steps_episode=self.step_count,
-            cum_rewards=self.cumulated_reward,
-            crashed=self.deviated,
-            d_reward=self.episode_d_reward,
-            v_reward=self.episode_v_eff_reward,
-            avg_speed=self.avg_speed,
-            max_speed=self.max_speed,
-            abs_w_no_curves_avg=self.abs_w_no_curves_avg,
-            # throttle_difference=self.throttle_action_difference,
-            # throttle_curves=self.throttle_action_avg_curves,
-            # throttle_no_curves=self.throttle_action_avg_no_curves,
-            # throttle_curves_std=self.throttle_action_std_dev_curves,
-            # throttle_no_curves_std=self.throttle_action_std_dev_no_curves,
-            # cum_d_reward=cum_d_reward,
-            # max_reward=max_reward,
-            # steering_std_dev=steering_std_dev,
-            advanced_meters=self.advanced_meters,
-            # actor_loss=self.actor_loss,
-            # critic_loss=self.critic_loss,
-            # cpu=self.cpu_usages,
-            # gpu=self.gpu_usages,
-            # collisions = self.crash,
-            # completed = completed
-        )
-        self.last_avg_speed = self.avg_speed
-        self.last_max_speed = self.max_speed
-        self.last_steps = self.step_count
-        self.episode_last_d_deviation = self.episode_d_deviation
-        self.last_cum_reward = self.cumulated_reward
-        # self.tensorboard.update_fps(self.step_fps)
+        self.update_all_tensorboard_stats()
+        self.update_reward_monitor(self.cumulated_reward)
 
     ####################################################
     ####################################################
@@ -796,9 +973,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             np.array(x) / (width - center_image) for x in center_lane_distances
         ]
 
-        last_points = self.find_first_lanes_index(mask)
-
-        return center_lane_indexes, distance_to_center_normalized, last_points
+        return center_lane_indexes, distance_to_center_normalized
 
     def find_first_lanes_index(self, image):
         for i in range(image.shape[0]):
@@ -923,7 +1098,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # time.sleep(0.5)
         vehicle.reward = 0
         vehicle.error = 0
-        return vehicle
+        return vehicle, location
 
     # Method to add the obstacle detector sensor to the vehicle
     def add_obstacle_detector(self, vehicle, world):
@@ -1103,20 +1278,17 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #    [carla.command.DestroyActor(x) for x in self.actor_list[::-1]]
         # )
 
-    def show_debug_points(self, curve, right_lane_normalized_distances, distance_to_center_normalized):
+    def show_debug_points(self, centers):
         if not self.debug_waypoints:
             return
-        average_abs = sum(abs(x) for x in right_lane_normalized_distances) / len(distance_to_center_normalized)
+        average_abs = sum(abs(x) for x in centers) / len(centers)
         # if average_abs > 0.8:
         #     color = carla.Color(r=255, g=0, b=0)
         # else:
         #     green_value = max(int((1 - average_abs * 2 ) * 255), 0 )
         #     color = carla.Color(r=0, g=green_value, b=0)
-        if curve:
-            color = carla.Color(r=255, g=0, b=0)
-        else:
-            green_value = max(int((1 - average_abs * 2) * 255), 0)
-            color = carla.Color(r=0, g=green_value, b=0)
+        green_value = max(int((1 - average_abs * 2) * 255), 0)
+        color = carla.Color(r=0, g=green_value, b=0)
 
         self.world.debug.draw_string(
             self.car.get_transform().location,
@@ -1190,66 +1362,117 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # raw_image = self.get_resized_image(self.front_camera_1_5.front_camera)
         # segmentated_image = self.get_resized_image(self.front_camera_1_5_segmentated.front_camera)
         raw_image = self.front_camera_1_5.front_camera
-        segmentated_image = self.front_camera_1_5_segmentated.front_camera
+        # segmentated_image = self.front_camera_1_5_segmentated.front_camera
+        segmentated_raw_data = self.front_camera_1_5_segmentated.raw_data
 
-        curve = False
         if self.detection_mode == 'carla_segmentated':
-            ll_segment = self.detect_lines_from_segmentated(segmentated_image)
-        elif self.detection_mode == 'carla_perfect':
-            (ll_segment, misalignment,
+            # ll_segment = self.detect_lines_from_segmentated(segmentated_image)
+            ll_segment, line_points, x_left_points, x_right_points = self.detect_all_from_segmentated(
+                segmentated_raw_data)
+            closest_border = get_closest_to_center_border(x_left_points, x_right_points)
+            border_points = get_evenly_separated_points(closest_border, 10)
+            # line_points = get_evenly_separated_points(line_points, 10)
+            center_points = get_center_points(line_points, border_points)
+            states = flatten_points(center_points)
+            for index in range(len(center_points)):
+                cv2.circle(ll_segment, (center_points[index][0], center_points[index][1]), radius=3,
+                           color=(255, 255, 0), thickness=-1)
+                # cv2.circle(ll_segment, (line_points[index][0], line_points[index][1]), radius=3, color=(0, 0, 255),
+                #            thickness=-1)
+            _, center_distance, _ = self.get_lane_position(self.car, self.map)
+            gray_overlay = cv2.cvtColor(ll_segment, cv2.COLOR_BGR2GRAY)
+            mask = gray_overlay > 10
+            mask_3ch = np.stack([mask] * 3, axis=-1)
+
+            stacked_image = np.where(mask_3ch, ll_segment, raw_image)
+            v_goal = calculate_v_goal(final_curvature, center_distance)
+        elif self.detection_mode == 'carla_perfect_center':
+            (ll_segment,
+             misalignment,
+             center_distance,
+             center_points) = self.detect_center_line_perfect(raw_image)
+
+            final_curvature = calculate_max_curveture_from_centers(center_points)
+
+            x_centers = center_points[:, 0]
+            states = (x_centers / 512).tolist()
+            y_centers = center_points[:, 1]
+            states = states + (y_centers / 512).tolist()  # Returns a list
+            centers = center_points
+            centers_image = np.zeros(raw_image.shape, dtype=np.uint8)
+            for index in range(len(centers)):
+                cv2.circle(centers_image, (centers[index][0], centers[index][1]), radius=3,
+                           color=(255, 255, 0), thickness=-1)
+                # cv2.circle(ll_segment, (line_points[index][0], line_points[index][1]), radius=3, color=(0, 0, 255),
+                #            thickness=-1)
+            gray_overlay = cv2.cvtColor(centers_image, cv2.COLOR_BGR2GRAY)
+            mask = gray_overlay > 10
+            mask_3ch = np.stack([mask] * 3, axis=-1)
+
+            stacked_image = np.where(mask_3ch, centers_image, raw_image)
+            _, center_distance, _ = self.get_lane_position(self.car, self.map)
+            v_goal = calculate_v_goal(final_curvature, center_distance, curvature_weight=150)
+            # OJO, AÚN HACE COSAS RARAS EN CURVAS... REVISAR SI SE SIGUE POR AQUÍ
+        elif self.detection_mode == 'carla_perfect_lines':
+            (ll_segment,
+             misalignment,
              center_distance,
              lane_left_points,
              lane_right_points) = self.detect_lines_perfect(raw_image)
+
+            final_curvature_left = calculate_curvature_from(lane_left_points[:, 0], lane_left_points[:, 1])
+            final_curvature_right = calculate_curvature_from(lane_right_points[:, 0], lane_right_points[:, 1])
+
+            final_curvature = (final_curvature_left + final_curvature_right) / 2
+
+            x_left = lane_left_points[:, 0]
+            x_right = lane_right_points[:, 0]
+            x_midpoints = (x_left + x_right) / 2
+            states = (x_midpoints / 512).tolist()
+            y_left = lane_left_points[:, 1]
+            y_right = lane_right_points[:, 1]
+            y_midpoints = (y_left + y_right) / 2
+            states = states + (y_midpoints / 512).tolist()  # Returns a list
+            centers = list(zip(x_midpoints.astype(int), y_midpoints.astype(int)))  # Each element is (x, y)
+            centers_image = np.zeros(raw_image.shape, dtype=np.uint8)
+            for index in range(len(centers)):
+                cv2.circle(centers_image, (centers[index][0], centers[index][1]), radius=3,
+                           color=(255, 255, 0), thickness=-1)
+                # cv2.circle(ll_segment, (line_points[index][0], line_points[index][1]), radius=3, color=(0, 0, 255),
+                #            thickness=-1)
+            gray_overlay = cv2.cvtColor(centers_image, cv2.COLOR_BGR2GRAY)
+            mask = gray_overlay > 10
+            mask_3ch = np.stack([mask] * 3, axis=-1)
+
+            stacked_image = np.where(mask_3ch, centers_image, raw_image)
+            _, center_distance, _ = self.get_lane_position(self.car, self.map)
+            v_goal = calculate_v_goal(final_curvature, center_distance)
+        elif self.detection_mode == 'carla_perfect_centers':
+            centers = self.detect_centers_with_road()
+            _, center_distance, _ = self.get_lane_position(self.car, self.map)
+            final_curvature = calculate_curvature_from(centers[:, 0], centers[:, 1])
+            v_goal = calculate_v_goal(final_curvature, center_distance)
         else:
             ll_segment, curve = self.detect_lines(raw_image)
+            center_distance, final_curvature = self.detect_centers_from_image(ll_segment)
+            states = center_distance
+            v_goal = calculate_v_goal(final_curvature, center_distance)
 
-        (
-            center_lanes,
-            distance_to_center_normalized,
-            last_points
-        ) = self.calculate_center(ll_segment)
-        right_lane_normalized_distances, right_center_lane = choose_lane(distance_to_center_normalized, center_lanes)
-        if self.projected_x is not None:
-            right_center_lane, right_lane_normalized_distances = self.project_line(self.x_row, right_center_lane,
-                                                                                   right_lane_normalized_distances,
-                                                                                   self.projected_x)
-
-        # x = np.array(self.x_row)
-        # y = np.array(right_lane_normalized_distances)
-        # final_curvature = self.calculate_curvature_from(x, y)
-
-        final_curvature_left = calculate_curvature_from(lane_left_points[:, 0], lane_left_points[:, 1])
-        final_curvature_right = calculate_curvature_from(lane_right_points[:, 0], lane_right_points[:, 1])
-
-        final_curvature = (final_curvature_left + final_curvature_right) / 2
-
-        params["final_curvature"] = final_curvature
-
-        v_goal = calculate_v_goal(final_curvature, center_distance)
-        reward, done, has_crashed = self.rewards_easy(right_lane_normalized_distances, misalignment, center_distance, action, params, v_goal=v_goal)
+        #params["final_curvature"] = final_curvature
+        reward, done, has_crashed = self.rewards_easy(center_distance, action, params, v_goal=v_goal, x_centers=x_centers)
 
         self.car.reward = reward
         self.cumulated_reward = self.cumulated_reward + reward
 
         # states = right_lane_normalized_distances
 
-        x_left = lane_left_points[:, 0]
-        x_right = lane_right_points[:, 0]
-        x_midpoints = (x_left + x_right) / 2
-        states = (x_midpoints / 512).tolist()
-        y_left = lane_left_points[:, 1]
-        y_right = lane_right_points[:, 1]
-        y_midpoints = (y_left + y_right) / 2
-        states = states + (y_midpoints / 512).tolist()  # Returns a list
-        centers = list(zip(x_midpoints.astype(int), y_midpoints.astype(int)))  # Each element is (x, y)
-
-        states.append(params["velocity"] / 40)
+        states.append(params["velocity"] / 36)
         states.append(params["steering_angle"])
-        states.append(final_curvature)
+        #states.append(final_curvature)
         # states.append(misalignment)
         states.append(action[0])
         states.append(action[1])
-        # states.append(v_goal)
+        states.append(v_goal)
        # states.append(last_points[0])
        # states.append(last_points[1])
         # states.append(self.lidar_front_distance/100)
@@ -1259,35 +1482,34 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #     states.append(curve)
 
         if self.visualize:
-            self.show_ll_seg_image(centers, ll_segment, lane_left_points, lane_right_points)
-            self.show_debug_points(curve, right_lane_normalized_distances, distance_to_center_normalized)
+            # self.show_ll_seg_image(centers, ll_segment) # for carla_perfect_lines
+            # self.show_image("road_and_lines", road_and_lines)
+            # self.show_debug_points(centers)
+            self.show_image('overlayed_image', stacked_image) # for carla_segmentated
             self.display_manager.render(vehicle=self.car)
 
-        bad_left_perception = self.has_bad_perception(lane_left_points[:, 0], max_bad_real_states=3)
-        bad_right_perception = self.has_bad_perception(lane_right_points[:, 0], max_bad_real_states=3)
-        params["bad_perception"] = bad_left_perception and bad_right_perception
-        # # TODO It is a known glitch. Remove when different environment than town04 long straight
-        # if params["bad_perception"] and not out:
-        if params["bad_perception"] and not has_crashed:
-            print('bad perception')
-         #   if self.failures < 3:
-         #       self.failures += 1
-            done = False
-            # return self.apply_step(action)
-            # return self.apply_step([0.1, 0.05 * random.choice([1, -1]), 0])
-            #else:
-            #    print("bad perception!")
-            #    self.failures = 0
-            #    done = True
-        #else:
-        #    self.failures = 0
-
-        if self.centers_switched(x_midpoints):
-            print("lane changed!")
-            done = True
-
+        # bad_left_perception = self.has_bad_perception(lane_left_points[:, 0], max_bad_real_states=3)
+        # bad_right_perception = self.has_bad_perception(lane_right_points[:, 0], max_bad_real_states=3)
+        # params["bad_perception"] = bad_left_perception and bad_right_perception
+        # # # TODO It is a known glitch. Remove when different environment than town04 long straight
+        # # if params["bad_perception"] and not out:
+        # if params["bad_perception"] and not has_crashed:
+        #     print('bad perception')
+        #  #   if self.failures < 3:
+        #  #       self.failures += 1
+        #     done = False
+        #     # return self.apply_step(action)
+        #     # return self.apply_step([0.1, 0.05 * random.choice([1, -1]), 0])
+        #     #else:
+        #     #    print("bad perception!")
+        #     #    self.failures = 0
+        #     #    done = True
+        # #else:
+        # #    self.failures = 0
+        #
         if not all(x == 0 for x in states):
-            self.last_centers = x_midpoints.copy()
+            # self.last_centers = x_midpoints.copy()
+            self.last_centers = x_centers.copy()
         # print(np.array(states))
         return np.array(states), reward, done, done, params
 
@@ -1330,11 +1552,15 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # TODO OJO, puede dañar el entrenamiento, pero con eso nos aseguramos
         # que trabaja con esta velocidad una vez aterriza en el suelo y se
         # endereza
-        if 5 < self.step_count <= 10:
-            self.set_init_speed()
+        try:
+            if 5 < self.step_count <= 10:
+                self.set_init_speed()
 
-        for _ in range(1):  # Apply the action for 3 consecutive steps
+            # for _ in range(1):  # Apply the action for 3 consecutive steps
             states, reward, done, done, params = self.apply_step(action)
+        except RuntimeError:
+            print("Waiting for CARLA to become available to step...")
+            return self.reconnect_to_carla()
 
         return states, reward, done, done, params
 
@@ -1421,19 +1647,20 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # Logarithmic scaling formula
         return math.log(1 + velocity) / math.log(1 + v_max)
 
-    def rewards_easy(self, distances, misalignment, center_distance, action, params, final_curvature=None, v_goal=None):
+    def rewards_easy(self, center_distance, action, params, v_goal=None, x_centers=None):
         # distance_error = error[3:]  # We are just rewarding the 3 lowest points!
-        distance_error = [abs(x) for x in distances]
+        # distance_error = [abs(x) for x in centers_distances]
 
         ## EARLY RETURNS
-        params["distance_error"] = distance_error
+        #params["distance_error"] = distance_error
         params["d_reward"] = 0
         params["v_reward"] = 0
         params["v_eff_reward"] = 0
         params["reward"] = 0
 
         # car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
-        car_deviated_punish = -10
+        car_deviated_punish = -20
+        lane_changed_punish = -1
 
         # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
         #  En curvas
@@ -1445,9 +1672,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #    return car_deviated_punish, done, False
         # return -5 * action[0], done, crash
 
-        done = self.is_out(center_distance)
-        if done:
-            return car_deviated_punish, done, self.has_crashed()
+        if self.is_out(center_distance):
+            return car_deviated_punish, True, self.has_crashed()
+
+        if x_centers is not None and self.centers_switched(x_centers):
+            return lane_changed_punish, True, False
 
         # DISTANCE REWARD CALCULATION
         # d_rewards = []
@@ -1469,7 +1698,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             if self.steps_stopped > 100:
                 print("too much time stopped")
                 return car_deviated_punish, True, False
-            return (action[0] * d_reward) / 10, False, False
+            return car_deviated_punish + (action[0] * d_reward), False, False
             # beta = 0  # por debajo de v_ineffective solo vale la v
         else:
             self.steps_stopped = 0
@@ -1490,9 +1719,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # print(f"v{v_kmh}")
         # print(f"sRew {speed_reward}")
 
-        throttle = max(action[0], 0)  # TODO OJO que aquí aplicas el freno indistintamente de la v!
-        v_component = throttle if v < 3 else v/3
-        # v_component = 50.0 - abs(v_goal - float(v))
+        # throttle = max(action[0], 0)  # TODO OJO que aquí aplicas el freno indistintamente de la v!
+        # v_component = throttle if v < vv3 else v/3
+        v_component = 20.0 - abs(v_goal - float(v))
         v_eff_reward = v_component * d_reward
         # v_eff_reward = v/20  * d_reward
         # v_eff_reward = throttle * d_reward
@@ -1525,8 +1754,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # PUNISH CALCULATION
         punish = 0
         # Punish zig zag on straights
-        if params["final_curvature"] < 0.00001:
-            punish += self.punish_zig_zag_value * abs(action[1])
+        #if params["final_curvature"] < 0.00001:
+        punish += self.punish_zig_zag_value * abs(action[1])
         #punish =+ misalignment
 
         if self.stage in ("v", "r"):
@@ -1556,39 +1785,48 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params["v_eff_reward"] = v_eff_reward
         # function_reward = d_reward * v_reward
         params["reward"] = function_reward
-        avg_error = sum(distance_error) / len(distance_error)
-        # self.car.error = avg_error
+
         self.car.error = center_distance
 
         self.episode_d_reward = self.episode_d_reward + (d_reward - self.episode_d_reward) / self.step_count
-        self.episode_d_deviation = self.episode_d_deviation + (avg_error - self.episode_d_deviation) / self.step_count
-        if distance_error[0] < 0.05:
-            self.throttle_action_avg_no_curves = self.throttle_action_avg_no_curves + (
-                    action[0] - self.throttle_action_avg_no_curves) / self.step_count_no_curves
-            self.throttle_action_variance_no_curves = self.throttle_action_variance_no_curves + (
-                    (action[0] - self.throttle_action_avg_no_curves) * (
-                    action[0] - self.throttle_action_avg_no_curves - (
-                    1 / self.step_count_no_curves))) / self.step_count_no_curves
-            self.throttle_action_std_dev_no_curves = self.throttle_action_variance_no_curves ** 0.5
-
-            self.abs_w_no_curves_avg = self.abs_w_no_curves_avg + (
-                    abs(action[1]) - self.abs_w_no_curves_avg) / self.step_count_no_curves
-
+        self.episode_d_deviation = self.episode_d_deviation + (center_distance - self.episode_d_deviation) / self.step_count
+        if center_distance < 0.05:
+            # Step 1: Increase step count first
             self.step_count_no_curves += 1
+            # --- Throttle action stats using Welford's algorithm ---
+            delta = action[0] - self.throttle_action_avg_no_curves
+            self.throttle_action_avg_no_curves += delta / self.step_count_no_curves
+            delta2 = action[0] - self.throttle_action_avg_no_curves
+            self.throttle_action_variance_no_curves += delta * delta2
+            if self.step_count_no_curves > 1:
+                self.throttle_action_std_dev_no_curves = (
+                                                                 self.throttle_action_variance_no_curves / (
+                                                                     self.step_count_no_curves - 1)
+                                                         ) ** 0.5
+            else:
+                self.throttle_action_std_dev_no_curves = 0.0  # Not enough data yet
+            # --- Absolute angular velocity (action[1]) average ---
+            self.abs_w_no_curves_avg += (
+                                                abs(action[1]) - self.abs_w_no_curves_avg
+                                        ) / self.step_count_no_curves
+
         else:
             self.curves_states += 1
-            self.throttle_action_avg_curves = self.throttle_action_avg_curves + (
-                    action[0] - self.throttle_action_avg_curves) / self.step_count_curves
-            self.throttle_action_variance_curves = self.throttle_action_variance_curves + (
-                    (action[0] - self.throttle_action_avg_curves) * (
-                    action[0] - self.throttle_action_avg_curves - (
-                    1 / self.step_count_curves))) / self.step_count_curves
-            self.throttle_action_std_dev_curves = self.throttle_action_variance_curves ** 0.5
+            # Step 1: Increase step count first
             self.step_count_curves += 1
+            delta = action[0] - self.throttle_action_avg_curves
+            self.throttle_action_avg_curves += delta / self.step_count_curves
+            delta2 = action[0] - self.throttle_action_avg_curves
+            self.throttle_action_variance_curves += delta * delta2
+            if self.step_count_curves > 1:
+                self.throttle_action_std_dev_curves = (self.throttle_action_variance_curves / (
+                            self.step_count_curves - 1)) ** 0.5
+            else:
+                self.throttle_action_std_dev_curves = 0.0  # Not enough data yet
 
         if self.step_count > self.estimated_steps:
             print("episode finished")
-            done = True
+            return function_reward, True, False
 
         # ENTROPY CALCULATION
         # if self.entropy_factor > 0:
@@ -1601,7 +1839,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # print(f"v_r = {v_reward_component}")
         # print(f"d_r = {d_reward_component}")
         # print("angular velocity", params["angular_velocity"])
-        return function_reward, done, False
+        return function_reward, False, False
 
     def slice_image(self, red_mask):
         height = red_mask.shape[0]
@@ -1657,6 +1895,50 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         return image
 
+    def detect_center_line_perfect(self, ll_segment, num_points=20):
+        ll_segment = cv2.cvtColor(ll_segment, cv2.COLOR_BGR2GRAY)
+
+        height = ll_segment.shape[0]
+        width = ll_segment.shape[1]
+
+        trafo_matrix_global_to_camera = get_matrix_global(self.car, self.trafo_matrix_vehicle_to_cam)
+
+        if self.k is None:
+            self.k = get_intrinsic_matrix(90, width, height)
+
+        waypoint = self.world.get_map().get_waypoint(
+            self.car.get_transform().location,
+            project_to_road=True,
+            lane_type=carla.LaneType.Driving,
+        )
+
+        _, center_distance, alignment = self.get_lane_position(self.car, self.map)
+        opposite = alignment < 0.5
+        misalignment = (1 - abs(alignment)) * 10
+
+        center_list, left_boundary, right_boundary, type_lane = create_lane_lines(
+            waypoint, self.car, opposite=opposite
+        )
+
+        if center_list is None or len(center_list) < 2:
+            interpolated_center = []
+        else:
+            projected_center = project_polyline(
+                center_list, trafo_matrix_global_to_camera, self.k
+            ).astype(np.int32)
+
+            trimmed_projected_center = trim_polyline_to_image(projected_center, ll_segment.shape)
+
+            if len(trimmed_projected_center) < 2:
+                interpolated_center = []
+            else:
+                interpolated_center = interpolate_lane_points(trimmed_projected_center, num_points)
+
+        # If interpolation failed, return dummy points
+        if interpolated_center is None or len(interpolated_center) < 2:
+            interpolated_center = np.full((num_points, 2), -1)
+        return ll_segment, misalignment, center_distance, interpolated_center
+
     def detect_lines_perfect(self, ll_segment):
         ll_segment = cv2.cvtColor(ll_segment, cv2.COLOR_BGR2GRAY)
 
@@ -1665,7 +1947,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         trafo_matrix_global_to_camera = get_matrix_global(self.car, self.trafo_matrix_vehicle_to_cam)
         if self.k is None:
-            self.K = get_intrinsic_matrix(90, width, heigth)
+            self.k = get_intrinsic_matrix(90, width, heigth)
 
         waypoint = self.world.get_map().get_waypoint(
             self.car.get_transform().location,
@@ -1679,28 +1961,30 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         center_list, left_boundary, right_boundary, type_lane = create_lane_lines(waypoint, self.car, opposite=opposite)
 
         projected_left_boundary = project_polyline(
-            left_boundary, trafo_matrix_global_to_camera, self.K).astype(np.int32)
+            left_boundary, trafo_matrix_global_to_camera, self.k).astype(np.int32)
         projected_right_boundary = project_polyline(
-            right_boundary, trafo_matrix_global_to_camera, self.K).astype(np.int32)
+            right_boundary, trafo_matrix_global_to_camera, self.k).astype(np.int32)
 
         trimmed_projected_left = trim_polyline_to_image(projected_left_boundary, ll_segment.shape)
         trimmed_projected_right = trim_polyline_to_image(projected_right_boundary, ll_segment.shape)
 
-        interpolated_left = interpolate_lane_points(trimmed_projected_left, num_points=20)
-        interpolated_right = interpolate_lane_points(trimmed_projected_right, num_points=20)
+        interpolated_left = interpolate_lane_points(trimmed_projected_left, num_points=10)
+        interpolated_right = interpolate_lane_points(trimmed_projected_right, num_points=10)
 
-        if (not check_inside_image(projected_right_boundary, width, heigth)
-                or not check_inside_image(projected_right_boundary, width, heigth)):
-            return (ll_segment,
-                    misalignment,
-                    center_distance,
-                    interpolated_left,
-                    interpolated_right)
-        image = np.zeros_like(ll_segment, dtype=np.uint8)
-        self.draw_line_through_points(projected_left_boundary, image)
-        self.draw_line_through_points(projected_right_boundary, image)
+        # if (not check_inside_image(projected_right_boundary, width, heigth)
+        #         or not check_inside_image(projected_right_boundary, width, heigth)):
+        #     return (ll_segment,
+        #             misalignment,
+        #             center_distance,
+        #             interpolated_left,
+        #             interpolated_right)
+        # image = np.zeros_like(ll_segment, dtype=np.uint8)
+        # self.draw_line_through_points(projected_left_boundary, image)
+        # self.draw_line_through_points(projected_right_boundary, image)
 
-        return image, misalignment, center_distance, interpolated_left, interpolated_right
+        # return image, misalignment, center_distance, interpolated_left, interpolated_right
+        return ll_segment, misalignment, center_distance, interpolated_left, interpolated_right
+
 
     def get_lane_position(self, vehicle: carla.Vehicle, map: carla.Map):
         """
@@ -1872,42 +2156,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return ll_seg_mask
 
 
-    def show_ll_seg_image(self, centers, ll_segment, interpolated_left, interpolated_right, suffix="", name='ll_seg'):
-        if self.detection_mode == "carla_perfect":
-            ll_segment_int8 = ll_segment
-        else:
-            ll_segment_int8 = (ll_segment * 255).astype(np.uint8)
-
-        height, width = ll_segment.shape
-        blank_image = np.zeros((height, width), dtype=np.uint8)
-        # ll_segment_all = [blank_image.copy(), blank_image.copy(), blank_image.copy()]
-
-        ll_segment_all = [np.copy(ll_segment_int8), np.copy(ll_segment_int8), np.copy(ll_segment_int8)]
-
-        # Draw the midpoint used as right center lane
-        # for index, dist in zip(self.x_row, centers):
-        #     add_midpoints(ll_segment_all[0], index, dist)
-        # for x, y in centers:
-        #     if 0 <= y < ll_segment_all[0].shape[0] and 0 <= x < ll_segment_all[0].shape[1]:
-        #         add_midpoints(ll_segment_all[2], x, y)
-
-        # Draw a line for the selected perception points
-        # for index in self.x_row:
-        #     for i in range(630):
-        #         ll_segment_all[0][index][i] = 255
-
-        # Add interpolated lane points to the first channel
-        for pt in centers:
-            x, y = int(pt[0]), int(pt[1])
-            add_midpoints(ll_segment_all[2], y, x)
-        # for pt in interpolated_right:
-        #     x, y = int(pt[0]), int(pt[1])
-    #         add_midpoints(ll_segment_all[2], y, x)
-
-        ll_segment_stacked = np.stack(ll_segment_all, axis=-1)
+    def show_ll_seg_image(self, centers, ll_segment, suffix="", name='ll_seg'):
+        ll_segment_stacked = self.get_stacked_image(centers, ll_segment)
         # We now show the segmentation and center lane postprocessing
-        cv2.imshow(name + suffix, ll_segment_stacked)
-        cv2.waitKey(1)  # 1 millisecond
+        self.show_image(name + suffix, ll_segment_stacked)
 
     def post_process(self, ll_segment):
         ''''
@@ -2169,7 +2421,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         waypoints_town = self.world.get_map().generate_waypoints(5.0)
         # set self driving car
         if self.alternate_pose:
-            self.car = self.setup_car_random_pose(self.spawn_points)
+            self.car, init_pose = self.setup_car_random_pose(self.spawn_points)
         elif self.waypoints_init is not None:
             init_waypoint = waypoints_town[self.waypoints_init]
             if self.show_all_points:
@@ -2181,6 +2433,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                     2000,
                 )
             self.car = self.setup_car_fix_pose(init_waypoint)
+            init_pose = init_waypoint.transform
         else:  # TODO: hacer en el caso que se quiera poner el target con .next()
             init_waypoint = waypoints_town[self.waypoints_init]
             waypoints_lane = init_waypoint.next_until_lane_end(1000)
@@ -2220,18 +2473,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # camera_bp.set_attribute("image_size_y", "600")
         # camera_bp.set_attribute("fov", "90")
 
-        self.front_camera_1_5 = SensorManager(
-            self.world,
-            self.display_manager,
-            "RGBCamera",
-            carla.Transform(
-                carla.Location(x=0, y=0.0, z=2),
-                carla.Rotation(pitch=-2, yaw=0, roll=0.0)
-            ),
-            self.car,
-            {},
-            display_pos=[0, 0],
-        )
 
         self.birds_eye_camera = SensorManager(
             self.world,
@@ -2243,11 +2484,27 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             display_pos=[1, 0],
         )
 
+        self.front_camera_1_5 = SensorManager(
+            self.world,
+            self.display_manager,
+            "RGBCamera",
+            carla.Transform(
+                carla.Location(x=2, y=0, z=2),
+                carla.Rotation(pitch=-2, yaw=0, roll=0.0)
+            ),
+            self.car,
+            {},
+            display_pos=[0, 0],
+        )
+
         self.front_camera_1_5_segmentated = SensorManager(
             self.world,
             self.display_manager,
             "SemanticCamera",
-            carla.Transform(carla.Location(x=2, z=1.5), carla.Rotation(yaw=+00)),
+            carla.Transform(
+                carla.Location(x=2, y=0, z=2),
+                carla.Rotation(pitch=-2, yaw=0, roll=0.0)
+            ),
             self.car,
             {},
             display_pos=[0, 1],
@@ -2272,6 +2529,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #     {},
         #     display_pos=[0, 2],
         # )
+
+        return init_pose
 
     def merge_and_extend_lines(self, lines, ll_segment):
         # Merge parallel lines
@@ -2460,7 +2719,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def load_world(self, client, town):
         client.set_timeout(10.0)
-        print(f"\n maps in carla 0.9.13: {client.get_available_maps()}\n")
+        # print(f"\n maps in carla 0.9.13: {client.get_available_maps()}\n")
 
         # traffic_manager = client.get_trafficmanager(self.config["manager_port"])
         world = client.load_world(town)
@@ -2479,13 +2738,15 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if all(x == 0 for x in distances):
             return False # Tolerate missing frames
 
-        similar_count = 0
-        for i in range(6):
-            if abs(distances[i] - self.last_centers[i]) < 30:
-                similar_count += 1
-        if similar_count > 3:
-            return False
-        return True
+        differents = 0
+        for i in range(len(distances)):
+            if abs(distances[i] - self.last_centers[i]) > 100:
+                differents += 1
+                if differents > len(distances) // 4:
+                    print("lane changed!")
+                    # print(f"from {self.last_centers} to {distances}!")
+                    return True
+        return False
 
     def reload_worlds(self):
         for client in self.clients:
@@ -2511,3 +2772,252 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def miss_detection(self, i, center_image):
         return [int((center_image * 2) - 1)] if self.no_detected[i][0] > center_image else [0]
+
+    TRAINING_ID = os.getpid()  # or generate a UUID if needed
+    REWARD_FILE_PATH = f"/tmp/rlstudio_reward_monitor_{TRAINING_ID}.json"
+
+    def update_reward_monitor(self, avg_reward):
+        try:
+            with open(self.REWARD_FILE_PATH, "w") as f:
+                json.dump({"avg_reward": avg_reward, "timestamp": time.time()}, f)
+        except Exception as e:
+            print(f"Could not write reward monitor file: {e}")
+
+    def update_tensorboard_stats(self, tensorboard):
+        tensorboard.update_stats(
+            steps_episode=self.step_count,
+            cum_rewards=self.cumulated_reward,
+            crashed=self.deviated,
+            d_reward=self.episode_d_reward,
+            v_reward=self.episode_v_eff_reward,
+            avg_speed=self.avg_speed,
+            max_speed=self.max_speed,
+            abs_w_no_curves_avg=self.abs_w_no_curves_avg,
+            # throttle_difference=self.throttle_action_difference,
+            # throttle_curves=self.throttle_action_avg_curves,
+            # throttle_no_curves=self.throttle_action_avg_no_curves,
+            # throttle_curves_std=self.throttle_action_std_dev_curves,
+            # throttle_no_curves_std=self.throttle_action_std_dev_no_curves,
+            # cum_d_reward=cum_d_reward,
+            # max_reward=max_reward,
+            # steering_std_dev=steering_std_dev,
+            advanced_meters=self.advanced_meters,
+            # actor_loss=self.actor_loss,
+            # critic_loss=self.critic_loss,
+            # cpu=self.cpu_usages,
+            # gpu=self.gpu_usages,
+            # collisions = self.crash,
+            # completed = completed
+        )
+
+    def detect_centers_from_image(self, ll_segment):
+        (
+            center_lanes,
+            distance_to_center_normalized
+        ) = self.calculate_center(ll_segment)
+        center_distance, right_center_lane = choose_lane(distance_to_center_normalized,
+                                                         center_lanes)
+        # if self.projected_x is not None:
+        #   right_center_lane, center_distance = self.project_line(self.x_row, right_center_lane,
+        #                                                                           center_distance,
+        #                                                                           self.projected_x)
+
+        x = np.array(self.x_row)
+        y = np.array(center_distance)
+        final_curvature = self.calculate_curvature_from(x, y)
+        return center_distance, final_curvature
+
+    def detect_all_from_segmentated(self, segmentated_image):
+        # Extract raw data
+        array = np.frombuffer(segmentated_image['raw_data'], dtype=np.uint8)
+        array = np.reshape(array, (segmentated_image['height'], segmentated_image['width'], 4))  # BGRA
+
+        # Extract the red channel — class ID is encoded here for semantic camera
+        semantic = array[:, :, 2]  # R channel for semantic segmentation
+
+        # Create binary mask for road (class ID 7)
+        road_mask = semantic == 7
+        lane_marking_mask = semantic == 6  # lane markings (center, side, etc.)
+
+        # Create a blank RGB image and paint road pixels white
+        road_rgb = np.zeros((segmentated_image['height'], segmentated_image['width'], 3), dtype=np.uint8)
+        road_rgb[road_mask] = [255, 255, 255]  # white
+        # Paint lane markings yellow
+        road_rgb[lane_marking_mask] = [255, 255, 0]
+
+        # Ensure correct shape and dtype for pygame
+        road_rgb = np.ascontiguousarray(road_rgb)
+
+        road_edges = np.zeros(road_rgb.shape, dtype=np.uint8)
+        # road_edges[lane_marking_mask] = [255, 255, 0]
+        # Go through each x-point and find the top-most and bottom-most road pixel (white)
+
+        line_points = []
+        left_road_border = []
+        right_road_border = []
+
+        # ys, xs = np.where(lane_marking_mask)  # row (y), column (x)
+        # 5. Fit a line: x = a*y + b (so we can get x at specific y values)
+        # midle_line = True
+        # if len(xs) > 0:
+        #     coeffs = np.polyfit(ys, xs, deg=1)  # Fit x = a*y + b
+        #     a, b = coeffs
+        # else:
+        #     midle_line = False  # No lane markings found
+
+        for y in range(segmentated_image['height']):
+            road_row = road_rgb[y, :]  # shape (width, 3)
+            line_row = lane_marking_mask[y, :]  # This is a 1D boolean array over x
+
+            x_coords = np.where(line_row)[0]  # Get x indices where lane marking exists
+
+            if len(x_coords) != 0:
+                x_center = int(np.mean(x_coords))  # Middle point
+                # cv2.circle(road_edges, (x_center, y), radius=3, color=(255, 255, 0), thickness=-1)  # Red right
+                # road_edges[y, x_center] = [255, 255, 0]
+                line_points.append(x_center)
+            # if midle_line:
+            #     x_value = (a * y + b).astype(int)
+            #     if 0 < x_value < 640:
+            #         cv2.circle(road_edges, (x_value, y), radius=3, color=(255, 255 ,0), thickness=-1)  # Red right
+            #         # road_edges[y, x_value] = [255, 255, 0]
+            #     line_points.append(x_value)
+            else:
+                line_points.append(-1)
+
+            # Find white pixels in this row (i.e., road pixels)
+            road_pixels = np.where((road_row == [255, 255, 255]).all(axis=1))[0]
+
+            if len(road_pixels) == 0:
+                left_road_border.append(-1) # no road in this row
+                right_road_border.append(-1) # no road in this row
+                continue
+
+            # Get left and right sides excluding when it is out of the image
+            x_left = road_pixels[0]
+            if x_left == 0:
+                left_road_border.append(-1) # no road in this row
+            else:
+                left_road_border.append(x_left)  # no road in this row
+
+            x_right = road_pixels[-1]
+            if x_right >= segmentated_image['width']-1:
+                right_road_border.append(-1) # no road in this row
+            else:
+                right_road_border.append(x_right)  # no road in this row
+
+            # Optionally draw them for visualization
+            # road_edges[y, x_left] = [0, 255, 255]  # green for left edge
+            # road_edges[y, x_right] = [0, 0, 255]  # blue for right edge
+            # cv2.circle(road_edges, (x_left, y), radius=3, color=(0, 255, 255), thickness=-1)  # Yellow left
+            # cv2.circle(road_edges, (x_right, y), radius=3, color=(0, 0, 255), thickness=-1)  # Red right
+
+        return road_edges, line_points, left_road_border, right_road_border
+
+    def show_image(self, name, image):
+        cv2.imshow(name, image)
+        cv2.waitKey(1)  # 1 millisecond
+
+    def initialize_carla(self):
+        if isinstance(self.ports, list):
+            self.clients = [
+                carla.Client(self.carla_ip, port)
+                for port in self.ports
+            ]
+        else:
+            self.client = carla.Client(
+                self.carla_ip,
+                self.ports,
+            )
+            self.clients = [self.client]
+        self.towns = self.config["town"]
+        self.worlds = []
+        self.world = None
+        self.init_world()
+
+    def get_stacked_image(self, centers, ll_segment):
+        if self.detection_mode == "carla_perfect":
+            ll_segment_int8 = ll_segment
+        else:
+            ll_segment_int8 = (ll_segment * 255).astype(np.uint8)
+
+        height, width = ll_segment.shape
+
+        ll_segment_all = [np.copy(ll_segment_int8), np.copy(ll_segment_int8), np.copy(ll_segment_int8)]
+
+        # Draw the midpoint used as right center lane
+        # for index, dist in zip(self.x_row, centers):
+        #     add_midpoints(ll_segment_all[0], index, dist)
+        # for x, y in centers:
+        #     if 0 <= y < ll_segment_all[0].shape[0] and 0 <= x < ll_segment_all[0].shape[1]:
+        #         add_midpoints(ll_segment_all[2], x, y)
+
+        # Draw a line for the selected perception points
+        # for index in self.x_row:
+        #     for i in range(630):
+        #         ll_segment_all[0][index][i] = 255
+
+        # Add interpolated lane points to the first channel
+        for pt in centers:
+            x, y = int(pt[0]), int(pt[1])
+            add_midpoints(ll_segment_all[2], y, x)
+        # for pt in interpolated_right:
+        #     x, y = int(pt[0]), int(pt[1])
+        #         add_midpoints(ll_segment_all[2], y, x)
+
+        return np.stack(ll_segment_all, axis=-1)
+
+    def reconnect_to_carla(self):
+        time.sleep(10)
+        try:
+            self.initialize_carla()
+        except RuntimeError:
+            print("Waiting for CARLA to become available to reconnect...")
+            return self.reconnect_to_carla()
+        states, _ = self.reset()
+        return states, 0, True, True, {}
+
+    def update_all_tensorboard_stats(self):
+        self.update_tensorboard_stats(self.tensorboard)
+        if self.spawn_points is None:
+            return
+        if self.start_location_tag not in self.tensorboard_location_writers:
+            self.tensorboard_location_writers[self.start_location_tag] = ModifiedTensorBoard(
+                log_dir=f"{self.tensorboard_logs_dir}/{self.start_location_tag}"
+            )
+        self.update_tensorboard_stats(self.tensorboard_location_writers[self.start_location_tag])
+        # self.tensorboard.update_fps(self.step_fps)
+
+
+def project_world_to_image(world_points, cam_transform, K):
+    """
+    world_points: list of carla.Location
+    cam_transform: camera transform
+    K: intrinsic matrix
+    """
+    # Get extrinsic matrix (world to camera)
+    cam_world_matrix = np.array(cam_transform.get_matrix())
+    world_to_cam = np.linalg.inv(cam_world_matrix)
+
+    points_2d = []
+    for p in world_points:
+        point = np.array([p.x, p.y, p.z, 1])
+        point_cam = world_to_cam @ point
+
+        # Skip points behind the camera
+        if point_cam[2] <= 0:
+            continue
+
+        point_img = K @ point_cam[:3]
+        point_img /= point_img[2]
+        points_2d.append((int(point_img[0]), int(point_img[1])))
+
+    return points_2d
+
+def get_car_location_tag(transform):
+    location = transform.location
+    rotation = transform.rotation
+    x, y, z = location.x, location.y, location.z
+    pitch, roll, yaw = rotation.pitch, rotation.roll, rotation.yaw
+    return f"x{int(x)}_y{int(y)}_z{int(z)}_p{int(pitch)}_r{int(roll)}_y{int(yaw)}";
+

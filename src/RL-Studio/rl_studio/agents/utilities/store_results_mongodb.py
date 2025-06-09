@@ -1,5 +1,4 @@
 import yaml
-import pymongo
 from pymongo import MongoClient
 import datetime
 import os
@@ -14,12 +13,32 @@ reward_filename = '/home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_stu
 reward_method = 'rewards_easy'
 
 tensorboard_logs_dir = os.path.join(
-    '/home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/logs/retraining/follow_lane_carla_ddpg_auto_carla_baselines/TensorBoard/DDPG_Actor_conv2d32x64_Critic_conv2d32x64-20250210-100117',
-    'events.out.tfevents.1739178077.ruben-Alienware-Aurora-Ryzen-Edition.6413.0.v2')
+    '/home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/logs/training/follow_lane_carla_ddpg_auto_carla_baselines/TensorBoard/DDPG_Actor_conv2d32x64_Critic_conv2d32x64-20250608-005241/overall',
+    'events.out.tfevents.1749336762.ruben-Alienware-Aurora-Ryzen-Edition.44336.0.v2')
 
 lesson_learned = '''
-    HERE WE HAVE THE STAGE 2 METRICS!!!
-    CHECK IT OUT PREVIOUS REPORT FOR 1st STAGE METRICS AND LESSONS LEARNED
+    Lessons after trying an intersections and sharper curve approach.
+    1. If using a perception based on lines => not use fixed y_points since there may be right line but not left or viceversa.
+       It is better to use a dynamic approach in which middle points are retrieved from interpolated valid lines points
+    2. Better use road than lines, but if not possible because we need the intermediate one, a convolutional NN may be the best option.
+       Quadratic (or more level) polyfit may be poor for detected lines sometimes.
+    3. If we are not capturing the upper side (curve upcoming) soon, the car may have not enough time to brake at high speeds.
+       Therefore it will learn either going too slow all time or no learn to make the sharp curve at all.
+       The solution for this is:
+            - Retrieving the upper points as sson as possible
+            - Guide the agent further by providing an v_goal based on how deviated it is from the center and the line curvature
+              In this way it has stronger signals in the short-term to know it must brake when a sharp curve is in the horizon. 
+    4. If intersections have several valid paths, make sure the one taking by the agent is the one indicated by the center points (path planing).
+       Otherwise it may struggle to learn to follow the lane since some wrong actions lead to good reward outcomes.
+    Non-related to sharp curves:
+    1. PPO may experience catastrophic forgetting if entropy and exploration are too low
+    2. Carla gives the centers ground-truth retrieving waypoints.next.location and transforming it into camera coordinates
+    3. Carla has limitations (due to UnrealEngine) when restarting the environment (specially if changing worlds)
+       It has some memory leaks (not that evident, but problematics in the mid-term like 10 to 20 hours from start)
+       and is quite fragile if destroying actors agresively since it may crash while looking for destroying actors like
+       spectator or internal simulation artifacts.
+        - Destroy actors with care (sensors, callbacks, vehicles) but call them to free memory
+        - Restart simulator when crash, capture the exception in your program, reconnect and keep the experiment   
     '''
 
 def load_hyperparameters(yaml_file):
@@ -93,11 +112,11 @@ def run_training_and_store_results(yaml_file):
     plot_tensorboard_results.plot_metrics(tensorboard_logs_dir, "std_dev_w", False)
     std_dev_w_plot = encode_plots()
 
-    plot_tensorboard_results.plot_metrics(tensorboard_logs_dir, "throttle_curves", False)
-    throttle_curves_plot = encode_plots()
-
-    plot_tensorboard_results.plot_metrics(tensorboard_logs_dir, "throttle_no_curves", False)
-    throttle_no_curves_plot = encode_plots()
+    # plot_tensorboard_results.plot_metrics(tensorboard_logs_dir, "throttle_curves", False)
+    # throttle_curves_plot = encode_plots()
+    #
+    # plot_tensorboard_results.plot_metrics(tensorboard_logs_dir, "throttle_no_curves", False)
+    # throttle_no_curves_plot = encode_plots()
 
     # Simulate training results
     training_results = {
@@ -109,8 +128,8 @@ def run_training_and_store_results(yaml_file):
             'abs_w_no_curves_avg_plot': abs_w_no_curves_avg_plot,
             'std_dev_v_plot': std_dev_v_plot,
             'std_dev_w_plot': std_dev_w_plot,
-            'throttle_curves_plot': throttle_curves_plot,
-            'throttle_no_curves_plot': throttle_no_curves_plot,
+            # 'throttle_curves_plot': throttle_curves_plot,
+            # 'throttle_no_curves_plot': throttle_no_curves_plot,
         }
     }
 

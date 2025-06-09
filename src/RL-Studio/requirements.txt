@@ -43,4 +43,5 @@ prefetch_generator
 nvidia-ml-py3
 pynvml
 fastseg
+shapely
 carla==0.9.13
