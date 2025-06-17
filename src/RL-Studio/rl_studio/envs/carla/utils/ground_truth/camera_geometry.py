@@ -70,8 +70,8 @@ def get_matrix_global(vehicle, trafo_matrix_vehicle_to_cam, opposite=False):
 
     return trafo_matrix_global_to_camera
 
-def create_lane_lines(waypoint, vehicle, opposite=False, exclude_junctions=True, only_turns=True):
-    
+def create_lane_lines(waypoint, opposite=False, exclude_junctions=True, only_turns=True):
+
     center_list, left_boundary, right_boundary = [], [], []
 
     # This number represents how high we go in the line detection

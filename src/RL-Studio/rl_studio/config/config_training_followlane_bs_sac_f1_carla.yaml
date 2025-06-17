@@ -18,18 +18,18 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 2500
+  steps_to_decrease: 1000
   entropy_factor: 0
-  decrease_substraction: 0.003
+  decrease_substraction: 0.005
   decrease_min: 0.05
   reward_params:
     function: pow
-    punish_zig_zag_value: 5
+    punish_zig_zag_value: 3
     punish_ineffective_vel: 1 # velocity below which reward is not calculated (0)
-    beta_1: 0
+    beta_1: 0.2
 
 hot_reload_settings:
-  visualize: False
+  visualize: True
   debug_waypoints: False
 
 ros:
@@ -38,7 +38,7 @@ ros:
 
 retraining:
   sac:
-    retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20250507-184939/best_model.zip
+    retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20250616-213128/model_730000_steps_20250617-091959.zip
 
 inference:
   sac:

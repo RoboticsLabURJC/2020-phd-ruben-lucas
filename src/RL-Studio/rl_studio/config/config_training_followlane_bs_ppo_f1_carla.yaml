@@ -1,6 +1,5 @@
 settings:
   mode: training # training, retraining, inference
-#  task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: ppo_continuous # qlearn, dqn, ddpg, ppo
   simulator: carla # openai, carla, gazebo, sumo
@@ -19,18 +18,18 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 2500
+  steps_to_decrease: 1000
   entropy_factor: 0
-  decrease_substraction: 0.003
+  decrease_substraction: 0.005
   decrease_min: -4
   reward_params:
     function: pow
-    punish_zig_zag_value: 5
+    punish_zig_zag_value: 3
     punish_ineffective_vel: 1 # velocity below which reward is not calculated (0)
     beta_1: 0
 
 hot_reload_settings:
-  visualize: False
+  visualize: True
   debug_waypoints: False
 
 ros:

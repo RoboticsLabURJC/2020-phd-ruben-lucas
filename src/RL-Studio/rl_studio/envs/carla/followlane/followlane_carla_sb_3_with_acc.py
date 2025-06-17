@@ -1334,7 +1334,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             lane_type=carla.LaneType.Driving,
         )
 
-        center_list, left_boundary, right_boundary, type_lane = create_lane_lines(waypoint, self.car)
+        center_list, left_boundary, right_boundary, type_lane = create_lane_lines(waypoint)
 
         projected_left_boundary = project_polyline(
             left_boundary, trafo_matrix_global_to_camera, self.K).astype(np.int32)
