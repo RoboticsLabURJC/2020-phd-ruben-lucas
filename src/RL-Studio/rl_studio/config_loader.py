@@ -4,7 +4,6 @@ from rl_studio.agents.f1.loaders import load_common_env_params
 
 CONFIG_PATH = None  # Global variable
 
-
 def set_config_path(path):
     global CONFIG_PATH
     CONFIG_PATH = os.path.abspath(path)

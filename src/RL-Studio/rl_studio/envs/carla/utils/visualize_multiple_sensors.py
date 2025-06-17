@@ -45,9 +45,13 @@ class CustomTimer:
 
 
 class DisplayManager:
-    def __init__(self, grid_size, window_size):
+    def __init__(self, grid_size, window_size, headless=False):
+        if headless:
+            os.environ["SDL_VIDEODRIVER"] = "dummy"
+
         pygame.init()
         pygame.font.init()
+
         self.display = pygame.display.set_mode(
             window_size, pygame.HWSURFACE | pygame.DOUBLEBUF
         )

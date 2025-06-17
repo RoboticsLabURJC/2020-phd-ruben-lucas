@@ -66,7 +66,7 @@ def get_avg_reward_from_file(path):
     except Exception:
         return None, None
 
-def should_stop_early(start_time, reward_file, reward_history, patience_hours=10, batch_size=100, trim=5):
+def should_stop_early(start_time, reward_file, reward_history, patience_hours=6, batch_size=100, trim=5):
     import time
 
     current_time = time.time()

@@ -334,6 +334,7 @@ class CustomEvalCallback(EvalCallback):
 
         # Log the 2D histogram or scatter plot during evaluation
         if self.n_calls % self.eval_freq == 0:
+            print("Evaluating agent!")
             self.log_action_map()
 
         return result
@@ -351,7 +352,7 @@ class CustomEvalCallback(EvalCallback):
             action, _ = self.model.predict(obs, deterministic=True)
             obs, _, done, done, info = self.env.step(action)
 
-            distance_errors.append(info["distance_error"][0])  # Adjust based on your environment
+            distance_errors.append(info["distance_error"])  # Adjust based on your environment
             velocities.append(info["velocity"])  # Adjust based on your environment
             throttle.append(action[0])  # Assuming action is scalar or index 0 for one component
             steer.append(action[1])  # Assuming action is scalar or index 0 for one component
@@ -522,7 +523,7 @@ class TrainerFollowLanePPOCarla:
         ## Load Carla server
         # CarlaEnv.__init__(self)
 
-        self.rebuild_env()
+        self.env = gym.make(self.env_params.env_name, **self.environment.environment)
         self.all_steps = 0
         self.current_max_reward = 0
         self.best_epoch = 0
@@ -558,7 +559,7 @@ class TrainerFollowLanePPOCarla:
                 self.env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[64, 128, 128, 64],  # The architecture for the policy network
+                        pi=[128, 128, 128],  # The architecture for the policy network
                         vf=[64, 128, 128, 64]  # The architecture for the value network
                     ),
                     activation_fn=nn.ReLU,
@@ -693,8 +694,8 @@ class TrainerFollowLanePPOCarla:
     def rebuild_env(self):
         try:
             self.env = gym.make(self.env_params.env_name, **self.environment.environment)
-        except Exception:  # TODO better control the exception type
-            print("error")
+        except Exception as e:  # TODO better control the exception type
+            print(f"Error building env: {e}")
 
     # with open("/tmp/.carlalaunch_stdout.log", "w") as out, open("/tmp/.carlalaunch_stderr.log", "w") as err:
             #     print("carla broken. Restarting Carla")

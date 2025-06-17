@@ -12,6 +12,7 @@ from numpy import random
 import psutil
 import numpy as np
 import json
+import traceback
 
 from pyglet.libs.x11.xlib import None_
 from sympy.solvers.ode import infinitesimals
@@ -539,6 +540,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.start = time.time()
 
+        self.last_lane_id = None
         self.prev_throtle = 0
         self.episode_d_reward = 0
         self.curves_states = 0
@@ -651,17 +653,18 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.ports = config["carla_client"]
         self.carla_ip = config["carla_server"]
 
-        try:
-            self.initialize_carla()
-        except RuntimeError:
-            print("Waiting for CARLA to become available to reconnect...")
-            self.reconnect_to_carla()
-
         ## -- display manager
         self.display_manager = DisplayManager(
             grid_size=[2, 3],
             window_size=[1500, 800],
+            headless=False
         )
+
+        try:
+            self.initialize_carla()
+        except Exception as e:
+            print("Waiting for CARLA to become available to reconnect...")
+            self.reconnect_to_carla()
 
         self.car = None
 
@@ -727,15 +730,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def doReset(self):
         ep_time = time.time() - self.start
         print("Step time:", ep_time / self.step_count)
-        if len(self.actor_list) > 0:
-            self.destroy_all_actors()
-            self.display_manager.destroy()
-        if isinstance(self.towns, list):
-            self.world = random.choice(self.worlds)
-            self.map = self.world.get_map()
 
-        if self.episode % 200 == 0:  # Adjust step frequency as needed
-            self.reload_worlds()
+        self.close()
+
+        if self.episode % 25 == 0:  # Adjust step frequency as needed
+            # self.reload_worlds()
+            self.load_any_world()
             print(psutil.Process(os.getpid()).memory_info().rss / 1e6, "MB")
             gc.collect()
             print(self.world.get_actors().filter("*"))
@@ -821,7 +821,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             final_curvature = calculate_max_curveture_from_centers(center_points)
 
             x_centers = center_points[:, 0]
-            states = (x_centers / 512).tolist()
+            x_centers_normalized = (x_centers / 512).tolist()
+            states = x_centers_normalized
             y_centers = center_points[:, 1]
             states = states + (y_centers / 512).tolist()  # Returns a list
             # OJO, AÚN HACE COSAS RARAS EN CURVAS... REVISAR SI SE SIGUE POR AQUÍ
@@ -892,9 +893,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def reset(self, seed=None, options=None):
         try:
             return self.doReset()
-        except RuntimeError:
-            print("Waiting for CARLA to become available to reset...")
+        except Exception as e:
+            print(f"Waiting for CARLA to become available to reset... after {e}")
+            traceback.print_exc()
             self.reconnect_to_carla()
+            return self.reset()
 
     def calculate_and_report_episode_stats(self):
         if len(self.episodes_speed) == 0:
@@ -1266,6 +1269,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.collision_hist.append(event)
 
     def destroy_all_actors(self):
+        if len(self.actor_list) <= 0:
+            return
         for actor in self.actor_list[::-1]:
             # for actor in self.actor_list:
             if hasattr(actor, 'is_listening') and actor.is_listening:
@@ -1385,7 +1390,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             mask_3ch = np.stack([mask] * 3, axis=-1)
 
             stacked_image = np.where(mask_3ch, ll_segment, raw_image)
-            v_goal = calculate_v_goal(final_curvature, center_distance)
+            # v_goal = calculate_v_goal(final_curvature, center_distance)
         elif self.detection_mode == 'carla_perfect_center':
             (ll_segment,
              misalignment,
@@ -1395,7 +1400,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             final_curvature = calculate_max_curveture_from_centers(center_points)
 
             x_centers = center_points[:, 0]
-            states = (x_centers / 512).tolist()
+            x_centers_normalized = (x_centers / 512).tolist()
+            states = x_centers_normalized
             y_centers = center_points[:, 1]
             states = states + (y_centers / 512).tolist()  # Returns a list
             centers = center_points
@@ -1458,8 +1464,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             states = center_distance
             v_goal = calculate_v_goal(final_curvature, center_distance)
 
-        #params["final_curvature"] = final_curvature
-        reward, done, has_crashed = self.rewards_easy(center_distance, action, params, v_goal=v_goal, x_centers=x_centers)
+        params["final_curvature"] = final_curvature
+        reward, done, has_crashed = self.rewards_easy(center_distance, action, params, v_goal=v_goal, x_centers=x_centers_normalized)
 
         self.car.reward = reward
         self.cumulated_reward = self.cumulated_reward + reward
@@ -1509,7 +1515,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #
         if not all(x == 0 for x in states):
             # self.last_centers = x_midpoints.copy()
-            self.last_centers = x_centers.copy()
+            self.last_centers = x_centers_normalized.copy()
         # print(np.array(states))
         return np.array(states), reward, done, done, params
 
@@ -1558,9 +1564,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
             # for _ in range(1):  # Apply the action for 3 consecutive steps
             states, reward, done, done, params = self.apply_step(action)
-        except RuntimeError:
-            print("Waiting for CARLA to become available to step...")
-            return self.reconnect_to_carla()
+        except Exception as e:
+            print(f"Waiting for CARLA to become available to step... after {e}")
+            traceback.print_exc()
+            self.reconnect_to_carla()
+            states, reward, done, done, params = self.step(action)
 
         return states, reward, done, done, params
 
@@ -1652,15 +1660,15 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # distance_error = [abs(x) for x in centers_distances]
 
         ## EARLY RETURNS
-        #params["distance_error"] = distance_error
+        params["distance_error"] = center_distance
         params["d_reward"] = 0
         params["v_reward"] = 0
         params["v_eff_reward"] = 0
         params["reward"] = 0
 
         # car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
-        car_deviated_punish = -20
-        lane_changed_punish = -1
+        car_deviated_punish = 0
+        lane_changed_punish = 0
 
         # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
         #  En curvas
@@ -1687,7 +1695,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #
         # # TODO ignore non detected centers
         # d_reward = 0 if len(d_rewards) == 0 else sum(d_rewards) / len(d_rewards)
-        d_reward = 1 - abs(center_distance)
+        # d_reward = 1 - abs(center_distance)
+        pos_reward = 1 - abs(center_distance)
+        d_reward = 1 - (abs(0.5 - np.mean(x_centers[:5]))*2)
+        # align_reward = 1 - (abs(0.5 - np.mean(x_centers[:5]))*2)
+        # print(x_centers[:1])
+        # print("align_reward", d_reward)
 
         v = params["velocity"]
 
@@ -1698,7 +1711,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             if self.steps_stopped > 100:
                 print("too much time stopped")
                 return car_deviated_punish, True, False
-            return car_deviated_punish + (action[0] * d_reward), False, False
+            # return car_deviated_punish + (action[0] * d_reward), False, False
+            reward = action[0] * d_reward/100
+            reward -= self.calculate_punish(params, action)
+            return reward, False, False
             # beta = 0  # por debajo de v_ineffective solo vale la v
         else:
             self.steps_stopped = 0
@@ -1720,9 +1736,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # print(f"sRew {speed_reward}")
 
         # throttle = max(action[0], 0)  # TODO OJO que aquí aplicas el freno indistintamente de la v!
-        # v_component = throttle if v < vv3 else v/3
-        v_component = 20.0 - abs(v_goal - float(v))
+        # v_component = throttle if v < 3 else v/3
+        v_component = (25.0 - abs(v_goal - float(v))) / 25
         v_eff_reward = v_component * d_reward
+        # v_eff_reward = (v_component * d_reward) + (align_reward * d_reward)
+        # v_eff_reward = v_component * d_reward + align_reward * d_reward
         # v_eff_reward = v/20  * d_reward
         # v_eff_reward = throttle * d_reward
         # v_eff_reward = throttle * pow(d_reward, (throttle + 1))
@@ -1745,40 +1763,15 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         # TOTAL REWARD CALCULATION
         beta = 1 if self.stage == "w" else beta
-        d_reward_component = beta * d_reward
+        # d_reward_component = beta * d_reward
+        d_reward_component = beta * pos_reward
         v_reward_component = (1 - beta) * v_eff_reward
         # progress_reward_component = advanced * 0.01
 
         function_reward = d_reward_component + v_reward_component
 
         # PUNISH CALCULATION
-        punish = 0
-        # Punish zig zag on straights
-        #if params["final_curvature"] < 0.00001:
-        punish += self.punish_zig_zag_value * abs(action[1])
-        #punish =+ misalignment
-
-        if self.stage in ("v", "r"):
-            punish += 1 if action[0] > 0.95 else 0
-            # if not is_not_aligned:
-            # punish += abs(self.prev_throtle - action[0]) * 5  # TODO parametrize stablility punish
-            # self.prev_throtle = action[0]
-            # if action[0] < 0:
-            #     punish += abs(action[0]) * 5
-            # punish += self.car.get_angular_velocity().z / 50
-
-        # if distance_error[0] > 0.05 and v > 20:
-        #     punish += 0.5 * (v - 20)
-
-        # ang = abs(params["angular_velocity"])
-        # if ang > 0.4:
-        #     punish += ang * 10
-        # punish += (1-self.beta) * v_reward * math.pow((1-d_reward), 2)
-        # if function_reward > punish:  # to avoid negative rewards
-        #     function_reward -= punish
-        # else:
-        #     function_reward = 0
-        function_reward -= punish
+        function_reward -= self.calculate_punish(params, action)
 
         self.episode_v_eff_reward = self.episode_v_eff_reward + (
                 v_eff_reward - self.episode_v_eff_reward) / self.step_count
@@ -1895,6 +1888,93 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         return image
 
+    def get_stable_waypoint(self, location, map_api, alignment_threshold=0.8, distance_threshold=1.0):
+        """
+        Returns a stable waypoint close to the last lane to avoid premature lane switching.
+
+        - location: carla.Location current car position
+        - map_api: world.get_map() object to call get_waypoint()
+        - alignment_threshold: min alignment required to consider still in same lane
+        - distance_threshold: max lateral distance allowed from last lane to keep it
+
+        Returns: carla.Waypoint
+        """
+        current_wp = map_api.get_waypoint(location, project_to_road=True, lane_type=carla.LaneType.Driving)
+        if self.last_lane_id is None:
+            self.last_lane_id = current_wp.lane_id
+            return current_wp
+
+        # If current waypoint lane_id is the same as last one, just return it
+        if current_wp.lane_id == self.last_lane_id:
+            return current_wp
+
+        # Otherwise, check distance from current location to last lane centerline
+        last_lane_wp = map_api.get_waypoint(location, project_to_road=True, lane_type=carla.LaneType.Driving)
+        last_lane_wp = self.find_waypoint_by_lane_id(self.last_lane_id, location, map_api)
+        if last_lane_wp is None:
+            # Could not find last lane waypoint, fallback to current
+            self.last_lane_id = current_wp.lane_id
+            return current_wp
+
+        lateral_distance = self.calculate_lateral_distance(location, last_lane_wp.transform)
+
+        # If car is still close to last lane centerline and well aligned, keep last lane
+        if lateral_distance < distance_threshold:
+            return last_lane_wp
+
+        # Else update to new lane_id and return current
+        self.last_lane_id = current_wp.lane_id
+        return current_wp
+
+    def find_waypoint_by_lane_id(self, lane_id, location, map_api):
+        """
+        Helper to find a waypoint near the current location with a specific lane_id.
+        This can be improved based on how to search waypoints around the car.
+        """
+        # For simplicity, get waypoint at location but filter lane_id
+        wp = map_api.get_waypoint(location, project_to_road=True, lane_type=carla.LaneType.Driving)
+        if wp.lane_id == lane_id:
+            return wp
+        # Could add more sophisticated search around location if needed
+        return None
+
+    def calculate_lateral_distance(self, location, transform):
+        """
+        Calculate lateral distance of location from lane center transform.
+        """
+        dx = location.x - transform.location.x
+        dy = location.y - transform.location.y
+        # Assuming lane direction is along transform.rotation.yaw
+        yaw_rad = np.deg2rad(transform.rotation.yaw)
+        # Project vector onto lateral axis (perpendicular to lane direction)
+        lateral_dist = abs(-np.sin(yaw_rad) * dx + np.cos(yaw_rad) * dy)
+        return lateral_dist
+
+    def adjust_lane_polyline_for_offset(self, polyline, lateral_offset):
+        adjusted_polyline = []
+        for i in range(len(polyline) - 1):
+            p1 = polyline[i]
+            p2 = polyline[i + 1]
+
+            direction = p2[:2] - p1[:2]
+            norm = np.linalg.norm(direction)
+            if norm == 0:
+                continue
+
+            direction /= norm
+            right_vec = np.array([-direction[1], direction[0]])
+
+            p1_adjusted = p1[:2] + lateral_offset * right_vec
+            adjusted_polyline.append(np.array([p1_adjusted[0], p1_adjusted[1], p1[2]]))
+
+        # Include the last point using the last segment's direction
+        if len(adjusted_polyline) > 0:
+            p_last = polyline[-1]
+            p_last_adjusted = adjusted_polyline[-1]  # Reuse last direction
+            adjusted_polyline.append(np.array([p_last_adjusted[0], p_last_adjusted[1], p_last[2]]))
+
+        return np.array(adjusted_polyline)
+
     def detect_center_line_perfect(self, ll_segment, num_points=20):
         ll_segment = cv2.cvtColor(ll_segment, cv2.COLOR_BGR2GRAY)
 
@@ -1917,12 +1997,55 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         misalignment = (1 - abs(alignment)) * 10
 
         center_list, left_boundary, right_boundary, type_lane = create_lane_lines(
-            waypoint, self.car, opposite=opposite
+            waypoint, opposite=opposite
         )
 
         if center_list is None or len(center_list) < 2:
             interpolated_center = []
         else:
+            projected_center = project_polyline(
+                center_list, trafo_matrix_global_to_camera, self.k
+            ).astype(np.int32)
+
+            trimmed_projected_center = trim_polyline_to_image(projected_center, ll_segment.shape)
+
+            if len(trimmed_projected_center) < 2:
+                interpolated_center = []
+            else:
+                interpolated_center = interpolate_lane_points(trimmed_projected_center, num_points)
+
+        # If interpolation failed, return dummy points
+        if interpolated_center is None or len(interpolated_center) < 2:
+            interpolated_center = np.full((num_points, 2), -1)
+        return ll_segment, misalignment, center_distance, interpolated_center
+
+    def detect_center_line_perfect_v2(self, ll_segment, num_points=20):
+        ll_segment = cv2.cvtColor(ll_segment, cv2.COLOR_BGR2GRAY)
+
+        height = ll_segment.shape[0]
+        width = ll_segment.shape[1]
+
+        trafo_matrix_global_to_camera = get_matrix_global(self.car, self.trafo_matrix_vehicle_to_cam)
+
+        if self.k is None:
+            self.k = get_intrinsic_matrix(90, width, height)
+
+        # Use stable waypoint to avoid premature lane switching
+        waypoint = self.get_stable_waypoint(self.car.get_transform().location, self.world.get_map())
+
+        _, center_distance, alignment = self.get_lane_position(self.car, self.map)
+        opposite = alignment < 0.5
+        misalignment = (1 - abs(alignment)) * 10
+
+        center_list, left_boundary, right_boundary, type_lane = create_lane_lines(
+            waypoint, opposite=opposite
+        )
+
+        if center_list is None or len(center_list) < 2:
+            interpolated_center = []
+        else:
+            center_list = self.adjust_lane_polyline_for_offset(center_list, center_distance)
+
             projected_center = project_polyline(
                 center_list, trafo_matrix_global_to_camera, self.k
             ).astype(np.int32)
@@ -1958,7 +2081,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         _, center_distance, alignment = self.get_lane_position(self.car, self.map)
         opposite = alignment < 0.5
         misalignment = (1 - abs(alignment)) * 10
-        center_list, left_boundary, right_boundary, type_lane = create_lane_lines(waypoint, self.car, opposite=opposite)
+        center_list, left_boundary, right_boundary, type_lane = create_lane_lines(waypoint, opposite=opposite)
 
         projected_left_boundary = project_polyline(
             left_boundary, trafo_matrix_global_to_camera, self.k).astype(np.int32)
@@ -2711,16 +2834,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 world = self.load_world(self.clients[i], self.towns[i])
                 self.worlds.append(world)
             self.world = random.choice(self.worlds)
-            self.map = self.world.get_map()
         else:
             self.world = self.load_world(self.client, self.towns)
             self.worlds.append(self.world)
-            self.map = self.world.get_map()
 
     def load_world(self, client, town):
-        client.set_timeout(10.0)
         # print(f"\n maps in carla 0.9.13: {client.get_available_maps()}\n")
-
         # traffic_manager = client.get_trafficmanager(self.config["manager_port"])
         world = client.load_world(town)
         print(f"loading world {town}")
@@ -2729,18 +2848,28 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         print(f"Current World Settings: {world.get_settings()}")
         return world
 
+    def load_any_world(self):
+        town = random.choice(self.towns)
+        self.world = self.client.load_world(town)
+        print(f"loading world {town}")
+        time.sleep(2.0)  # Needed to the simulator to be ready. TODO May be decrease to 1?
+        self.load_world_settings(self.world)
+        # print(f"Current World Settings: {self.world.get_settings()}")
+        self.map = self.world.get_map()
+
     def centers_switched(self, distances):
         """
         It returns true if more than half of coordinates (x or y) differs more than 10 pixels
         """
-        if self.last_centers is None:
+        if (self.
+                last_centers is None):
             return False
         if all(x == 0 for x in distances):
             return False # Tolerate missing frames
 
         differents = 0
         for i in range(len(distances)):
-            if abs(distances[i] - self.last_centers[i]) > 100:
+            if abs(distances[i] - self.last_centers[i]) > 0.2:
                 differents += 1
                 if differents > len(distances) // 4:
                     print("lane changed!")
@@ -2919,21 +3048,26 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         cv2.waitKey(1)  # 1 millisecond
 
     def initialize_carla(self):
-        if isinstance(self.ports, list):
-            self.clients = [
-                carla.Client(self.carla_ip, port)
-                for port in self.ports
-            ]
-        else:
-            self.client = carla.Client(
-                self.carla_ip,
-                self.ports,
-            )
-            self.clients = [self.client]
-        self.towns = self.config["town"]
-        self.worlds = []
-        self.world = None
-        self.init_world()
+        while self.clients is None:
+            try:
+                if isinstance(self.ports, list):
+                    self.clients = [
+                        init_client(self.carla_ip, port)
+                        for port in self.ports
+                    ]
+                else:
+                    self.client = init_client(self.carla_ip, self.ports)
+                    self.clients = [self.client]
+                self.towns = self.config["town"]
+
+                self.worlds = []
+                self.world = None
+                #self.init_world()
+                self.load_any_world()
+            except Exception as e:
+                print(f"Waiting for CARLA server... after {e}")
+                traceback.print_exc()
+                # time.sleep(20)
 
     def get_stacked_image(self, centers, ll_segment):
         if self.detection_mode == "carla_perfect":
@@ -2968,14 +3102,14 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return np.stack(ll_segment_all, axis=-1)
 
     def reconnect_to_carla(self):
-        time.sleep(10)
+        # time.sleep(20)
+        self.clients = None
         try:
             self.initialize_carla()
-        except RuntimeError:
-            print("Waiting for CARLA to become available to reconnect...")
-            return self.reconnect_to_carla()
-        states, _ = self.reset()
-        return states, 0, True, True, {}
+        except Exception as e:
+            print(f"Waiting for CARLA to become available to reconnect... after {e}")
+            traceback.print_exc()
+            self.reconnect_to_carla()
 
     def update_all_tensorboard_stats(self):
         self.update_tensorboard_stats(self.tensorboard)
@@ -2987,6 +3121,48 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             )
         self.update_tensorboard_stats(self.tensorboard_location_writers[self.start_location_tag])
         # self.tensorboard.update_fps(self.step_fps)
+
+    def calculate_punish(self, params, action):
+        punish = 0
+        # Punish zig zag on straights
+        # print(params["final_curvature"])
+        # print(v_goal)
+        # if params["final_curvature"] < 0.00001:
+        if params["final_curvature"] < 0.002:
+            punish += self.punish_zig_zag_value * abs(action[1])
+        #punish =+ misalignment
+
+        if self.stage in ("v", "r"):
+            punish += 1 if action[0] > 0.95 else 0
+            # if not is_not_aligned:
+            # punish += abs(self.prev_throtle - action[0]) * 5  # TODO parametrize stablility punish
+            # self.prev_throtle = action[0]
+            # if action[0] < 0:
+            #     punish += abs(action[0]) * 5
+            # punish += self.car.get_angular_velocity().z / 50
+
+        # if distance_error[0] > 0.05 and v > 20:
+        #     punish += 0.5 * (v - 20)
+
+        # ang = abs(params["angular_velocity"])
+        # if ang > 0.4:
+        #     punish += ang * 10
+        # punish += (1-self.beta) * v_reward * math.pow((1-d_reward), 2)
+        # if function_reward > punish:  # to avoid negative rewards
+        #     function_reward -= punish
+        # else:
+        #     function_reward = 0
+        return punish
+
+
+
+def init_client(ip, port):
+    client = carla.Client(
+        ip,
+        port,
+    )
+    client.set_timeout(20.0)
+    return client
 
 
 def project_world_to_image(world_points, cam_transform, K):
