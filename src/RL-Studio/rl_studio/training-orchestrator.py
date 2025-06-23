@@ -51,10 +51,10 @@ def orchestrate(experiments):
 
         while process.poll() is None:
             if should_stop_early(start_time, reward_file, reward_history):
-                process.terminate()
+                process.kill()
                 print(f"✅ Training {process.pid} stopped early.")
                 break
-            time.sleep(60)  # Check once per minute
+            time.sleep(10)
 
         print(f"[END] {datetime.now()} Training completed or stopped: {exp['algorithm']}\n")
 
@@ -66,7 +66,7 @@ def get_avg_reward_from_file(path):
     except Exception:
         return None, None
 
-def should_stop_early(start_time, reward_file, reward_history, patience_hours=6, batch_size=100, trim=5):
+def should_stop_early(start_time, reward_file, reward_history, patience_hours=6, batch_size=50):
     import time
 
     current_time = time.time()
@@ -80,7 +80,7 @@ def should_stop_early(start_time, reward_file, reward_history, patience_hours=6,
         return False
 
     # Require at least 4 full batches to start comparison
-    required_length = batch_size * 4
+    required_length = batch_size * 8
     if len(reward_history) < required_length:
         return False
 
@@ -90,31 +90,25 @@ def should_stop_early(start_time, reward_file, reward_history, patience_hours=6,
         for i in range(0, len(reward_history) - batch_size + 1, batch_size)
     ]
 
-    def trim_batch(batch, trim):
-        if len(batch) <= 2 * trim:
-            return batch  # not enough to trim, return original
-        sorted_batch = sorted(batch)
-        return sorted_batch[trim:-trim]
-
-    # Prepare first batch
-    first_batch = trim_batch(batches[0], trim)
+    first_batch = batches[0]
     first_avg = sum(first_batch) / len(first_batch)
     first_max = max(first_batch)
 
     stagnation_count = 0
 
-    # Check each of the last 3 batches
-    for batch in batches[-3:]:
-        trimmed = trim_batch(batch, trim)
-        batch_avg = sum(trimmed) / len(trimmed)
-        batch_max = max(trimmed)
+    # Check each of the last 7 batches
+    for batch in batches[-7:]:
+        batch_avg = sum(batch) / len(batch)
+        batch_max = max(batch)
         if batch_avg <= first_avg and batch_max <= first_max:
             stagnation_count += 1
 
-    if stagnation_count == 3:
-        print("🛑 Early stopping: reward stagnation over 3 batches of 100 episodes.")
+    if stagnation_count == 7:
+        print("🛑 Early stopping: reward stagnation over 7 batches of 100 episodes.")
         return True
-
+    else:
+        print(f"there was {stagnation_count} batches that not improved from 8 batches ago.")
+        reward_history.clear()
     return False
 
 if __name__ == "__main__":
