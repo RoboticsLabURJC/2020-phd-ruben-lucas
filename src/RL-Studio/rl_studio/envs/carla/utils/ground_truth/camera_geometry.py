@@ -17,19 +17,27 @@ def get_intrinsic_matrix(field_of_view_deg, image_width, image_height):
                      [0, 0, 1.0]])
 
 
-def project_polyline(points_3d, trafo, K):
+def project_polyline(points_3d, trafo, K, image_shape=None):
     # Step 1: Homogeneous coordinates
     points_3d_h = np.concatenate([points_3d, np.ones((points_3d.shape[0], 1))], axis=1)  # Nx4
 
     # Step 2: Transform to camera space
     points_cam = (trafo @ points_3d_h.T).T  # Nx4
 
-    if len(points_cam) == 0:
-        return np.empty((0, 2))
+    # Step 3: Filter points behind the camera
+    valid_z = points_cam[:, 2] > 0.1
+    points_cam = points_cam[valid_z]
 
     # Step 4: Project to image plane
     points_2d = (K @ points_cam[:, :3].T).T
-    points_2d = points_2d[:, :2] / points_cam[:, 2:3]
+    points_2d = points_2d[:, :2] / points_cam[:, 2:3]  # Normalize x/z and y/z
+
+    # Step 5 (NEW): Remove out-of-bounds pixels
+    if image_shape is not None:
+        h, w = image_shape
+        x, y = points_2d[:, 0], points_2d[:, 1]
+        in_bounds = (x >= 0) & (x < w) & (y >= 0) & (y < h)
+        points_2d = points_2d[in_bounds]
 
     return points_2d
 

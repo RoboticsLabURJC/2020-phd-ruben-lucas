@@ -1,5 +1,5 @@
 settings:
-  mode: training # training, retraining, inference
+  mode: inference # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: ddpg # qlearn, dqn, ddpg, ppo
   simulator: carla # openairee, carla, gazebo, sumo
@@ -18,9 +18,9 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 1000
-  decrease_substraction: 0.005
-  decrease_min: 0.05
+  steps_to_decrease: 4000
+  decrease_substraction: 0.002
+  decrease_min: 0.003
   entropy_factor: 0
   use_curves_state: False
   reward_params:
@@ -40,11 +40,13 @@ ros:
 
 retraining:
   ddpg:
-    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250608-105856/model_50000_steps.zip
+#    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250622-131058/best_model.zip
+    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250623-091035/best_model.zip
 inference:
   ddpg:
   #    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250429-225407/best_model.zip
-    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250602-233411/model_90000_steps.zip
+#    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250602-233411/model_90000_steps.zip
+    retrain_ddpg_tf_model_name:
 
 algorithm:
   ddpg:
@@ -101,7 +103,7 @@ carla_environments:
   follow_lane:
     env_name: CarlaEnv-v0
  #   town: [Town03, Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
-    town: Town01 #Town01, Town02, Town03, Town04, Town05, Town10HD
+    town: [Town10HD] #Town01, Town02, Town03, Town04, Town05, Town10HD
     # Town01_Opt, Town02_Opt, Town03_Opt, Town04_Opt, Town05_Opt, Town10HD_Opt
     car: model1
     weather: ClearNoon #dynamic, argparse

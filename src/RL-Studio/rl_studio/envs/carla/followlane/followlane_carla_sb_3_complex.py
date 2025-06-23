@@ -601,7 +601,7 @@ def normalize_centers(centers):
     x_centers_normalized = (x_centers / 512).tolist()
     states = x_centers_normalized
     y_centers = centers[:, 1]
-    states = states + (y_centers / 640).tolist()  # Returns a list
+    states = states + (y_centers / 512).tolist()  # Returns a list
     return states, x_centers_normalized
 
 
@@ -867,19 +867,66 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         segmentated_image = self.front_camera_1_5_segmentated.front_camera
         segmentated_raw_data = self.front_camera_1_5_segmentated.raw_data
 
+        if self.detection_mode == 'carla_segmentated':
+            # ll_segment = self.detect_lines_from_segmentated(segmentated_image)
+            ll_segment, line_points, x_left_points, x_right_points = self.detect_all_from_segmentated(
+                segmentated_raw_data)
+            closest_border = get_closest_to_center_border(x_left_points, x_right_points)
+            border_points = get_evenly_separated_points(closest_border, 10)
+            # line_points = get_evenly_separated_points(line_points, 10)
+            center_points = get_center_points(line_points, border_points)
+            states = flatten_points(center_points)
+            for index in range(len(center_points)):
+                cv2.circle(ll_segment, (center_points[index][0], center_points[index][1]), radius=3,
+                           color=(255, 255, 0), thickness=-1)
+                # cv2.circle(ll_segment, (line_points[index][0], line_points[index][1]), radius=3, color=(0, 0, 255),
+                #            thickness=-1)
+        # if self.detection_mode == 'carla_perfect_fixed':
+        #     ll_segment = self.detect_lines_perfect(raw_image)
+        #
+        #     center_distance, final_curvature = self.detect_centers_from_Image(ll_segment)
+        #     states = center_distance
+        elif self.detection_mode == 'carla_perfect_center':
+            (ll_segment,
+             misalignment,
+             center_distance,
+             center_points) = self.detect_center_line_perfect(raw_image, num_points=self.num_points)
 
-        (ll_segment,
-         misalignment,
-         center_distance,
-         center_points) = self.detect_center_line_perfect(raw_image, num_points=self.num_points)
+            final_curvature = calculate_max_curveture_from_centers(center_points)
+            mean_curvature = average_curvature_from_centers(center_points)
 
-        final_curvature = calculate_max_curveture_from_centers(center_points)
-        mean_curvature = average_curvature_from_centers(center_points)
+            states, x_centers_normalized = normalize_centers(center_points)
+            v_goal = calculate_v_goal(mean_curvature,
+                                      final_curvature,
+                                      center_distance)
 
-        states, x_centers_normalized = normalize_centers(center_points)
-        v_goal = calculate_v_goal(mean_curvature,
-                                  final_curvature,
-                                  center_distance)
+            # OJO, AÚN HACE COSAS RARAS EN CURVAS... REVISAR SI SE SIGUE POR AQUÍ
+        # elif self.detection_mode == 'carla_perfect_lines':
+        #     (ll_segment,
+        #      misalignment,
+        #      center_distance,
+        #      lane_left_points,
+        #      lane_right_points) = self.detect_center_line_perfect(raw_image)
+        #
+        #     final_curvature_left = calculate_curvature_from(lane_left_points[:, 0], lane_left_points[:, 1])
+        #     final_curvature_right = calculate_curvature_from(lane_right_points[:, 0], lane_right_points[:, 1])
+        #
+        #     final_curvature = (final_curvature_left + final_curvature_right) / 2
+        #
+        #     x_left = lane_left_points[:, 0]
+        #     x_right = lane_right_points[:, 0]
+        #     x_midpoints = (x_left + x_right) / 2
+        #     states = (x_midpoints / 512).tolist()
+        #     y_left = lane_left_points[:, 1]
+        #     y_right = lane_right_points[:, 1]
+        #     y_midpoints = (y_left + y_right) / 2
+        #     states = states + (y_midpoints / 512).tolist()  # Returns a list
+        #     centers = list(zip(x_midpoints.astype(int), y_midpoints.astype(int)))  # Each element is (x, y)
+        #     # OJO, AÚN HACE COSAS RARAS EN CURVAS... REVISAR SI SE SIGUE POR AQUÍ
+        else:
+            ll_segment, curve = self.detect_lines(raw_image)
+            center_distance, final_curvature = self.detect_centers_from_image(ll_segment)
+            states = center_distance
 
         states.append(0)
         states.append(0)
@@ -1391,33 +1438,101 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.previous_time = now
 
         # raw_image = self.get_resized_image(self.front_camera_1_5.front_camera)
+        # segmentated_image = self.get_resized_image(self.front_camera_1_5_segmentated.front_camera)
         raw_image = self.front_camera_1_5.front_camera
+        # segmentated_image = self.front_camera_1_5_segmentated.front_camera
+        segmentated_raw_data = self.front_camera_1_5_segmentated.raw_data
 
-        (ll_segment,
-         misalignment,
-         center_distance,
-         centers) = self.detect_center_line_perfect(raw_image, num_points=self.num_points)
+        if self.detection_mode == 'carla_segmentated':
+            # ll_segment = self.detect_lines_from_segmentated(segmentated_image)
+            ll_segment, line_points, x_left_points, x_right_points = self.detect_all_from_segmentated(
+                segmentated_raw_data)
+            closest_border = get_closest_to_center_border(x_left_points, x_right_points)
+            border_points = get_evenly_separated_points(closest_border, 10)
+            # line_points = get_evenly_separated_points(line_points, 10)
+            center_points = get_center_points(line_points, border_points)
+            states = flatten_points(center_points)
+            for index in range(len(center_points)):
+                cv2.circle(ll_segment, (center_points[index][0], center_points[index][1]), radius=3,
+                           color=(255, 255, 0), thickness=-1)
+                # cv2.circle(ll_segment, (line_points[index][0], line_points[index][1]), radius=3, color=(0, 0, 255),
+                #            thickness=-1)
+            _, center_distance, _ = self.get_lane_position(self.car, self.map)
+            gray_overlay = cv2.cvtColor(ll_segment, cv2.COLOR_BGR2GRAY)
+            mask = gray_overlay > 10
+            mask_3ch = np.stack([mask] * 3, axis=-1)
 
-        final_curvature = calculate_max_curveture_from_centers(centers)
-        mean_curvature = average_curvature_from_centers(centers)
+            stacked_image = np.where(mask_3ch, ll_segment, raw_image)
+            # v_goal = calculate_v_goal(final_curvature, center_distance)
+        elif self.detection_mode == 'carla_perfect_center':
+            (ll_segment,
+             misalignment,
+             center_distance,
+             center_points) = self.detect_center_line_perfect(raw_image, num_points=self.num_points)
 
-        states, x_centers_normalized = normalize_centers(centers)
-        centers_image = np.zeros(raw_image.shape, dtype=np.uint8)
-        for index in range(len(centers)):
-            cv2.circle(centers_image, (centers[index][0], centers[index][1]), radius=3,
-                       color=(255, 255, 0), thickness=-1)
-            # cv2.circle(ll_segment, (line_points[index][0], line_points[index][1]), radius=3, color=(0, 0, 255),
-            #            thickness=-1)
-        gray_overlay = cv2.cvtColor(centers_image, cv2.COLOR_BGR2GRAY)
-        mask = gray_overlay > 10
-        mask_3ch = np.stack([mask] * 3, axis=-1)
+            final_curvature = calculate_max_curveture_from_centers(center_points)
+            mean_curvature = average_curvature_from_centers(center_points)
 
-        stacked_image = np.where(mask_3ch, centers_image, raw_image)
-        _, center_distance, _ = self.get_lane_position(self.car, self.map)
-        # v_goal = calculate_v_goal(final_curvature, center_distance, curvature_weight=150)
-        v_goal = calculate_v_goal(mean_curvature,
-                                  final_curvature,
-                                  center_distance)
+            states, x_centers_normalized = normalize_centers(center_points)
+            centers = center_points
+            centers_image = np.zeros(raw_image.shape, dtype=np.uint8)
+            for index in range(len(centers)):
+                cv2.circle(centers_image, (centers[index][0], centers[index][1]), radius=3,
+                           color=(255, 255, 0), thickness=-1)
+                # cv2.circle(ll_segment, (line_points[index][0], line_points[index][1]), radius=3, color=(0, 0, 255),
+                #            thickness=-1)
+            gray_overlay = cv2.cvtColor(centers_image, cv2.COLOR_BGR2GRAY)
+            mask = gray_overlay > 10
+            mask_3ch = np.stack([mask] * 3, axis=-1)
+
+            stacked_image = np.where(mask_3ch, centers_image, raw_image)
+            _, center_distance, _ = self.get_lane_position(self.car, self.map)
+            # v_goal = calculate_v_goal(final_curvature, center_distance, curvature_weight=150)
+            v_goal = calculate_v_goal(mean_curvature,
+                                      final_curvature,
+                                      center_distance)
+
+            # OJO, AÚN HACE COSAS RARAS EN CURVAS... REVISAR SI SE SIGUE POR AQUÍ
+        # elif self.detection_mode == 'carla_perfect_lines':
+        #     (ll_segment,
+        #      misalignment,
+        #      center_distance,
+        #      lane_left_points,
+        #      lane_right_points) = self.detect_lines_perfect(raw_image)
+        #
+        #     final_curvature_left = calculate_curvature_from(lane_left_points[:, 0], lane_left_points[:, 1])
+        #     final_curvature_right = calculate_curvature_from(lane_right_points[:, 0], lane_right_points[:, 1])
+        #
+        #     final_curvature = (final_curvature_left + final_curvature_right) / 2
+        #
+        #     x_left = lane_left_points[:, 0]
+        #     x_right = lane_right_points[:, 0]
+        #     x_midpoints = (x_left + x_right) / 2
+        #     states = (x_midpoints / 512).tolist()
+        #     y_left = lane_left_points[:, 1]
+        #     y_right = lane_right_points[:, 1]
+        #     y_midpoints = (y_left + y_right) / 2
+        #     states = states + (y_midpoints / 512).tolist()  # Returns a list
+        #     centers = list(zip(x_midpoints.astype(int), y_midpoints.astype(int)))  # Each element is (x, y)
+        #     centers_image = np.zeros(raw_image.shape, dtype=np.uint8)
+        #     for index in range(len(centers)):
+        #         cv2.circle(centers_image, (centers[index][0], centers[index][1]), radius=3,
+        #                    color=(255, 255, 0), thickness=-1)
+        #         # cv2.circle(ll_segment, (line_points[index][0], line_points[index][1]), radius=3, color=(0, 0, 255),
+        #         #            thickness=-1)
+        #     gray_overlay = cv2.cvtColor(centers_image, cv2.COLOR_BGR2GRAY)
+        #     mask = gray_overlay > 10
+        #     mask_3ch = np.stack([mask] * 3, axis=-1)
+        #
+        #     stacked_image = np.where(mask_3ch, centers_image, raw_image)
+        #     _, center_distance, _ = self.get_lane_position(self.car, self.map)
+        #     v_goal = calculate_v_goal(final_curvature, center_distance)
+        # else:
+        #     ll_segment, curve = self.detect_lines(raw_image)
+        #     center_distance, final_curvature = self.detect_centers_from_image(ll_segment)
+        #
+        #     states = center_distance
+        #     v_goal = calculate_v_goal(final_curvature, center_distance)
 
         params["final_curvature"] = final_curvature
         reward, done, has_crashed = self.rewards_easy(center_distance, action, params, v_goal=v_goal, x_centers=x_centers_normalized)
@@ -1622,8 +1737,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params["reward"] = 0
 
         # car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
-        car_deviated_punish = -2
-        lane_changed_punish = -1
+        car_deviated_punish = -5
+        lane_changed_punish = 0
 
         # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
         #  En curvas
@@ -1638,8 +1753,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if self.is_out(center_distance):
             return car_deviated_punish, True, self.has_crashed()
 
-        if x_centers is not None and self.centers_switched(x_centers):
-            return lane_changed_punish, True, False
+        # if x_centers is not None and self.centers_switched(x_centers):
+        #     return lane_changed_punish, True, False
 
         # DISTANCE REWARD CALCULATION
         # d_rewards = []
@@ -1937,7 +2052,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             projected_center = project_polyline(
                 center_list, trafo_matrix_global_to_camera, self.k
             ).astype(np.int32)
-            if len(projected_center) < 20 or self.step_count < 30:
+            if len(projected_center) < 40 or self.step_count < 30:
                 del self._lane_points
 
             trimmed_projected_center = trim_polyline_to_image(projected_center, ll_segment.shape)
