@@ -429,8 +429,8 @@ class TrainerFollowLaneSACCarla:
                 env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[128, 128, 128],  # The architecture for the policy network
-                        qf=[64, 128, 128, 64]   # The architecture for the value network
+                        pi=[128, 128, 128, 128],  # The architecture for the policy network
+                        qf=[128, 128, 128, 128]
                     ),
                     # activation_fn=nn.ReLU,
                     # ortho_init=True,
@@ -447,10 +447,10 @@ class TrainerFollowLaneSACCarla:
             
         print(self.sac_agent.policy)
 
-        # agent_logger = configure(agent_log_file, ["stdout", "csv", "tensorboard"])
+        agent_logger = configure(agent_log_file, ["stdout", "csv", "tensorboard"])
         # agent_logger = configure(agent_log_file, ["tensorboard"])
 
-        # self.sac_agent.set_logger(agent_logger)
+        self.sac_agent.set_logger(agent_logger)
         random.seed(1)
         np.random.seed(1)
         tf.compat.v1.random.set_random_seed(1)
@@ -498,8 +498,8 @@ class TrainerFollowLaneSACCarla:
         if self.environment.environment["mode"] in ["inference"]:
             self.evaluate_ddpg_agent(self.env, self.sac_agent, 10000, 2000)
 
-        callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
-        #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
+        # callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
+        callback_list = CallbackList([eval_callback, periodic_save_callback])
         #callback_list = CallbackList([periodic_save_callback])
 
         self.sac_agent.learn(total_timesteps=self.params["total_timesteps"],

@@ -218,8 +218,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = initial_log_std
             self.v_initial = initial_log_std
         else:
-            self.w_initial = -0.7
-            self.v_initial = -0.7
+            self.w_initial = -0.5
+            self.v_initial = -0.5
         self.current_step = 0
 
     def _on_training_start(self):
@@ -243,6 +243,12 @@ class ExplorationRateCallback(BaseCallback):
         self.current_step += 1
 
         # Check if both components have reached the min_log_std
+        if (
+            torch.all(self.model.policy.log_std[:1] <= self.min_log_std).item() and
+            torch.all(self.model.policy.log_std[1:2] <= self.min_log_std).item()
+        ):
+            return True
+
         # if (
         #     torch.all(self.model.policy.log_std[:1] <= self.min_log_std).item() and
         #     torch.all(self.model.policy.log_std[1:2] <= self.min_log_std).item()
@@ -559,8 +565,8 @@ class TrainerFollowLanePPOCarla:
                 self.env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[128, 128, 128],  # The architecture for the policy network
-                        vf=[64, 128, 128, 64]  # The architecture for the value network
+                        pi=[128, 128, 128, 128],  # The architecture for the policy network
+                        vf=[128, 128, 128, 128]  # The architecture for the value network
                     ),
                     activation_fn=nn.ReLU,
                     log_std_init=-1.5,
@@ -569,9 +575,9 @@ class TrainerFollowLanePPOCarla:
                 learning_rate=linear_schedule(self.environment.environment["critic_lr"]),
                 gamma=self.algoritmhs_params.gamma,
                 # gae_lambda=0.9,
-                ent_coef=0.05,
+                ent_coef=0.1,
                 clip_range=self.algoritmhs_params.epsilon,
-                batch_size=1024,
+                batch_size=2024,
                 verbose=1,
                 # Uncomment if you want to log to TensorBoard
                 # tensorboard_log=f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
@@ -603,7 +609,7 @@ class TrainerFollowLanePPOCarla:
             min_log_std=self.environment.environment.get("decrease_min"), decay_rate=0.03,
             decay_steps=2000)
         entropy_callback = EntropyCoefficientCallback(
-            initial_ent_coef=0.1,  # Starting entropy coefficient
+            initial_ent_coef=0.3,  # Starting entropy coefficient
             min_ent_coef=0.03,  # Minimum entropy coefficient
             decay_rate=0.0001,  # Decay amount per step
             decay_steps=2000,  # Decay every 1000 steps
@@ -643,11 +649,12 @@ class TrainerFollowLanePPOCarla:
         #callback_list = CallbackList([periodic_save_callback])
         #callback_list = CallbackList([periodic_save_callback, eval_callback])
         callback_list = CallbackList([
-            exploration_rate_callback,
-            entropy_callback,
+            # exploration_rate_callback,
+            # entropy_callback,
             periodic_save_callback,
             # epsilon_callback,
-            eval_callback])
+            eval_callback
+        ])
 
         if self.environment.environment["mode"] in ["inference"]:
             self.evaluate_ddpg_agent(self.env, self.ppo_agent, 10000)
