@@ -243,30 +243,30 @@ class ExplorationRateCallback(BaseCallback):
         self.current_step += 1
 
         # Check if both components have reached the min_log_std
-        if (
-            torch.all(self.model.policy.log_std[:1] <= self.min_log_std).item() and
-            torch.all(self.model.policy.log_std[1:2] <= self.min_log_std).item()
-        ):
-            return True
-
         # if (
         #     torch.all(self.model.policy.log_std[:1] <= self.min_log_std).item() and
         #     torch.all(self.model.policy.log_std[1:2] <= self.min_log_std).item()
         # ):
-        #     # Reset to initial values
-        #     self.model.policy.log_std.data[1:2] = torch.full_like(
-        #         self.model.policy.log_std[1:2], self.w_initial
-        #     ).to(self.model.policy.log_std.device)
-        #     self.model.policy.log_std.data[:1] = torch.full_like(
-        #         self.model.policy.log_std[:1], self.v_initial
-        #     ).to(self.model.policy.log_std.device)
-        #
-        #     if self.verbose > 0:
-        #         print(
-        #             f"Step {self.current_step}: log_std reset to initial values "
-        #             f"v_initial={self.v_initial}, w_initial={self.w_initial}"
-        #         )
         #     return True
+
+        if (
+            torch.all(self.model.policy.log_std[:1] <= self.min_log_std).item() and
+            torch.all(self.model.policy.log_std[1:2] <= self.min_log_std).item()
+        ):
+            # Reset to initial values
+            self.model.policy.log_std.data[1:2] = torch.full_like(
+                self.model.policy.log_std[1:2], self.w_initial
+            ).to(self.model.policy.log_std.device)
+            self.model.policy.log_std.data[:1] = torch.full_like(
+                self.model.policy.log_std[:1], self.v_initial
+            ).to(self.model.policy.log_std.device)
+
+            if self.verbose > 0:
+                print(
+                    f"Step {self.current_step}: log_std reset to initial values "
+                    f"v_initial={self.v_initial}, w_initial={self.w_initial}"
+                )
+            return True
 
         if self.current_step % self.decay_steps == 0:
             new_log_std = self.model.policy.log_std.clone()
@@ -649,7 +649,7 @@ class TrainerFollowLanePPOCarla:
         #callback_list = CallbackList([periodic_save_callback])
         #callback_list = CallbackList([periodic_save_callback, eval_callback])
         callback_list = CallbackList([
-            # exploration_rate_callback,
+            exploration_rate_callback,
             # entropy_callback,
             periodic_save_callback,
             # epsilon_callback,

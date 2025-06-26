@@ -435,13 +435,14 @@ class TrainerFollowLaneSACCarla:
                     # activation_fn=nn.ReLU,
                     # ortho_init=True,
                 ),
-                learning_rate=3e-4,
+                learning_rate=1e-4,
                 buffer_size=10000,
                 batch_size=128,
-                tau=0.005,
+                tau=0.002,
+                ent_coef='auto_0.1',
+                target_entropy='auto',
                 gamma=0.90,
                 train_freq=2,
-                gradient_steps=2,
                 verbose=0
             )
             
