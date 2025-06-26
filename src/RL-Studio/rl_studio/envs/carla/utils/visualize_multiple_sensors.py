@@ -105,7 +105,8 @@ class DisplayManager:
 
     def render_vehicle_info(self, vehicle):
         # Get the vehicle speed, steering angle, and acceleration
-        speed = vehicle.get_velocity()
+        speed_vector = vehicle.get_velocity()
+        v_goal = vehicle.v_goal
         steering = vehicle.get_control().steer
         throttle = vehicle.get_control().throttle
         brake = vehicle.get_control().brake
@@ -114,11 +115,13 @@ class DisplayManager:
         deviation = vehicle.error
 
         # Calculate speed in km/h (optional)
-        speed_kmh = (speed.x ** 2 + speed.y ** 2 + speed.z ** 2)  ** 0.5 * 3.6  # converting m/s to km/h
+        speed = (speed_vector.x ** 2 + speed_vector.y ** 2 + speed_vector.z ** 2)  ** 0.5
+        speed_kmh = speed * 3.6  # converting m/s to km/h
+        v_goal_kmh = v_goal * 3.6
 
         # Prepare text surface
         font = pygame.font.Font(None, 36)
-        speed_text = font.render(f'Speed: {speed_kmh:.2f} km/h', True, (255, 255, 255))
+        speed_text = font.render(f'Speed: {speed_kmh:.2f} | Goal {v_goal_kmh:.2f}', True, (255, 255, 255))
         steering_text = font.render(f'Steering: {steering:.2f}', True, (255, 255, 255))
         throttle_text = font.render(f'throttle: {throttle:.2f}', True, (255, 255, 255))
         brake_text = font.render(f'brake: {brake:.5f}', True, (255, 255, 255))
@@ -137,6 +140,25 @@ class DisplayManager:
         self.display.blit(throttle_text, (10, 170))  # position of the acceleration text
         self.display.blit(reward_text, (10, 210))  # position of the acceleration text
         self.display.blit(deviation, (10, 250))  # position of the acceleration text
+        # ------
+        d_reward = vehicle.d_reward
+        d_reward_text = font.render(
+            f'd_reward: {d_reward:.2f}', True, (255, 255, 255))
+        self.display.blit(d_reward_text, (10, 290))  # position of the acceleration text
+        v_reward = vehicle.v_component
+        v_reward_text = font.render(
+            f'v_reward: {v_reward:.2f} | {abs(v_goal_kmh - speed_kmh):.2f}', True, (255, 255, 255))
+        self.display.blit(v_reward_text, (10, 330))  # position of the acceleration text
+        v_punish = vehicle.v_punish
+        v_punish_text = font.render(
+            f'v_punish: {v_punish:.2f}', True, (255, 255, 255))
+        self.display.blit(v_punish_text, (10, 370))  # position of the acceleration text
+        zig_zag_punish = vehicle.zig_zag_punish
+        zig_zag_punish_text = font.render(
+            f'zig_zag_punish: {zig_zag_punish:.2f}', True, (255, 255, 255))
+        self.display.blit(zig_zag_punish_text, (10, 410))  # position of the acceleration text
+        # ------
+
 
 
 class SensorManager:

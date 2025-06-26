@@ -1,5 +1,5 @@
 settings:
-  mode: retraining # training, retraining, inference
+  mode: training # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: ppo_continuous # qlearn, dqn, ddpg, ppo
   simulator: carla # openai, carla, gazebo, sumo
@@ -18,13 +18,13 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 3500
+  steps_to_decrease: 2500
   entropy_factor: 0
-  decrease_substraction: 0.005
-  decrease_min: -5
+  decrease_substraction: 0.01
+  decrease_min: -4.5
   reward_params:
     function: pow
-    punish_zig_zag_value: 2
+    punish_zig_zag_value: 5
     punish_ineffective_vel: 1 # velocity below which reward is not calculated (0)
     beta_1: 0
 
@@ -38,7 +38,9 @@ ros:
 
 retraining:
   ppo:
-    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250620-194107/model_2420000_steps.zip
+#    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250620-194107/model_2420000_steps.zip
+#    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250625-000650/best_model.zip
+    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250625-000650/best_model.zip
 inference:
   ppo:
     inference_ppo_tf_actor_model_name:
@@ -52,7 +54,7 @@ algorithm:
     episodes_update: 50 # dooing nothing here
     replay_memory_size: 50_000
     memory_fraction: 0.20
-    critic_lr: 0.00003 # This is the only one applying to both now
+    critic_lr: 0.0001 # This is the only one applying to both now
     actor_lr: 0.0001
     model_name: PPO_Actor_conv2d32x64_Critic_conv2d32x64
 
@@ -105,7 +107,7 @@ rewards:
 carla_environments:
   follow_lane:
     env_name: CarlaEnv-v0
-#    town: [Town01] #Town01, Town02, Town03, Town04, Town05, Town10HD
+#    town: [Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
     town: [Town01, Town03, Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
     # Town01_Opt, Town02_Opt, Town03_Opt, Town04_Opt, Town05_Opt, Town10HD_Opt
     car: model1
@@ -152,4 +154,4 @@ carla:
   carla_server: localhost
   carla_client: 5013
 #  carla_client: [4013, 4015]
-  manager_port: 8033
+  manager_port: 8001

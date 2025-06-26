@@ -13,6 +13,7 @@ import psutil
 import numpy as np
 import json
 import traceback
+from collections import deque
 
 from pyglet.libs.x11.xlib import None_
 from sympy.solvers.ode import infinitesimals
@@ -169,110 +170,56 @@ def getTransformFromPoints(points):
         ),
     )
 
-def interpolate_lane_points(lane_points: np.ndarray, num_points: int = 10) -> np.ndarray:
+def interpolate_lane_points(lane_points: np.ndarray, num_points: int = 20, start_y: int = 640) -> np.ndarray:
     """
-    Interpolates `num_points` equidistant points along a polyline defined by `lane_points`.
+    Interpolates `num_points` equidistant points along a polyline that starts at y = `start_y`
+    (image bottom) and ends at lane_points[-1], extrapolating the initial segment if needed.
 
     Args:
         lane_points (np.ndarray): Array of shape (N, 2) representing the lane boundary points.
         num_points (int): Number of interpolated points to return.
+        start_y (int): The y-coordinate from which to start the interpolation (e.g., 640).
 
     Returns:
-        np.ndarray: Interpolated points along the lane, shape (num_points, 2)
+        np.ndarray: Interpolated points along the extended lane, shape (num_points, 2)
     """
     if lane_points.shape[0] < 2:
         return np.zeros((num_points, 2), dtype=np.float32)
 
-    # Compute cumulative arc length (distance) along the lane
+    p0 = lane_points[0]
+    p1 = lane_points[1]
+
+    dy = p1[1] - p0[1]
+    dx = p1[0] - p0[0]
+
+    if dy == 0:
+        slope = 0
+    else:
+        slope = dx / dy
+
+    # Extrapolate backward to y = start_y
+    delta_y = start_y - p0[1]
+    extrapolated_x = p0[0] + slope * delta_y
+    extrapolated_point = np.array([extrapolated_x, start_y])
+
+    # Only prepend if extrapolated point is below p0 (i.e., y > p0[1])
+    if start_y > p0[1]:
+        lane_points = np.vstack([extrapolated_point, lane_points])
+
+    # Compute arc length along the extended polyline
     deltas = np.diff(lane_points, axis=0)
     segment_lengths = np.linalg.norm(deltas, axis=1)
     cumulative_lengths = np.insert(np.cumsum(segment_lengths), 0, 0)
 
-    # Target arc lengths for evenly spaced points
+    # Interpolate along arc length
     target_lengths = np.linspace(0, cumulative_lengths[-1], num_points)
-
-    # Interpolated x and y separately over arc length
     interp_x = np.interp(target_lengths, cumulative_lengths, lane_points[:, 0])
     interp_y = np.interp(target_lengths, cumulative_lengths, lane_points[:, 1])
 
-    return np.stack((interp_x, interp_y), axis=1).astype(np.int32)
-
-class EntropyCalculator:
-    STATE_BINS = 10  # Number of bins per dimension
-    ACTION_BINS = 10  # Define the number of action bins
-    NUM_STATE_DIMENSIONS = 7  # Number of dimensions in the state
-
-    def __init__(self):
-        # Use a defaultdict of defaultdicts to count actions per discretized state
-        self.state_action_counts = defaultdict(lambda: defaultdict(int))
-
-    def calculate_entropy(self, state, action):
-        # Discretize the state and action
-        discretized_state = self.discretize_state(state)
-        discretized_action = self.discretize_action(action)
-
-        # Update the entropy experience buffer
-        self.add(discretized_state, discretized_action)
-
-        # Calculate action probabilities for the discretized state
-        action_probs = self.get_action_probs(discretized_state)
-
-        # Add a small epsilon to prevent log(0)
-        action_probs = action_probs + 1e-10
-        return -np.sum(action_probs * np.log(action_probs))
-
-    def add(self, state, action):
-        # Increment the count of the action taken in the given state
-        # Ensure that the state is hashable (as a tuple)
-        self.state_action_counts[tuple(state)][tuple(action)] += 1
-
-    def get_action_probs(self, state):
-        # Total count of actions taken in this state
-        total = sum(self.state_action_counts[state].values())
-        if total == 0:
-            return np.zeros(self.ACTION_BINS)  # No actions recorded for this state
-        return np.array([self.state_action_counts[state][action] / total for action in range(self.ACTION_BINS)])
-
-    def discretize_state(self, state):
-        # Create bins for each dimension and discretize each value
-        discretized_state = []
-        for dim in range(self.NUM_STATE_DIMENSIONS):
-            # Example range for each dimension, adjust according to your state space
-            bins = np.linspace(-1, 1, self.STATE_BINS)
-            discretized_state.append(np.digitize(state[dim], bins))
-        # Convert to a tuple to make it hashable
-        return tuple(discretized_state)
-
-    def discretize_action(self, action):
-        # Discretize the action similarly
-        return np.digitize(action, np.linspace(-1, 1, self.ACTION_BINS))
-
-
-def is_curve(ll_segment):
-    # edges = cv2.Canny(ll_segment, 50, 100)
-    # Extract coordinates of non-zero points
-    nonzero_points = np.argwhere(ll_segment == 255)
-    if len(nonzero_points) == 0:
-        return None
-
-    # Extract x and y coordinates
-    x = nonzero_points[:, 1].reshape(-1, 1)[:, 0]  # Reshape for scikit-learn input
-    y = nonzero_points[:, 0]
-
-    # Fit linear regression model
-    polinomio = np.polyfit(x, y, 2)
-    second_derivative = np.polyder(polinomio, 2)
-    curvature_values = np.polyval(second_derivative, x)
-    mean_curvature = np.mean(np.abs(curvature_values))
-    # print(mean_curvature)
-    # print (f"curvature = {mean_curvature}")
-    if mean_curvature < 0.002:
-        return False
-    else:
-        return True
+    interpolated = np.stack((interp_x, interp_y), axis=1)
+    return interpolated.astype(np.int32)
 
 def calculate_v_goal(mean_curvature, final_curvature, center_distance, curvature_weight=150):
-    curv = (abs(final_curvature) * curvature_weight)
     mean_curv = max(0, mean_curvature - 1) * 15
     dist_error = abs(center_distance) * 10
     v_goal = max(6, 25 - (mean_curv + dist_error))
@@ -387,55 +334,16 @@ def calculate_curvature_from(x, y):
         curvature = -1
     return curvature
 
-
 def trim_polyline_to_image(points_2d, image_shape):
     h, w = image_shape
     trimmed = []
 
-    if len(points_2d) < 20:
-        print("Not enough points to fit a 2nd degree polynomial.")
-        return np.array(trimmed)
-
-    for i in range(len(points_2d) - 1):
-        p1 = points_2d[i]
-        p2 = points_2d[i + 1]
-
-        in_bounds_p1 = 0 <= p1[0] < w and 0 <= p1[1] < h
-        in_bounds_p2 = 0 <= p2[0] < w and 0 <= p2[1] < h
-
-        if in_bounds_p1:
-            trimmed.append(p1)
-
-        if in_bounds_p1 != in_bounds_p2:
-            # Line crosses boundary — find intersection with image border
-            clipped_point = intersect_with_image_border(p1, p2, w, h)
-            if clipped_point is not None:
-                trimmed.append(clipped_point)
-
-    # If last point is inside
-    if 0 <= points_2d[-1][0] < w and 0 <= points_2d[-1][1] < h:
-        trimmed.append(points_2d[-1])
+    for p in points_2d:
+        if 0 <= p[0] < w and 0 <= p[1] < h:
+            trimmed.append(p)
 
     return np.array(trimmed)
 
-
-def intersect_with_image_border(p1, p2, w, h):
-    from shapely.geometry import LineString, box
-
-    line = LineString([p1, p2])
-    image_box = box(0, 0, w - 1, h - 1)
-    inter = line.intersection(image_box)
-
-    if inter.is_empty:
-        return None
-    if inter.geom_type == "Point":
-        return np.array(inter.coords[0])
-    elif inter.geom_type == "MultiPoint":
-        return np.array(inter.geoms[0].coords[0])  # Pick one
-    return None
-
-
-import numpy as np
 
 def get_closest_to_center_border(x_left_points, x_right_points):
     center = 320  # Image center
@@ -608,6 +516,7 @@ def normalize_centers(centers):
 class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def __init__(self, **config):
 
+        self.NON_DETECTED = -1
         self.dashboard = config.get("dashboard")
         self.estimated_steps = config.get("estimated_steps")
 
@@ -641,8 +550,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.actions = config.get("actions")
         self.stage = config.get("stage")
 
-        self.entropy_factor = config.get("entropy_factor")
-        self.entropy_calculator = EntropyCalculator()
+        self.lane_points = None
 
         self.use_curves_state = config.get("use_curves_state")
 
@@ -788,13 +696,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             vehicle = self.world.spawn_actor(car_bp, location)
 
         self.acor_list.append(vehicle)
-        # spectator = self.world.get_spectator()
-        # spectator_location = carla.Transform(
-        #     location.location + carla.Location(z=100),
-        #     carla.Rotation(-90, location.rotation.yaw, 0))
-        # spectator.set_transform(spectator_location)
 
-        # time.sleep(0.5)
         return vehicle
 
     def close(self):
@@ -804,6 +706,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def doReset(self):
         ep_time = time.time() - self.start
         print("Step time:", ep_time / self.step_count)
+        if self.tensorboard is not None:
+            self.calculate_and_report_episode_stats()
 
         self.close()
 
@@ -823,7 +727,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.fixed_random_throttle = random.uniform(0.4, 0.8)
 
         self.episode += 1
-        # print(self.episode)
+
+        self.v_goal_buffer = deque(maxlen=10)
+
         self.location_stats_episode = {
             "actions": self.location_actions,
             "rewards": self.location_rewards,
@@ -834,6 +740,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.location_rewards = {}
         self.location_next_states = {}
         self.last_centers = None
+        self.lane_points = None
 
         # if self.episode % 20 == 0:
         #     self.tensorboard.save_location_stats(self.location_stats)
@@ -849,7 +756,14 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.world.tick()
         else:
             self.world.wait_for_tick()
-        time.sleep(1)
+        time.sleep(0.5)
+
+        self.car.v_component = 0
+        self.car.d_reward = 0
+        self.car.v_eff_reward = 0
+        self.car.v_punish = 0
+        self.car.zig_zag_punish = 0
+        self.car.v_goal = 0
 
         self.vary_car_orientation()  # Call the orientation variation method
         # self.set_init_speed()
@@ -892,9 +806,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # if self.use_curves_state:
         #     states.append(curve)
         state_size = len(states)
-
-        if self.tensorboard is not None:
-            self.calculate_and_report_episode_stats()
 
         self.cumulated_reward = 0
         self.step_count = 1
@@ -1124,7 +1035,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             while vehicle is None:
                 vehicle = self.world.try_spawn_actor(car_bp, location)
         self.actor_list.append(vehicle)
-        # time.sleep(0.5)
         vehicle.reward = 0
         vehicle.error = 0
         return vehicle, location
@@ -1369,11 +1279,15 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.all_steps += 1
         # action[1] = action[1] * 0.5
         # action[0] = 0.6
-        # if self.tensorboard is not None:
-        #     self.tensorboard.update_actions(action, self.all_steps)
+
+        self.car.v_component = 0
+        self.car.d_reward = 0
+        self.car.v_eff_reward = 0
+        self.car.v_punish = 0
+        self.car.zig_zag_punish = 0
+        self.car.v_goal = 0
 
         params = self.control(action)
-        self.episodes_speed.append(params["velocity"])
 
         now = time.time()
         elapsed_time = now - self.previous_time
@@ -1404,8 +1318,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         states, x_centers_normalized = normalize_centers(centers)
         centers_image = np.zeros(raw_image.shape, dtype=np.uint8)
         for index in range(len(centers)):
+            if centers[index][0] == self.NON_DETECTED:
+                continue
             cv2.circle(centers_image, (centers[index][0], centers[index][1]), radius=3,
-                       color=(255, 255, 0), thickness=-1)
+                      color=(255, 255, 0), thickness=-1)
             # cv2.circle(ll_segment, (line_points[index][0], line_points[index][1]), radius=3, color=(0, 0, 255),
             #            thickness=-1)
         gray_overlay = cv2.cvtColor(centers_image, cv2.COLOR_BGR2GRAY)
@@ -1418,12 +1334,16 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         v_goal = calculate_v_goal(mean_curvature,
                                   final_curvature,
                                   center_distance)
+        self.v_goal_buffer.append(v_goal)
+        v_goal = sum(self.v_goal_buffer) / len(self.v_goal_buffer)
 
         params["final_curvature"] = final_curvature
         reward, done, has_crashed = self.rewards_easy(center_distance, action, params, v_goal=v_goal, x_centers=x_centers_normalized)
 
+        self.car.v_goal = v_goal
         self.car.reward = reward
         self.cumulated_reward = self.cumulated_reward + reward
+        self.episodes_speed.append(params["velocity"])
 
         # states = right_lane_normalized_distances
 
@@ -1499,7 +1419,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     ################################################################################
     def step(self, action):
-        # time.sleep(0.5)
+        # time.sleep(1)
         self.step_count += 1
 
         # test code to verify the initial position
@@ -1559,7 +1479,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params = {}
 
         v = self.car.get_velocity()
-        params["velocity"] = math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)
+        params["velocity"] = (v.x ** 2 + v.y ** 2 + v.z ** 2) ** 0.5
         # params["angular_velocity"] = self.car.get_angular_velocity().z
         params["angular_velocity"] = self.get_lateral_velocity()
 
@@ -1587,24 +1507,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # Project velocity onto right_vector
         lateral_vel = np.dot(vel_vector, right_vector)
         return lateral_vel
-
-    def rewards_followlane_dist_v_angle(self, error, params):
-        # rewards = []
-        # for i,_ in enumerate(error):
-        #    if (error[i] < 0.2):
-        #        rewards.append(10)
-        #    elif (0.2 <= error[i] < 0.4):
-        #        rewards.append(2)
-        #    elif (0.4 <= error[i] < 0.9):
-        #        rewards.append(1)
-        #    else:
-        #        rewards.append(0)
-        rewards = [0.1 / error[i] for i, _ in enumerate(error)]
-        function_reward = sum(rewards) / len(rewards)
-        function_reward += math.log10(params["velocity"])
-        function_reward -= 1 / (math.exp(params["steering_angle"]))
-
-        return function_reward
 
     def scale_velocity(self, velocity, v_max=30):
         # Logarithmic scaling formula
@@ -1638,8 +1540,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if self.is_out(center_distance):
             return car_deviated_punish, True, self.has_crashed()
 
-        if x_centers is not None and self.centers_switched(x_centers):
-            return lane_changed_punish, True, False
+        # if x_centers is not None and self.centers_switched(x_centers):
+        #     return lane_changed_punish, True, False
 
         # DISTANCE REWARD CALCULATION
         # d_rewards = []
@@ -1650,12 +1552,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #
         # # TODO ignore non detected centers
         # d_reward = 0 if len(d_rewards) == 0 else sum(d_rewards) / len(d_rewards)
-        d_reward = 1 - abs(center_distance)
-        # pos_reward = 1 - abs(center_distance)
-        # d_reward = 1 - (abs(0.5 - np.mean(x_centers[:5]))*2)
-        # align_reward = 1 - (abs(0.5 - np.mean(x_centers[:5]))*2)
-        # print(x_centers[:1])
-        # print("align_reward", d_reward)
+        d_reward = (1 - abs(center_distance)) ** 3
 
         v = params["velocity"]
 
@@ -1668,30 +1565,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 return car_deviated_punish, True, False
             # return car_deviated_punish + (action[0] * d_reward), False, False
             reward = action[0] * d_reward/5
-            reward -= self.calculate_punish(params, action)
+            reward -= self.calculate_punish(params, action, v_goal, v, center_distance)
             return reward, False, False
-            # beta = 0  # por debajo de v_ineffective solo vale la v
         else:
             self.steps_stopped = 0
-            # beta = self.beta + distance_error[0] # TODO OJO esto es para que cuanto más desviado esté, más importe la d
-
-        # VELOCITY REWARD CALCULATION
-
-        # v_kmh = v * 3.6
-        # target_speed = 40.0
-        # speed_tolerance = 5.0
-        # if target_speed - speed_tolerance <= v_kmh <= target_speed + speed_tolerance:
-        #     speed_reward = 1.0  # Full reward for staying in the target range
-        # else:
-        #     # Penalize for deviating from the target speed
-        #     speed_reward = max(0.0, -5 * abs(v_kmh - target_speed) / target_speed)
-
-        # print(f"dist {distance_error[0]}")
-        # print(f"v{v_kmh}")
-        # print(f"sRew {speed_reward}")
 
         # print(f"monitoring last modification bro! current_v -> {params['velocity']}")
-        v_eff_reward = self.calculate_v_eff_reward(v_goal, v, d_reward)
+        v_eff_reward = self.calculate_v_reward(v_goal, v, d_reward)
 
         if self.stage in ("v", "r"):
             if v > 32:
@@ -1710,7 +1590,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         function_reward = d_reward_component + v_reward_component
 
         # PUNISH CALCULATION
-        function_reward -= self.calculate_punish(params, action)
+        function_reward -= self.calculate_punish(params, action, v_goal, v, center_distance)
 
         self.episode_v_eff_reward = self.episode_v_eff_reward + (
                 v_eff_reward - self.episode_v_eff_reward) / self.step_count
@@ -1760,17 +1640,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             print("episode finished")
             return function_reward, True, False
 
-        # ENTROPY CALCULATION
-        # if self.entropy_factor > 0:
-        #     state = distance_error.copy()
-        #     state.append(params["velocity"])
-        #     state.append(params["steering_angle"])
-        #     entropy = self.entropy_calculator.calculate_entropy(state, action)
-        #     function_reward += self.entropy_factor * entropy
-        # print(function_reward)
-        # print(f"v_r = {v_reward_component}")
-        # print(f"d_r = {d_reward_component}")
-        # print("angular velocity", params["angular_velocity"])
         return function_reward, False, False
 
     def slice_image(self, red_mask):
@@ -1827,43 +1696,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         return image
 
-    def get_stable_waypoint(self, location, map_api, alignment_threshold=0.8, distance_threshold=1.0):
-        """
-        Returns a stable waypoint close to the last lane to avoid premature lane switching.
-
-        - location: carla.Location current car position
-        - map_api: world.get_map() object to call get_waypoint()
-        - alignment_threshold: min alignment required to consider still in same lane
-        - distance_threshold: max lateral distance allowed from last lane to keep it
-
-        Returns: carla.Waypoint
-        """
-        current_wp = map_api.get_waypoint(location, project_to_road=True, lane_type=carla.LaneType.Driving)
-        if self.last_lane_id is None:
-            self.last_lane_id = current_wp.lane_id
-            return current_wp
-
-        # If current waypoint lane_id is the same as last one, just return it
-        if current_wp.lane_id == self.last_lane_id:
-            return current_wp
-
-        # Otherwise, check distance from current location to last lane centerline
-        last_lane_wp = map_api.get_waypoint(location, project_to_road=True, lane_type=carla.LaneType.Driving)
-        last_lane_wp = self.find_waypoint_by_lane_id(self.last_lane_id, location, map_api)
-        if last_lane_wp is None:
-            # Could not find last lane waypoint, fallback to current
-            self.last_lane_id = current_wp.lane_id
-            return current_wp
-
-        lateral_distance = self.calculate_lateral_distance(location, last_lane_wp.transform)
-
-        # If car is still close to last lane centerline and well aligned, keep last lane
-        if lateral_distance < distance_threshold:
-            return last_lane_wp
-
-        # Else update to new lane_id and return current
-        self.last_lane_id = current_wp.lane_id
-        return current_wp
 
     def find_waypoint_by_lane_id(self, lane_id, location, map_api):
         """
@@ -1929,27 +1761,41 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         opposite = alignment < 0.5
         misalignment = (1 - abs(alignment)) * 10
 
-        center_list, left_boundary, right_boundary, current_wp = self.get_stable_lane_lines(opposite=opposite)
+        center_list, current_wp = (
+            self.get_stable_lane_lines(opposite=opposite))
 
         if center_list is None or len(center_list) < 2:
-            interpolated_center = []
+            interpolated_center = np.full((num_points, 2), self.NON_DETECTED)
         else:
             projected_center = project_polyline(
-                center_list, trafo_matrix_global_to_camera, self.k
+                center_list, trafo_matrix_global_to_camera, self.k, image_shape=ll_segment.shape
             ).astype(np.int32)
-            if len(projected_center) < 20 or self.step_count < 30:
-                del self._lane_points
 
-            trimmed_projected_center = trim_polyline_to_image(projected_center, ll_segment.shape)
+            # Discard non visible points from projected centers
+            h, w = ll_segment.shape[:2]
+            mask = np.array([
+                0 <= pt[0] < w and 0 <= pt[1] < h
+                for pt in projected_center
+            ])
 
-            if len(trimmed_projected_center) < 2:
-                interpolated_center = []
+            if np.sum(mask) < 2:
+                interpolated_center = np.full((num_points, 2), self.NON_DETECTED)
             else:
-                interpolated_center = interpolate_lane_points(trimmed_projected_center, num_points)
+                # Apply the same mask to both 2D and 3D data
+                visible_center = projected_center[mask]
+                # In lane_points just remove the points that are not visible because they are behind the car
+                for i, keep in enumerate(mask):
+                    if keep:
+                        first_true_index = i
+                        break
+                else:
+                    # If mask is all False, remove all points
+                    first_true_index = len(mask)
+                self.lane_points["center"] = self.lane_points["center"][first_true_index:]
+
+                interpolated_center = interpolate_lane_points(visible_center, num_points)
 
         # If interpolation failed, return dummy points
-        if interpolated_center is None or len(interpolated_center) < 2:
-            interpolated_center = np.full((num_points, 2), -1)
         return ll_segment, misalignment, center_distance, interpolated_center
 
     def get_stable_lane_lines(self, segment_length: int = 80,
@@ -1973,160 +1819,49 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # ------------------------------------------------------------------
         # 1)  Build the poly-line once
         # ------------------------------------------------------------------
-        if not hasattr(self, "_lane_points"):
+        if self.lane_points is None or self.step_count < 30:
             wp = self.map.get_waypoint(
                 self.car.get_transform().location,
                 project_to_road=True,
                 lane_type=carla.LaneType.Driving,
             )
-            center, left_b, right_b, _ = create_lane_lines(
+            center, left_b, right_b, last_wp = create_lane_lines(
                 wp, opposite=opposite,
                 exclude_junctions=exclude_junctions,
                 only_turns=only_turns)
 
             # Keep both numpy arrays *and* the last carla.Waypoint for fast extension
-            self._lane_points = {
+            self.lane_points = {
                 "center": center.tolist(),  # lists are easier to pop/append
-                "left": left_b.tolist(),
-                "right": right_b.tolist(),
-                "last_wp": wp  # last waypoint object
+                "last_wp": last_wp  # last waypoint object
             }
 
-        # ------------------------------------------------------------------
-        # 2)  Decide if we should advance to the *next* point
-        # ------------------------------------------------------------------
-        car_loc_np = carla_vec_to_np_array(self.car.get_transform().location)
+        while len(self.lane_points["center"]) < 90:
+            last_wp = self.lane_points["last_wp"]
 
-        # distance to first and second stored points
-        first_pt = np.array(self._lane_points["center"][0])
-        second_pt = np.array(self._lane_points["center"][1])
-
-        dist_first = np.linalg.norm(car_loc_np - first_pt)
-        dist_second = np.linalg.norm(car_loc_np - second_pt)
-
-        # If car passed the first point, shift lists and append a fresh one
-        if dist_second < dist_first:
-            # 2.1 pop first element from every stored list
-            self._lane_points["center"].pop(0)
-            self._lane_points["left"].pop(0)
-            self._lane_points["right"].pop(0)
-
-            # 2.2 create a new waypoint from the last stored waypoint
-            last_wp = self._lane_points["last_wp"]
+            # Try to move forward or backward depending on direction
             if opposite:
                 next_wps = last_wp.previous(1.0)
             else:
                 next_wps = last_wp.next(1.0)
 
-            if next_wps:  # there is a valid continuation
-                new_wp = next_wps[0]
-                self._lane_points["last_wp"] = new_wp  # update reference
+            if not next_wps:
+                break  # No more waypoints available, cannot extend further
 
-                offset = (carla_vec_to_np_array(new_wp.transform.get_right_vector())
-                          * new_wp.lane_width / 2.0)
+            # Get new waypoint
+            new_wp = next_wps[0]
+            self.lane_points["last_wp"] = new_wp  # update stored last_wp
 
-                center_np = carla_vec_to_np_array(new_wp.transform.location)
-                self._lane_points["center"].append(center_np.tolist())
-                self._lane_points["left"].append((center_np - offset).tolist())
-                self._lane_points["right"].append((center_np + offset).tolist())
-            # else: reached end of lane – keep last point set
+            # Compute new center/left/right lane points
+            center_np = carla_vec_to_np_array(new_wp.transform.location)
+
+            self.lane_points["center"].append(center_np.tolist())
 
         # ------------------------------------------------------------------
         # 3)  Return as numpy arrays
         # ------------------------------------------------------------------
-        center_arr = np.asarray(self._lane_points["center"])
-        left_arr = np.asarray(self._lane_points["left"])
-        right_arr = np.asarray(self._lane_points["right"])
-        return center_arr, left_arr, right_arr, self._lane_points["last_wp"]
-
-    def detect_center_line_perfect_v0(self, ll_segment, num_points=20):
-        ll_segment = cv2.cvtColor(ll_segment, cv2.COLOR_BGR2GRAY)
-
-        height = ll_segment.shape[0]
-        width = ll_segment.shape[1]
-
-        trafo_matrix_global_to_camera = get_matrix_global(self.car, self.trafo_matrix_vehicle_to_cam)
-
-        if self.k is None:
-            self.k = get_intrinsic_matrix(90, width, height)
-
-        # Use stable waypoint to avoid premature lane switching
-        waypoint = self.get_stable_waypoint(self.car.get_transform().location, self.world.get_map())
-
-        _, center_distance, alignment = self.get_lane_position(self.car, self.map)
-        opposite = alignment < 0.5
-        misalignment = (1 - abs(alignment)) * 10
-
-        center_list, left_boundary, right_boundary, type_lane = create_lane_lines(
-            waypoint, opposite=opposite
-        )
-
-        if center_list is None or len(center_list) < 2:
-            interpolated_center = []
-        else:
-            center_list = self.adjust_lane_polyline_for_offset(center_list, center_distance)
-
-            projected_center = project_polyline(
-                center_list, trafo_matrix_global_to_camera, self.k
-            ).astype(np.int32)
-
-            trimmed_projected_center = trim_polyline_to_image(projected_center, ll_segment.shape)
-
-            if len(trimmed_projected_center) < 2:
-                interpolated_center = []
-            else:
-                interpolated_center = interpolate_lane_points(trimmed_projected_center, num_points)
-
-        # If interpolation failed, return dummy points
-        if interpolated_center is None or len(interpolated_center) < 2:
-            interpolated_center = np.full((num_points, 2), -1)
-        return ll_segment, misalignment, center_distance, interpolated_center
-
-    def detect_lines_perfect(self, ll_segment):
-        ll_segment = cv2.cvtColor(ll_segment, cv2.COLOR_BGR2GRAY)
-
-        heigth = ll_segment.shape[0]
-        width = ll_segment.shape[1]
-
-        trafo_matrix_global_to_camera = get_matrix_global(self.car, self.trafo_matrix_vehicle_to_cam)
-        if self.k is None:
-            self.k = get_intrinsic_matrix(90, width, heigth)
-
-        waypoint = self.world.get_map().get_waypoint(
-            self.car.get_transform().location,
-            project_to_road=True,
-            lane_type=carla.LaneType.Driving,
-        )
-
-        _, center_distance, alignment = self.get_lane_position(self.car, self.map)
-        opposite = alignment < 0.5
-        misalignment = (1 - abs(alignment)) * 10
-        center_list, left_boundary, right_boundary, type_lane = create_lane_lines(waypoint, opposite=opposite)
-
-        projected_left_boundary = project_polyline(
-            left_boundary, trafo_matrix_global_to_camera, self.k).astype(np.int32)
-        projected_right_boundary = project_polyline(
-            right_boundary, trafo_matrix_global_to_camera, self.k).astype(np.int32)
-
-        trimmed_projected_left = trim_polyline_to_image(projected_left_boundary, ll_segment.shape)
-        trimmed_projected_right = trim_polyline_to_image(projected_right_boundary, ll_segment.shape)
-
-        interpolated_left = interpolate_lane_points(trimmed_projected_left, num_points=10)
-        interpolated_right = interpolate_lane_points(trimmed_projected_right, num_points=10)
-
-        # if (not check_inside_image(projected_right_boundary, width, heigth)
-        #         or not check_inside_image(projected_right_boundary, width, heigth)):
-        #     return (ll_segment,
-        #             misalignment,
-        #             center_distance,
-        #             interpolated_left,
-        #             interpolated_right)
-        # image = np.zeros_like(ll_segment, dtype=np.uint8)
-        # self.draw_line_through_points(projected_left_boundary, image)
-        # self.draw_line_through_points(projected_right_boundary, image)
-
-        # return image, misalignment, center_distance, interpolated_left, interpolated_right
-        return ll_segment, misalignment, center_distance, interpolated_left, interpolated_right
+        center_arr = np.asarray(self.lane_points["center"])
+        return center_arr, self.lane_points["last_wp"]
 
 
     def get_lane_position(self, vehicle: carla.Vehicle, map: carla.Map):
@@ -2182,363 +1917,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         return lane_side, lane_offset, lane_alignment
 
-    def detect_lines_from_segmentated(self, ll_segment):
-        cv2.imshow('raw', ll_segment)
-
-        ll_segment = self.post_process(ll_segment)
-
-        green_mask = self.extract_green_lines(ll_segment)
-        # Display the original image with merged lines
-        cv2.imshow('green', green_mask)
-
-        lines = self.post_process_hough_programmatic(green_mask)
-
-        gray = cv2.cvtColor(ll_segment, cv2.COLOR_BGR2RGB)
-        blur = cv2.GaussianBlur(gray, (5, 5), 0)
-        ll_segment = cv2.Canny(blur, 50, 100)
-
-        detected_lines = self.merge_and_extend_lines(lines, ll_segment)
-
-        # TODO (Ruben) It is quite hardcoded and unrobust. Fix this to enable all lines and more than
-        # 1 lane detection and cameras in other positions
-        boundary_y = ll_segment.shape[1] * 2 // 5
-        # Copy the lower part of the source image into the target image
-        ll_segment[boundary_y:, :] = detected_lines[boundary_y:, :]
-        ll_segment = (ll_segment // 255).astype(np.uint8)  # Keep the lower one-third of the image
-
-        return ll_segment
-
-    def detect_lines(self, raw_image):
-        curve = False
-        if self.detection_mode == 'programmatic':
-            gray = cv2.cvtColor(raw_image, cv2.COLOR_BGR2RGB)
-            # mask_white = cv2.inRange(gray, 200, 255)
-            # mask_image = cv2.bitWiseAnd(gray, mask_white)
-            blur = cv2.GaussianBlur(gray, (5, 5), 0)
-            ll_segment = cv2.Canny(blur, 50, 100)
-            cv2.imshow("raw", ll_segment) if self.sync_mode and self.show_images else None
-            processed = self.post_process(ll_segment)
-            lines = self.post_process_hough_programmatic(processed)
-        elif self.detection_mode == 'yolop':
-            with torch.no_grad():
-                ll_segment = (self.detect_yolop(raw_image) * 255).astype(np.uint8)
-            cv2.imshow("raw", ll_segment) if self.sync_mode and self.show_images else None
-            # processed = self.post_process(ll_segment)
-            lines = self.post_process_hough_yolop(ll_segment)
-        elif self.detection_mode == 'lane_detector_v2':
-            with torch.no_grad():
-                ll_segment, left_mask, right_mask = self.detect_lane_detector(raw_image)[0]
-            ll_segment = np.zeros_like(raw_image)
-            ll_segment = self.lane_detection_overlay(ll_segment, left_mask, right_mask)
-            cv2.imshow("raw", ll_segment) if self.sync_mode and self.show_images else None
-            # Extract blue and red channels
-            blue_channel = ll_segment[:, :, 0]  # Blue channel
-            red_channel = ll_segment[:, :, 2]  # Red channel
-            # print(f"left curve -> {is_curve(blue_channel)}")
-            # print(f"right curve -> {is_curve(red_channel)}")
-            curve = is_curve(blue_channel) or is_curve(red_channel)
-
-            lines = []
-            left_line = self.post_process_hough_lane_det(blue_channel)
-            if left_line is not None:
-                lines.append([left_line])
-            right_line = self.post_process_hough_lane_det(red_channel)
-            if right_line is not None:
-                lines.append([right_line])
-            ll_segment = 0.5 * blue_channel + 0.5 * red_channel
-            ll_segment = cv2.convertScaleAbs(ll_segment)
-        elif self.detection_mode == 'lane_detector_v2_poly':
-            with torch.no_grad():
-                ll_segment, left_mask, right_mask = self.detect_lane_detector(raw_image)[0]
-            ll_segment = np.zeros_like(raw_image)
-            ll_segment = self.lane_detection_overlay(ll_segment, left_mask, right_mask)
-            cv2.imshow("raw", ll_segment) if self.sync_mode and self.show_images else None
-            # Extract blue and red channels
-            blue_channel = ll_segment[:, :, 0]  # Blue channel
-            red_channel = ll_segment[:, :, 2]  # Red channel
-
-            ll_segment_left = self.post_process_hough_lane_det_poly(blue_channel)
-            ll_segment_right = self.post_process_hough_lane_det_poly(red_channel)
-            ll_segment = 0.5 * ll_segment_left if ll_segment_left is not None else np.zeros_like(blue_channel)
-            ll_segment = ll_segment + 0.5 * ll_segment_right if ll_segment_right is not None else ll_segment
-            ll_segment = cv2.convertScaleAbs(ll_segment)
-            return ll_segment.astype(np.uint8), False
-
-        detected_lines = self.merge_and_extend_lines(lines, ll_segment)
-
-        # line_mask = morphological_process(line_mask, kernel_size=15, func_type=cv2.MORPH_CLOSE)
-        # line_mask = morphological_process(line_mask, kernel_size=5, func_type=cv2.MORPH_OPEN)
-        # line_mask = cv2.dilate(line_mask, (15, 15), iterations=15)
-        # line_mask = cv2.erode(line_mask, (5, 5), iterations=20)
-
-        # TODO (Ruben) It is quite hardcoded and unrobust. Fix this to enable all lines and more than
-        # 1 lane detection and cameras in other positions
-        boundary_y = ll_segment.shape[1] * 2 // 5
-        # Copy the lower part of the source image into the target image
-        ll_segment[boundary_y:, :] = detected_lines[boundary_y:, :]
-        ll_segment = (ll_segment // 255).astype(np.uint8)  # Keep the lower one-third of the image
-
-        return ll_segment, curve
-
-    def detect_yolop(self, raw_image):
-        # Get names and colors
-        names = self.yolop_model.module.names if hasattr(self.yolop_model, 'module') else self.yolop_model.names
-
-        # Run inference
-        img = self.transform(raw_image).to(self.device)
-        img = img.float()  # uint8 to fp16/32
-        if img.ndimension() == 3:
-            img = img.unsqueeze(0)
-        # Inference
-        det_out, da_seg_out, ll_seg_out = self.yolop_model(img)
-
-        ll_seg_mask = torch.nn.functional.interpolate(ll_seg_out, scale_factor=int(1), mode='bicubic')
-        _, ll_seg_mask = torch.max(ll_seg_mask, 1)
-        ll_seg_mask = ll_seg_mask.int().squeeze().cpu().numpy()
-
-        return ll_seg_mask
 
 
     def show_ll_seg_image(self, centers, ll_segment, suffix="", name='ll_seg'):
         ll_segment_stacked = self.get_stacked_image(centers, ll_segment)
         # We now show the segmentation and center lane postprocessing
         self.show_image(name + suffix, ll_segment_stacked)
-
-    def post_process(self, ll_segment):
-        ''''
-        Lane line post-processing
-        '''
-        # ll_segment = morphological_process(ll_segment, kernel_size=5, func_type=cv2.MORPH_OPEN)
-        # ll_segment = morphological_process(ll_segment, kernel_size=20, func_type=cv2.MORPH_CLOSE)
-        # return ll_segment
-        # ll_segment = morphological_process(ll_segment, kernel_size=4, func_type=cv2.MORPH_OPEN)
-        # ll_segment = morphological_process(ll_segment, kernel_size=8, func_type=cv2.MORPH_CLOSE)
-
-        # Step 1: Create a binary mask image representing the trapeze
-        mask = np.zeros_like(ll_segment)
-        # pts = np.array([[300, 250], [-500, 600], [800, 600], [450, 260]], np.int32)
-        pts = np.array([[280, 200], [-50, 600], [630, 600], [440, 200]], np.int32)
-        cv2.fillPoly(mask, [pts], (255, 255, 255))  # Fill trapeze region with white (255)
-        cv2.imshow("applied_mask", mask)
-
-        # Step 2: Apply the mask to the original image
-        ll_segment_masked = cv2.bitwise_and(ll_segment, mask)
-        ll_segment_excluding_mask = cv2.bitwise_not(mask)
-        # Apply the exclusion mask to ll_segment
-        ll_segment_excluded = cv2.bitwise_and(ll_segment, ll_segment_excluding_mask)
-        cv2.imshow("discarded", ll_segment_excluded) if self.sync_mode and self.show_images else None
-
-        return ll_segment_masked
-
-    def post_process_hough_lane_det_poly(self, ll_segment):
-        # Step 4: Perform Hough transform to detect lines
-        # ll_segment = cv2.dilate(ll_segment, (3, 3), iterations=4)
-        # ll_segment = cv2.erode(ll_segment, (3, 3), iterations=2)
-        # edges = cv2.Canny(ll_segment, 50, 100)
-        # Extract coordinates of non-zero points
-        nonzero_points = np.argwhere(ll_segment == 255)
-        if len(nonzero_points) == 0:
-            return None
-
-        # Extract x and y coordinates
-        x = nonzero_points[:, 1].reshape(-1, 1)[:, 0]  # Reshape for scikit-learn input
-        y = nonzero_points[:, 0]
-
-        # Fit linear regression model
-        polinomio = np.polyfit(x, y, 2)
-
-        all = range(600)
-        y_pred = np.polyval(polinomio, all)
-
-        line_mask = np.zeros_like(ll_segment, dtype=np.uint8)  # Ensure dtype is uint8
-
-        # Draw the linear regression line
-        for i in all:
-            y_val = int(y_pred[i])
-            cv2.circle(line_mask, (i, y_val), 2, (255, 0, 0), -1)
-
-        return line_mask
-
-    def post_process_hough_lane_det(self, ll_segment):
-        # ll_segment = cv2.dilate(ll_segment, (3, 3), iterations=4)
-        # ll_segment = cv2.erode(ll_segment, (3, 3), iterations=2)
-        cv2.imshow("preprocess", ll_segment) if self.show_images else None
-        # edges = cv2.Canny(ll_segment, 50, 100)
-        # Extract coordinates of non-zero points
-        nonzero_points = np.argwhere(ll_segment == 255)
-        if len(nonzero_points) == 0:
-            return None
-
-        # Extract x and y coordinates
-        x = nonzero_points[:, 1].reshape(-1, 1)  # Reshape for scikit-learn input
-        y = nonzero_points[:, 0]
-
-        # Fit linear regression model
-        model = LinearRegression()
-        model.fit(x, y)
-
-        # Predict y values based on x
-        y_pred = model.predict(x)
-
-        line_mask = np.zeros_like(ll_segment, dtype=np.uint8)  # Ensure dtype is uint8
-
-        # Draw the linear regression line
-        for i in range(len(x)):
-            cv2.circle(line_mask, (x[i][0], int(y_pred[i])), 2, (255, 0, 0), -1)
-
-        cv2.imshow("result", line_mask) if self.show_images else None
-
-        # Find the minimum and maximum x coordinates
-        min_x = np.min(x)
-        max_x = np.max(x)
-
-        # Find the corresponding predicted y-values for the minimum and maximum x coordinates
-        y1 = int(model.predict([[min_x]]))
-        y2 = int(model.predict([[max_x]]))
-
-        # Define the line segment
-        line_segment = (min_x, y1, max_x, y2)
-
-        return line_segment
-
-    def post_process_hough_yolop(self, ll_segment):
-        # Step 4: Perform Hough transform to detect lines
-        ll_segment = cv2.dilate(ll_segment, (3, 3), iterations=4)
-        ll_segment = cv2.erode(ll_segment, (3, 3), iterations=2)
-        cv2.imshow("preprocess", ll_segment) if self.sync_mode and self.show_images else None
-        lines = cv2.HoughLinesP(
-            ll_segment,  # Input edge image
-            1,  # Distance resolution in pixels
-            np.pi / 60,  # Angle resolution in radians
-            threshold=8,  # Min number of votes for valid line
-            minLineLength=8,  # Min allowed length of line
-            maxLineGap=20  # Max allowed gap between line for joining them
-        )
-
-        line_mask = np.zeros_like(ll_segment, dtype=np.uint8)  # Ensure dtype is uint8
-
-        # Draw the detected lines on the blank image
-        if lines is not None:
-            for line in lines:
-                x1, y1, x2, y2 = line[0]
-                cv2.line(line_mask, (x1, y1), (x2, y2), (255, 255, 255), 2)  # Draw lines in white (255, 255, 255)
-
-        # Apply dilation to the line image
-
-        edges = cv2.Canny(line_mask, 50, 100)
-
-        cv2.imshow("intermediate_hough", edges) if self.sync_mode and self.show_images else None
-
-        # Reapply HoughLines on the dilated image
-        lines = cv2.HoughLinesP(
-            edges,  # Input edge image
-            1,  # Distance resolution in pixels
-            np.pi / 90,  # Angle resolution in radians
-            threshold=35,  # Min number of votes for valid line
-            minLineLength=15,  # Min allowed length of line
-            maxLineGap=20  # Max allowed gap between line for joining them
-        )
-        # Sort lines by their length
-        # lines = sorted(lines, key=lambda x: x[0][0] * np.sin(x[0][1]), reverse=True)[:5]
-
-        # Create a blank image to draw lines
-        line_mask = np.zeros_like(ll_segment, dtype=np.uint8)  # Ensure dtype is uint8
-
-        # Iterate over points
-        for points in lines if lines is not None else []:
-            # Extracted points nested in the list
-            x1, y1, x2, y2 = points[0]
-            # Draw the lines joing the points
-            # On the original image
-            cv2.line(line_mask, (x1, y1), (x2, y2), (255, 255, 255), 2)
-
-        # Postprocess the detected lines
-        # line_mask = morphological_process(line_mask, kernel_size=5, func_type=cv2.MORPH_OPEN)
-        # line_mask = morphological_process(line_mask, kernel_size=5, func_type=cv2.MORPH_CLOSE)
-        # kernel = np.ones((3, 3), np.uint8)  # Adjust the size as needed
-        # eroded_image = cv2.erode(line_mask, kernel, iterations=1)
-        cv2.imshow("hough", line_mask) if self.sync_mode and self.show_images else None
-
-        return lines
-
-    def post_process_hough_programmatic(self, ll_segment):
-        # Step 4: Perform Hough transform to detect lines
-        lines = cv2.HoughLinesP(
-            ll_segment,  # Input edge image
-            1,  # Distance resolution in pixels
-            np.pi / 60,  # Angle resolution in radians
-            threshold=20,  # Min number of votes for valid line
-            minLineLength=10,  # Min allowed length of line
-            maxLineGap=50  # Max allowed gap between line for joining them
-        )
-
-        line_mask = np.zeros_like(ll_segment, dtype=np.uint8)  # Ensure dtype is uint8
-
-        # Draw the detected lines on the blank image
-        if lines is not None:
-            for line in lines:
-                x1, y1, x2, y2 = line[0]
-                cv2.line(line_mask, (x1, y1), (x2, y2), (255, 255, 255), 2)  # Draw lines in white (255, 255, 255)
-
-        # Apply dilation to the line image
-
-        edges = cv2.Canny(line_mask, 50, 100)
-
-        cv2.imshow("intermediate_hough", edges)
-
-        # Reapply HoughLines on the dilated image
-        lines = cv2.HoughLinesP(
-            edges,  # Input edge image
-            1,  # Distance resolution in pixels
-            np.pi / 60,  # Angle resolution in radians
-            threshold=20,  # Min number of votes for valid line
-            minLineLength=13,  # Min allowed length of line
-            maxLineGap=50  # Max allowed gap between line for joining them
-        )
-        # Sort lines by their length
-        # lines = sorted(lines, key=lambda x: x[0][0] * np.sin(x[0][1]), reverse=True)[:5]
-
-        # Create a blank image to draw lines
-        line_mask = np.zeros_like(ll_segment, dtype=np.uint8)  # Ensure dtype is uint8
-
-        # Iterate over points
-        for points in lines if lines is not None else []:
-            # Extracted points nested in the list
-            x1, y1, x2, y2 = points[0]
-            # Draw the lines joing the points
-            # On the original image
-            cv2.line(line_mask, (x1, y1), (x2, y2), (255, 255, 255), 2)
-
-        # Postprocess the detected lines
-        # line_mask = morphological_process(line_mask, kernel_size=5, func_type=cv2.MORPH_OPEN)
-        # line_mask = morphological_process(line_mask, kernel_size=5, func_type=cv2.MORPH_CLOSE)
-        # kernel = np.ones((3, 3), np.uint8)  # Adjust the size as needed
-        # eroded_image = cv2.erode(line_mask, kernel, iterations=1)
-        cv2.imshow("hough", line_mask)
-
-        return lines
-
-    def extend_lines(self, lines, image_height):
-        extended_lines = []
-        for line in lines if lines is not None else []:
-            x1, y1, x2, y2 = line[0]
-            # Calculate slope and intercept
-            if x2 - x1 != 0:
-                slope = (y2 - y1) / (x2 - x1)
-                intercept = y1 - slope * x1
-                # Calculate new endpoints to extend the line
-                x1_extended = int(x1 - 2 * (x2 - x1))  # Extend 2 times the original length
-                y1_extended = int(slope * x1_extended + intercept)
-                x2_extended = int(x2 + 2 * (x2 - x1))  # Extend 2 times the original length
-                y2_extended = int(slope * x2_extended + intercept)
-                # Ensure the extended points are within the image bounds
-                x1_extended = max(0, min(x1_extended, image_height - 1))
-                y1_extended = max(0, min(y1_extended, image_height - 1))
-                x2_extended = max(0, min(x2_extended, image_height - 1))
-                y2_extended = max(0, min(y2_extended, image_height - 1))
-                # Append the extended line to the list
-                extended_lines.append([(x1_extended, y1_extended, x2_extended, y2_extended)])
-        return extended_lines
 
     def has_crashed(self):
         if len(self.collision_hist) > 0:  # te has chocado, baby
@@ -2553,7 +1937,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return False
 
     def is_out(self, center_distance):
-        if self.has_invaded() or self.has_crashed() or abs(center_distance) > 1:  # te has chocado, baby
+        # if self.has_invaded() or self.has_crashed() or abs(center_distance) > 1:  # te has chocado, baby
+        if self.has_crashed() or abs(center_distance) > 1:  # te has chocado, baby
             self.deviated += 1
             return True
 
@@ -2757,32 +2142,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             return True
         return False
 
-    def detect_lane_detector(self, raw_image):
-        image_tensor = raw_image.transpose(2, 0, 1).astype('float32') / 255
-        x_tensor = torch.from_numpy(image_tensor).to("cuda").unsqueeze(0)
-        model_output = torch.softmax(self.lane_model.forward(x_tensor), dim=1).cpu().numpy()
-        return model_output
-
-    def lane_detection_overlay(self, image, left_mask, right_mask):
-        res = np.copy(image)
-        # We show only points with probability higher than 0.5
-        res[left_mask > 0.5, :] = [255, 0, 0]
-        res[right_mask > 0.5, :] = [0, 0, 255]
-        return res
-
-    def calculate_curvature_from(self, right_center_lane):
-        x = np.array(self.x_row)
-        y = np.array(right_center_lane)
-
-        coefficients = np.polyfit(x, y, 2)  # Returns [a, b, c]
-        a, b, c = coefficients
-
-        x_mid = x[2]  # Use the middle point
-        y_prime = 2 * a * x_mid + b
-        y_double_prime = 2 * a
-        curvature = abs(y_double_prime) / ((1 + y_prime ** 2) ** (3 / 2))
-        return curvature
-
     def vary_car_orientation(self):
         """
         Slightly varies the orientation (yaw) of the vehicle.
@@ -2881,8 +2240,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         """
         It returns true if more than half of coordinates (x or y) differs more than 10 pixels
         """
-        if (self.
-                last_centers is None):
+        if self.last_centers is None or self.step_count < 20:
             return False
         if all(x == 0 for x in distances):
             return False # Tolerate missing frames
@@ -2892,7 +2250,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             if abs(distances[i] - self.last_centers[i]) > 0.2:
                 differents += 1
                 if differents > len(distances) // 4:
-                    print("lane changed!")
+                    print("centers switched!")
                     # print(f"from {self.last_centers} to {distances}!")
                     return True
         return False
@@ -2958,110 +2316,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             # collisions = self.crash,
             # completed = completed
         )
-
-    def detect_centers_from_image(self, ll_segment):
-        (
-            center_lanes,
-            distance_to_center_normalized
-        ) = self.calculate_center(ll_segment)
-        center_distance, right_center_lane = choose_lane(distance_to_center_normalized,
-                                                         center_lanes)
-        # if self.projected_x is not None:
-        #   right_center_lane, center_distance = self.project_line(self.x_row, right_center_lane,
-        #                                                                           center_distance,
-        #                                                                           self.projected_x)
-
-        x = np.array(self.x_row)
-        y = np.array(center_distance)
-        final_curvature = self.calculate_curvature_from(x, y)
-        return center_distance, final_curvature
-
-    def detect_all_from_segmentated(self, segmentated_image):
-        # Extract raw data
-        array = np.frombuffer(segmentated_image['raw_data'], dtype=np.uint8)
-        array = np.reshape(array, (segmentated_image['height'], segmentated_image['width'], 4))  # BGRA
-
-        # Extract the red channel — class ID is encoded here for semantic camera
-        semantic = array[:, :, 2]  # R channel for semantic segmentation
-
-        # Create binary mask for road (class ID 7)
-        road_mask = semantic == 7
-        lane_marking_mask = semantic == 6  # lane markings (center, side, etc.)
-
-        # Create a blank RGB image and paint road pixels white
-        road_rgb = np.zeros((segmentated_image['height'], segmentated_image['width'], 3), dtype=np.uint8)
-        road_rgb[road_mask] = [255, 255, 255]  # white
-        # Paint lane markings yellow
-        road_rgb[lane_marking_mask] = [255, 255, 0]
-
-        # Ensure correct shape and dtype for pygame
-        road_rgb = np.ascontiguousarray(road_rgb)
-
-        road_edges = np.zeros(road_rgb.shape, dtype=np.uint8)
-        # road_edges[lane_marking_mask] = [255, 255, 0]
-        # Go through each x-point and find the top-most and bottom-most road pixel (white)
-
-        line_points = []
-        left_road_border = []
-        right_road_border = []
-
-        # ys, xs = np.where(lane_marking_mask)  # row (y), column (x)
-        # 5. Fit a line: x = a*y + b (so we can get x at specific y values)
-        # midle_line = True
-        # if len(xs) > 0:
-        #     coeffs = np.polyfit(ys, xs, deg=1)  # Fit x = a*y + b
-        #     a, b = coeffs
-        # else:
-        #     midle_line = False  # No lane markings found
-
-        for y in range(segmentated_image['height']):
-            road_row = road_rgb[y, :]  # shape (width, 3)
-            line_row = lane_marking_mask[y, :]  # This is a 1D boolean array over x
-
-            x_coords = np.where(line_row)[0]  # Get x indices where lane marking exists
-
-            if len(x_coords) != 0:
-                x_center = int(np.mean(x_coords))  # Middle point
-                # cv2.circle(road_edges, (x_center, y), radius=3, color=(255, 255, 0), thickness=-1)  # Red right
-                # road_edges[y, x_center] = [255, 255, 0]
-                line_points.append(x_center)
-            # if midle_line:
-            #     x_value = (a * y + b).astype(int)
-            #     if 0 < x_value < 640:
-            #         cv2.circle(road_edges, (x_value, y), radius=3, color=(255, 255 ,0), thickness=-1)  # Red right
-            #         # road_edges[y, x_value] = [255, 255, 0]
-            #     line_points.append(x_value)
-            else:
-                line_points.append(-1)
-
-            # Find white pixels in this row (i.e., road pixels)
-            road_pixels = np.where((road_row == [255, 255, 255]).all(axis=1))[0]
-
-            if len(road_pixels) == 0:
-                left_road_border.append(-1) # no road in this row
-                right_road_border.append(-1) # no road in this row
-                continue
-
-            # Get left and right sides excluding when it is out of the image
-            x_left = road_pixels[0]
-            if x_left == 0:
-                left_road_border.append(-1) # no road in this row
-            else:
-                left_road_border.append(x_left)  # no road in this row
-
-            x_right = road_pixels[-1]
-            if x_right >= segmentated_image['width']-1:
-                right_road_border.append(-1) # no road in this row
-            else:
-                right_road_border.append(x_right)  # no road in this row
-
-            # Optionally draw them for visualization
-            # road_edges[y, x_left] = [0, 255, 255]  # green for left edge
-            # road_edges[y, x_right] = [0, 0, 255]  # blue for right edge
-            # cv2.circle(road_edges, (x_left, y), radius=3, color=(0, 255, 255), thickness=-1)  # Yellow left
-            # cv2.circle(road_edges, (x_right, y), radius=3, color=(0, 0, 255), thickness=-1)  # Red right
-
-        return road_edges, line_points, left_road_border, right_road_border
 
     def show_image(self, name, image):
         cv2.imshow(name, image)
@@ -3142,55 +2396,31 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.update_tensorboard_stats(self.tensorboard_location_writers[self.start_location_tag])
         # self.tensorboard.update_fps(self.step_fps)
 
-    def calculate_punish(self, params, action):
+    def calculate_punish(self, params, action, v_goal, v, center_distance):
         punish = 0
-        # Punish zig zag on straights
-        # if params["final_curvature"] < 0.00001:
-        # print(params["final_curvature"])
+
         if params["final_curvature"] < 0.02:
             punish += self.punish_zig_zag_value * abs(action[1])
-            # print(f"zig_zag punish -> {punish}")
-        #punish =+ misalignment
+            self.car.zig_zag_punish = punish
+
+        if abs(center_distance) > 0.2 and v > 15:
+            punish += (v - 15) * 0.5
+            self.car.v_punish = (v - 15) * 0.5
+
+        if v_goal > v + 3 and action[0] < 0.4:
+            punish += 1
+            self.car.v_punish += 1
+
+        if v_goal < v + 3 and action[0] > 0.7:
+            punish += 1
+            self.car.v_punish += 1
 
         if self.stage in ("v", "r"):
             punish += 1 if action[0] > 0.95 else 0
-            # if not is_not_aligned:
-            # punish += abs(self.prev_throtle - action[0]) * 5  # TODO parametrize stablility punish
-            # self.prev_throtle = action[0]
-            # if action[0] < 0:
-            #     punish += abs(action[0]) * 5
-            # punish += self.car.get_angular_velocity().z / 50
 
-        # if distance_error[0] > 0.05 and v > 20:
-        #     punish += 0.5 * (v - 20)
-
-        # ang = abs(params["angular_velocity"])
-        # if ang > 0.4:
-        #     punish += ang * 10
-        # punish += (1-self.beta) * v_reward * math.pow((1-d_reward), 2)
-        # if function_reward > punish:  # to avoid negative rewards
-        #     function_reward -= punish
-        # else:
-        #     function_reward = 0
         return punish
 
-    def calculate_v_eff_reward(self, v_goal, v, d_reward):
-        # throttle = max(action[0], 0)  # TODO OJO que aquí aplicas el freno indistintamente de la v!
-        # v_component = throttle if v < 3 else v/3
-        # v_eff_reward = (v_component * d_reward) + (align_reward * d_reward)
-        # v_eff_reward = v_component * d_reward + align_reward * d_reward
-        # v_eff_reward = v/20  * d_reward
-        # v_eff_reward = throttle * d_reward
-        # v_eff_reward = throttle * pow(d_reward, (throttle + 1))
-        # v_eff_reward = throttle * pow(d_reward, (abs(v) / 5) + 1) # reward pow curves
-        # v_eff_reward = max(action[0], 0) * d_reward
-        # v_eff_reward = v * pow(1 - distance_error[0], (abs(v) / 5) + 1)
-        # v_eff_reward = np.log1p(v) * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
-        # v_eff_reward = np.log1p(v) * max(d_reward, 0)
-        # v_eff_reward = 5 * np.log1p(v/4) * max(d_reward, 0) # When v/4 = 20 it starts not rewarding speed
-        # v_eff_reward = v * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
-        # v_eff_reward = -action[0] * 5 if is_not_aligned and v > 20 else v_eff_rewar
-
+    def calculate_v_reward(self, v_goal, v, d_reward):
         # v_goal values => [6, 11, 16, 21, 26]
         diff = abs(v_goal - float(v))
         # Sigmoid v_difference_error .......................
@@ -3198,9 +2428,14 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # center = 10
         # scale = 1 / 2.0  # adjust this for more/less steepness
         # v_difference_error = 1 / (1 + np.exp(-scale * (diff - center))) # Sigmoid ....
-        v_difference_error = diff / v_goal # proportion error related to v_goal
-        v_component = 1 - v_difference_error
+        # v_component = 1 - v_difference_error
+        v_difference_error = diff / 2 # proportion error related to v_goal
+        v_component = max(0, 10 - v_difference_error)
         v_eff_reward = v_component * d_reward
+
+        self.car.v_component = v_component
+        self.car.d_reward = d_reward
+        self.car.v_eff_reward = v_eff_reward
 
         # print(f"----------------------------------------")
         # print(f" d_reward = {d_reward}")
@@ -3216,32 +2451,6 @@ def init_client(ip, port):
     )
     client.set_timeout(20.0)
     return client
-
-
-def project_world_to_image(world_points, cam_transform, K):
-    """
-    world_points: list of carla.Location
-    cam_transform: camera transform
-    K: intrinsic matrix
-    """
-    # Get extrinsic matrix (world to camera)
-    cam_world_matrix = np.array(cam_transform.get_matrix())
-    world_to_cam = np.linalg.inv(cam_world_matrix)
-
-    points_2d = []
-    for p in world_points:
-        point = np.array([p.x, p.y, p.z, 1])
-        point_cam = world_to_cam @ point
-
-        # Skip points behind the camera
-        if point_cam[2] <= 0:
-            continue
-
-        point_img = K @ point_cam[:3]
-        point_img /= point_img[2]
-        points_2d.append((int(point_img[0]), int(point_img[1])))
-
-    return points_2d
 
 def get_car_location_tag(transform):
     location = transform.location

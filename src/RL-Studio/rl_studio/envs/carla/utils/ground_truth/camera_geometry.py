@@ -16,7 +16,6 @@ def get_intrinsic_matrix(field_of_view_deg, image_width, image_height):
                      [0, alpha, Cv],
                      [0, 0, 1.0]])
 
-
 def project_polyline(points_3d, trafo, K, image_shape=None):
     # Step 1: Homogeneous coordinates
     points_3d_h = np.concatenate([points_3d, np.ones((points_3d.shape[0], 1))], axis=1)  # Nx4
@@ -33,11 +32,11 @@ def project_polyline(points_3d, trafo, K, image_shape=None):
     points_2d = points_2d[:, :2] / points_cam[:, 2:3]  # Normalize x/z and y/z
 
     # Step 5 (NEW): Remove out-of-bounds pixels
-    if image_shape is not None:
-        h, w = image_shape
-        x, y = points_2d[:, 0], points_2d[:, 1]
-        in_bounds = (x >= 0) & (x < w) & (y >= 0) & (y < h)
-        points_2d = points_2d[in_bounds]
+    # if image_shape is not None:
+    #     h, w = image_shape
+    #     x, y = points_2d[:, 0], points_2d[:, 1]
+    #     in_bounds = (x >= 0) & (x < w) & (y >= 0) & (y < h)
+    #     points_2d = points_2d[in_bounds]
 
     return points_2d
 
@@ -83,10 +82,10 @@ def create_lane_lines(waypoint, opposite=False, exclude_junctions=True, only_tur
     center_list, left_boundary, right_boundary = [], [], []
 
     # This number represents how high we go in the line detection
-    N = 80
-    
+    N = 100
+
     for i in range(N):
-                
+
         if (
             str(waypoint.right_lane_marking.type)
             + str(waypoint.left_lane_marking.type)
@@ -124,13 +123,11 @@ def create_lane_lines(waypoint, opposite=False, exclude_junctions=True, only_tur
         left_boundary.append(center - offset)
         right_boundary.append(center + offset)
 
-    type_lane = None
-
     return (
         np.array(center_list),
         np.array(left_boundary),
         np.array(right_boundary),
-        type_lane
+        waypoint
     )
 
 class CameraGeometry(object):
