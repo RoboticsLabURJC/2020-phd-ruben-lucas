@@ -220,7 +220,7 @@ def interpolate_lane_points(lane_points: np.ndarray, num_points: int = 20, start
     return interpolated.astype(np.int32)
 
 def calculate_v_goal(mean_curvature, final_curvature, center_distance, curvature_weight=150):
-    mean_curv = max(0, mean_curvature - 1) * 15
+    mean_curv = max(0, mean_curvature - 1) * 25
     dist_error = abs(center_distance) * 10
     v_goal = max(6, 25 - (mean_curv + dist_error))
 
@@ -544,6 +544,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.show_all_points = False
         self.config = config
         self.tensorboard_location_writers = {}
+        self.previous_action = [0, 0]
 
         self.update_from_hot_config(config)
 
@@ -1338,7 +1339,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         v_goal = sum(self.v_goal_buffer) / len(self.v_goal_buffer)
 
         params["final_curvature"] = final_curvature
-        reward, done, has_crashed = self.rewards_easy(center_distance, action, params, v_goal=v_goal, x_centers=x_centers_normalized)
+        reward, done, has_crashed = self.rewards_easy(center_distance, action, params, v_goal=v_goal, x_centers_normalized=x_centers_normalized)
+        self.previous_action = action
 
         self.car.v_goal = v_goal
         self.car.reward = reward
@@ -1512,7 +1514,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # Logarithmic scaling formula
         return math.log(1 + velocity) / math.log(1 + v_max)
 
-    def rewards_easy(self, center_distance, action, params, v_goal=None, x_centers=None):
+    def rewards_easy(self, center_distance, action, params, v_goal=None, x_centers_normalized=None):
         # distance_error = error[3:]  # We are just rewarding the 3 lowest points!
         # distance_error = [abs(x) for x in centers_distances]
 
@@ -1524,7 +1526,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params["reward"] = 0
 
         # car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
-        car_deviated_punish = -2
+        car_deviated_punish = -20
         lane_changed_punish = -1
 
         # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
@@ -1565,7 +1567,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 return car_deviated_punish, True, False
             # return car_deviated_punish + (action[0] * d_reward), False, False
             reward = action[0] * d_reward/5
-            reward -= self.calculate_punish(params, action, v_goal, v, center_distance)
+            reward -= self.calculate_punish(params, action, v_goal, v, center_distance, x_centers_normalized)
             return reward, False, False
         else:
             self.steps_stopped = 0
@@ -1586,11 +1588,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # d_reward_component = beta * pos_reward
         v_reward_component = (1 - beta) * v_eff_reward
         # progress_reward_component = advanced * 0.01
+        aligned_component = abs(0.5 - np.mean(x_centers_normalized)) * 5
 
-        function_reward = d_reward_component + v_reward_component
+        function_reward = d_reward_component + v_reward_component + aligned_component
 
         # PUNISH CALCULATION
-        function_reward -= self.calculate_punish(params, action, v_goal, v, center_distance)
+        function_reward -= self.calculate_punish(params, action, v_goal, v, center_distance, x_centers_normalized)
 
         self.episode_v_eff_reward = self.episode_v_eff_reward + (
                 v_eff_reward - self.episode_v_eff_reward) / self.step_count
@@ -2396,12 +2399,14 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.update_tensorboard_stats(self.tensorboard_location_writers[self.start_location_tag])
         # self.tensorboard.update_fps(self.step_fps)
 
-    def calculate_punish(self, params, action, v_goal, v, center_distance):
+    def calculate_punish(self, params, action, v_goal, v, center_distance, x_centers_normalized):
         punish = 0
 
-        if params["final_curvature"] < 0.02:
+        is_centered = abs(x_centers_normalized[0] - x_centers_normalized[-1]) <= 0.3
+        if params["final_curvature"] < 0.02 and is_centered:
             punish += self.punish_zig_zag_value * abs(action[1])
             self.car.zig_zag_punish = punish
+        # punish += self.car.zig_zag_punish * abs(action[1] - self.previous_action[1]) * 10
 
         if abs(center_distance) > 0.2 and v > 15:
             punish += (v - 15) * 0.5
@@ -2421,14 +2426,15 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return punish
 
     def calculate_v_reward(self, v_goal, v, d_reward):
-        # v_goal values => [6, 11, 16, 21, 26]
-        diff = abs(v_goal - float(v))
         # Sigmoid v_difference_error .......................
         # Center at 10, stretch across 0–20
         # center = 10
         # scale = 1 / 2.0  # adjust this for more/less steepness
         # v_difference_error = 1 / (1 + np.exp(-scale * (diff - center))) # Sigmoid ....
         # v_component = 1 - v_difference_error
+        # diff = max(0.5, abs(v_goal - float(v)))
+        # v_component = (1 / diff) * 10
+        diff = abs(v_goal - float(v))
         v_difference_error = diff / 2 # proportion error related to v_goal
         v_component = max(0, 10 - v_difference_error)
         v_eff_reward = v_component * d_reward

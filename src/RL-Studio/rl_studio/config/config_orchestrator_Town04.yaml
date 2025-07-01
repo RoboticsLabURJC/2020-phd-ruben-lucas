@@ -1,4 +1,9 @@
 experiments:
+  - algorithm: ppo
+    config: config/config_training_followlane_bs_ppo_f1_carla.yaml
+    town: [ Town03, Town01, Town04 ]
+    carla_client: 4013
+
   - algorithm: sac
     config: config/config_training_followlane_bs_sac_f1_carla.yaml
     town: [ Town03, Town01, Town04 ]
@@ -6,10 +11,6 @@ experiments:
 
   - algorithm: ddpg
     config: config/config_training_followlane_bs_ddpg_f1_carla.yaml
-    town: [Town03, Town01, Town04]
+    town: [ Town03, Town01, Town04 ]
     carla_client: 4013
 
-#  - algorithm: ppo
-#    config: config/config_training_followlane_bs_ppo_f1_carla.yaml
-#    town: [Town03, Town01, Town04]
-#    carla_client: 4013
