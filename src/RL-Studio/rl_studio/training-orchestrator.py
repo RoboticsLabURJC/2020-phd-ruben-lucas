@@ -66,7 +66,7 @@ def get_avg_reward_from_file(path):
     except Exception:
         return None, None
 
-def should_stop_early(start_time, reward_file, reward_history, patience_hours=6, batch_size=50):
+def should_stop_early(start_time, reward_file, reward_history, patience_hours=6, batch_size=100):
     import time
 
     current_time = time.time()
@@ -80,7 +80,7 @@ def should_stop_early(start_time, reward_file, reward_history, patience_hours=6,
         return False
 
     # Require at least 4 full batches to start comparison
-    required_length = batch_size * 8
+    required_length = batch_size * 5
     if len(reward_history) < required_length:
         return False
 
@@ -96,15 +96,14 @@ def should_stop_early(start_time, reward_file, reward_history, patience_hours=6,
 
     stagnation_count = 0
 
-    # Check each of the last 7 batches
-    for batch in batches[-7:]:
+    for batch in batches[-4:]:
         batch_avg = sum(batch) / len(batch)
         batch_max = max(batch)
         if batch_avg <= first_avg and batch_max <= first_max:
             stagnation_count += 1
 
-    if stagnation_count == 7:
-        print("🛑 Early stopping: reward stagnation over 7 batches of 100 episodes.")
+    if stagnation_count == 4:
+        print("🛑 Early stopping: reward stagnation over 4 batches of 100 episodes.")
         return True
     else:
         print(f"there was {stagnation_count} batches that not improved from 8 batches ago.")

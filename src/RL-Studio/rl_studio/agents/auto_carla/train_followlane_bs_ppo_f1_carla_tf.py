@@ -565,8 +565,8 @@ class TrainerFollowLanePPOCarla:
                 self.env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[128, 128, 128, 128],  # The architecture for the policy network
-                        vf=[128, 128, 128, 128]  # The architecture for the value network
+                        pi=[128, 128, 128, 128, 128],  # The architecture for the policy network
+                        vf=[128, 128, 128, 128, 128]  # The architecture for the value network
                     ),
                     activation_fn=nn.ReLU,
                     log_std_init=-1.5,
@@ -575,7 +575,7 @@ class TrainerFollowLanePPOCarla:
                 learning_rate=linear_schedule(self.environment.environment["critic_lr"]),
                 gamma=self.algoritmhs_params.gamma,
                 # gae_lambda=0.9,
-                ent_coef=0.1,
+                ent_coef=0.35,
                 clip_range=self.algoritmhs_params.epsilon,
                 batch_size=2024,
                 verbose=1,
@@ -607,9 +607,9 @@ class TrainerFollowLanePPOCarla:
         exploration_rate_callback = ExplorationRateCallback(
             stage=self.environment.environment.get("stage"), initial_log_std=-0.5,
             min_log_std=self.environment.environment.get("decrease_min"), decay_rate=0.03,
-            decay_steps=2000)
+            decay_steps=self.global_params.steps_to_decrease)
         entropy_callback = EntropyCoefficientCallback(
-            initial_ent_coef=0.3,  # Starting entropy coefficient
+            initial_ent_coef=0.35,  # Starting entropy coefficient
             min_ent_coef=0.03,  # Minimum entropy coefficient
             decay_rate=0.0001,  # Decay amount per step
             decay_steps=2000,  # Decay every 1000 steps
@@ -649,8 +649,8 @@ class TrainerFollowLanePPOCarla:
         #callback_list = CallbackList([periodic_save_callback])
         #callback_list = CallbackList([periodic_save_callback, eval_callback])
         callback_list = CallbackList([
-            exploration_rate_callback,
-            # entropy_callback,
+            # exploration_rate_callback,
+            entropy_callback,
             periodic_save_callback,
             # epsilon_callback,
             eval_callback

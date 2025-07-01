@@ -1,5 +1,5 @@
 settings:
-  mode: training # training, retraining, inference
+  mode: inference # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: sac # qlearn, dqn, ddpg, sac
   simulator: carla # openai, carla, gazebo, sumo
@@ -18,7 +18,7 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 2500
+  steps_to_decrease: 1000
   entropy_factor: 0
   decrease_substraction: 0.005
   decrease_min: 0.005
@@ -38,7 +38,7 @@ ros:
 
 retraining:
   sac:
-    retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20250624-192502/best_model.zip
+    retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20250627-203415/best_model.zip
 
 inference:
   sac:
@@ -105,7 +105,7 @@ rewards:
 carla_environments:
   follow_lane:
     env_name: CarlaEnv-v0
-    town: [Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
+    town: [Town02] #Town01, Town02, Town03, Town04, Town05, Town10HD
 #    town: [Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
     # Town01_Opt, Town02_Opt, Town03_Opt, Town04_Opt, Town05_Opt, Town10HD_Opt
     car: model1
