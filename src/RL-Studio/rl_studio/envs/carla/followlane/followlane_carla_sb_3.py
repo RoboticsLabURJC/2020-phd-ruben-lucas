@@ -801,7 +801,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # states.append(final_curvature)
         states.append(0)
         states.append(0)
-        states.append(v_goal)
+        states.append(v_goal/25)
         # states.append(0)
         # states.append(0)
         # if self.use_curves_state:
@@ -1349,13 +1349,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         # states = right_lane_normalized_distances
 
-        states.append(params["velocity"] / 36)
+        states.append(params["velocity"] / 25)
         states.append(params["steering_angle"])
         #states.append(final_curvature)
         # states.append(misalignment)
         states.append(action[0])
         states.append(action[1])
-        states.append(v_goal)
+        states.append(v_goal/25)
        # states.append(last_points[0])
        # states.append(last_points[1])
         # states.append(self.lidar_front_distance/100)
@@ -2402,10 +2402,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def calculate_punish(self, params, action, v_goal, v, center_distance, x_centers_normalized):
         punish = 0
 
-        is_centered = abs(x_centers_normalized[0] - x_centers_normalized[-1]) <= 0.3
-        if params["final_curvature"] < 0.02 and is_centered:
-            punish += self.punish_zig_zag_value * abs(action[1])
-            self.car.zig_zag_punish = punish
+        # is_centered = abs(x_centers_normalized[0] - x_centers_normalized[-1]) <= 0.3
+        # if params["final_curvature"] < 0.02 or is_centered:
+        punish += self.punish_zig_zag_value * abs(action[1])
+        self.car.zig_zag_punish = punish
         # punish += self.car.zig_zag_punish * abs(action[1] - self.previous_action[1]) * 10
 
         if abs(center_distance) > 0.2 and v > 15:
