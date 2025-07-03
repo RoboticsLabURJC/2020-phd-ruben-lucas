@@ -218,8 +218,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = initial_log_std
             self.v_initial = initial_log_std
         else:
-            self.w_initial = -0.5
-            self.v_initial = -0.5
+            self.w_initial = -1.5
+            self.v_initial = 0.5
         self.current_step = 0
 
     def _on_training_start(self):
@@ -560,24 +560,24 @@ class TrainerFollowLanePPOCarla:
         else:
             # Assuming `self.params` and `self.global_params` are defined properly
             self.ppo_agent = PPO(
-                CustomActorCriticPolicy,  # Use the custom policy class
-                #"MlpPolicy",
+                # CustomActorCriticPolicy,  # Use the custom policy class
+                "MlpPolicy",
                 self.env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[128, 128, 128, 128, 128],  # The architecture for the policy network
-                        vf=[128, 128, 128, 128, 128]  # The architecture for the value network
+                        pi=[128, 128, 128],  # The architecture for the policy network
+                        vf=[128, 128, 128, 128]  # The architecture for the value network
                     ),
-                    activation_fn=nn.ReLU,
+                    # activation_fn=nn.ReLU,
                     log_std_init=-1.5,
                 ),
                 max_grad_norm=1,
                 learning_rate=linear_schedule(self.environment.environment["critic_lr"]),
                 gamma=self.algoritmhs_params.gamma,
                 # gae_lambda=0.9,
-                ent_coef=0.35,
+                ent_coef=0.05,
                 clip_range=self.algoritmhs_params.epsilon,
-                batch_size=2024,
+                batch_size=1280,
                 verbose=1,
                 # Uncomment if you want to log to TensorBoard
                 # tensorboard_log=f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
@@ -609,10 +609,10 @@ class TrainerFollowLanePPOCarla:
             min_log_std=self.environment.environment.get("decrease_min"), decay_rate=0.03,
             decay_steps=self.global_params.steps_to_decrease)
         entropy_callback = EntropyCoefficientCallback(
-            initial_ent_coef=0.35,  # Starting entropy coefficient
-            min_ent_coef=0.03,  # Minimum entropy coefficient
-            decay_rate=0.0001,  # Decay amount per step
-            decay_steps=2000,  # Decay every 1000 steps
+            initial_ent_coef=0.05,  # Starting entropy coefficient
+            min_ent_coef=0.01,  # Minimum entropy coefficient
+            decay_rate=0.001,  # Decay amount per step
+            decay_steps=5000,  # Decay every 1000 steps
             verbose=1
         )
 
@@ -649,7 +649,7 @@ class TrainerFollowLanePPOCarla:
         #callback_list = CallbackList([periodic_save_callback])
         #callback_list = CallbackList([periodic_save_callback, eval_callback])
         callback_list = CallbackList([
-            # exploration_rate_callback,
+            exploration_rate_callback,
             entropy_callback,
             periodic_save_callback,
             # epsilon_callback,

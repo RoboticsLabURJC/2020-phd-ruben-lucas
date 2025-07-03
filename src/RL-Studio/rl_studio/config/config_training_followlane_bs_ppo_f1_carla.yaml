@@ -18,7 +18,7 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 1000000
+  steps_to_decrease: 10000
   entropy_factor: 0
   decrease_substraction: 0.01
   decrease_min: -4
@@ -41,7 +41,7 @@ retraining:
 #    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250620-194107/model_2420000_steps.zip
 #    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250625-000650/best_model.zip
 #    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250630-090131/best_model.zip
-    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250630-213612/best_model.zip
+    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250702-080537/best_model.zip
 inference:
   ppo:
     inference_ppo_tf_actor_model_name:
@@ -50,12 +50,12 @@ inference:
 algorithm:
   ppo:
     gamma: 0.7
-    epsilon: 0.1
+    epsilon: 0.2
     std_dev: 0.1
     episodes_update: 50 # dooing nothing here
     replay_memory_size: 50_000
     memory_fraction: 0.20
-    critic_lr: 0.0001 # This is the only one applying to both now
+    critic_lr: 0.0002 # This is the only one applying to both now
     actor_lr: 0.0001
     model_name: PPO_Actor_conv2d32x64_Critic_conv2d32x64
 
@@ -153,6 +153,6 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: 5013
+  carla_client: 4013
 #  carla_client: [4013, 4015]
-  manager_port: 8101
+  manager_port: 8201
