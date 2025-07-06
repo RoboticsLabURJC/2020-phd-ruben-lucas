@@ -499,7 +499,7 @@ class TrainerFollowLaneSACCarla:
         if self.environment.environment["mode"] in ["inference"]:
             self.evaluate_ddpg_agent(self.env, self.sac_agent, 10000, 2000)
 
-        # callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
+        #callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
         callback_list = CallbackList([eval_callback, periodic_save_callback])
         #callback_list = CallbackList([periodic_save_callback])
 

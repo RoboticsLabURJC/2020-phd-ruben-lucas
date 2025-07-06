@@ -610,7 +610,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.lane_model.eval()
         else:
             self.camera_transform = carla.Transform(
-                carla.Location(x=2, y=0, z=2),
+                carla.Location(x=-2, y=0, z=2),
                 carla.Rotation(pitch=-2, yaw=0, roll=0.0)
             )
 
@@ -1588,9 +1588,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # d_reward_component = beta * pos_reward
         v_reward_component = (1 - beta) * v_eff_reward
         # progress_reward_component = advanced * 0.01
-        aligned_component = abs(0.5 - np.mean(x_centers_normalized)) * 5
+        # aligned_component = abs(0.5 - np.mean(x_centers_normalized)) * 5
 
-        function_reward = d_reward_component + v_reward_component + aligned_component
+        function_reward = d_reward_component + v_reward_component
 
         # PUNISH CALCULATION
         function_reward -= self.calculate_punish(params, action, v_goal, v, center_distance, x_centers_normalized)
@@ -1758,7 +1758,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         trafo_matrix_global_to_camera = get_matrix_global(self.car, self.trafo_matrix_vehicle_to_cam)
 
         if self.k is None:
-            self.k = get_intrinsic_matrix(90, width, height)
+            self.k = get_intrinsic_matrix(120, width, height)
 
         _, center_distance, alignment = self.get_lane_position(self.car, self.map)
         opposite = alignment < 0.5
