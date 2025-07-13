@@ -20,6 +20,7 @@ settings:
   metrics_dir: "./metrics"
   steps_to_decrease: 4000
   entropy_factor: 0
+  normalize: true
   decrease_substraction: 0.003
   decrease_min: 0.003
   reward_params:

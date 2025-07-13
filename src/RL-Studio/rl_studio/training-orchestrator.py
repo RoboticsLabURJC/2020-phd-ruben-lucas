@@ -14,12 +14,16 @@ def load_experiments(file_path="experiments.yaml"):
 SCRIPT_PATH = "rl-studio.py"  # Your main training script name
 
 # Utility to patch the YAML config
-def patch_config(config_path, town, carla_client):
+def patch_config(config_path, town, carla_client, punish_z, normalize):
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
 
     config['carla_environments']['follow_lane']['town'] = town
     config['carla']['carla_client'] = carla_client
+    config['carla']['carla_client'] = carla_client
+    config['carla']['carla_client'] = carla_client
+    config['settings']['reward_params']['punish_zig_zag_value'] = punish_z
+    config['settings']['normalize'] = normalize
 
     temp_config_path = f"/tmp/patched_{os.path.basename(config_path)}"
     with open(temp_config_path, 'w') as f:
@@ -42,7 +46,11 @@ def orchestrate(experiments):
         print(f"{datetime.now()} CARLA client port: {exp['carla_client']}")
         print("="*60)
 
-        patched_config = patch_config(exp['config'], exp['town'], exp['carla_client'])
+        patched_config = patch_config(exp['config'],
+                                      exp['town'],
+                                      exp['carla_client'],
+                                      exp['punish_zig_zag'],
+                                      exp['normalize'])
         process = launch_training(patched_config)
 
         reward_file = f"/tmp/rlstudio_reward_monitor_{process.pid}.json"
@@ -66,9 +74,10 @@ def get_avg_reward_from_file(path):
     except Exception:
         return None, None
 
-def should_stop_early(start_time, reward_file, reward_history, patience_hours=6, batch_size=100):
+def should_stop_early(start_time, reward_file, reward_history, patience_hours=6, batch_size=60):
     import time
 
+    n_batches = 3
     current_time = time.time()
     avg_reward, timestamp = get_avg_reward_from_file(reward_file)
 
@@ -96,17 +105,17 @@ def should_stop_early(start_time, reward_file, reward_history, patience_hours=6,
 
     stagnation_count = 0
 
-    for batch in batches[-4:]:
+    for batch in batches[-n_batches:]:
         batch_avg = sum(batch) / len(batch)
         batch_max = max(batch)
         if batch_avg <= first_avg and batch_max <= first_max:
             stagnation_count += 1
 
-    if stagnation_count == 4:
-        print("🛑 Early stopping: reward stagnation over 4 batches of 100 episodes.")
+    if stagnation_count == n_batches:
+        print(f"🛑 Early stopping: reward stagnation over {n_batches} batches of {batch_size} episodes.")
         return True
     else:
-        print(f"there was {stagnation_count} batches that not improved from 8 batches ago.")
+        print(f"there were {stagnation_count} batches that not improved from {n_batches} batches ago.")
         reward_history.clear()
     return False
 

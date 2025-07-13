@@ -14,6 +14,7 @@ settings:
   framework: baselines # TensorFlow, Pytorch
   total_episodes: 5000000
   training_time: 72
+  normalize: False
   models_dir: "./checkpoints"
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
@@ -25,7 +26,7 @@ settings:
   use_curves_state: False
   reward_params:
     function: pow
-    punish_zig_zag_value: 5
+    punish_zig_zag_value: 10
     punish_braking: 0
     punish_ineffective_vel: 1
     beta_1: 0
@@ -41,7 +42,7 @@ ros:
 retraining:
   ddpg:
 #    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250622-131058/best_model.zip
-    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250704-191458/best_model.zip
+    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250711-103036/best_model.zip
 inference:
   ddpg:
   #    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250429-225407/best_model.zip
@@ -102,7 +103,7 @@ rewards:
 carla_environments:
   follow_lane:
     env_name: CarlaEnv-v0
-    town: [Town01, Town03, Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
+    town: [Town03] #Town01, Town02, Town03, Town04, Town05, Town10HD
 #    town: [Town10HD] #Town01, Town02, Town03, Town04, Town05, Town10HD
     # Town01_Opt, Town02_Opt, Town03_Opt, Town04_Opt, Town05_Opt, Town10HD_Opt
     car: model1
@@ -137,13 +138,17 @@ carla_environments:
 #    #  [ 334.204407,  14.515439, 0.608849, 1.506945, -179.198761, -1.299316] # long straight slightly right
 #      #   [235.603699, 12.395636, 5.228042, 3.577455, 0.124573, -0.008118], # straight reverse
 #   #   [389.385938, -179.152158, 0.457793, 0.082516, 270.889893, 0.078263] # straight reverse
-#      town01: [
+#      town01:
+#      [
 #           [ 271.620453, 129.484360, 0.308446, 0.075911, 0.075653, 0.119354 ], # intersection left BIT NOISY
 #           [ 306.1, 55.492641, 0.307581, -0.02, 0.226, 0.024 ], # intersection right THIS IS NOISY
 #           [ 374.528381, -1.992010, 0.510610, 0.401014, 0.017142, -0.004486 ], # To right on corner
 #           [396.330078, 54.040039, 0.509727, 0.300720, 270.032318, 0.027174]  # sharp left corner
+      #]
+#       town03:
+      #[
+#      [243.004135, -21.354370, 0.504124, -0.322938, -92.365234, 1.550486]
 #      ]
-#    }
     front_car: none # none, fixed, stopped, driving, incoming, outgoing
     front_car_spawn_points: [
       [ 382.315643, -263.973114, 0.805201, -0.211087, 76.833618, -0.360352 ]
@@ -156,6 +161,6 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: 5013
+  carla_client: 4013
   #carla_client: [4013, 5011]
   manager_port: 8024
