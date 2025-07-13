@@ -219,10 +219,14 @@ def interpolate_lane_points(lane_points: np.ndarray, num_points: int = 20, start
     interpolated = np.stack((interp_x, interp_y), axis=1)
     return interpolated.astype(np.int32)
 
-def calculate_v_goal(mean_curvature, final_curvature, center_distance, curvature_weight=150):
+def calculate_v_goal(mean_curvature, center_distance, y_normalized):
     mean_curv = max(0, mean_curvature - 1) * 25
     dist_error = abs(center_distance) * 10
-    v_goal = max(6, 25 - (mean_curv + dist_error))
+    v_goal = max(7, 25 - (mean_curv + dist_error))
+
+    farther_y = y_normalized[-1]
+    if farther_y > 0.65:
+        v_goal = max(3, v_goal - 4)
 
     # Snap to closest value in the allowed list
     # allowed_values = [6, 11, 16, 21, 26]
@@ -509,8 +513,9 @@ def normalize_centers(centers):
     x_centers_normalized = (x_centers / 512).tolist()
     states = x_centers_normalized
     y_centers = centers[:, 1]
-    states = states + (y_centers / 640).tolist()  # Returns a list
-    return states, x_centers_normalized
+    y_centers_normalized = (y_centers / 640).tolist()
+    states = states + y_centers_normalized # Returns a list
+    return states, x_centers_normalized, y_centers_normalized
 
 
 class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
@@ -519,6 +524,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.NON_DETECTED = -1
         self.dashboard = config.get("dashboard")
         self.estimated_steps = config.get("estimated_steps")
+        self.normalize =  config.get("normalize")
 
         self.start = time.time()
 
@@ -610,8 +616,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.lane_model.eval()
         else:
             self.camera_transform = carla.Transform(
-                carla.Location(x=-2, y=0, z=2),
-                carla.Rotation(pitch=-2, yaw=0, roll=0.0)
+                carla.Location(x=-1, y=0, z=3),
+                carla.Rotation(pitch=-2.5, yaw=0, roll=0.0)
             )
 
             # Translation matrix, convert vehicle reference system to camera reference system
@@ -639,7 +645,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.display_manager = DisplayManager(
             grid_size=[2, 3],
             window_size=[1500, 800],
-            headless=False
+            headless=True
         )
 
         try:
@@ -791,17 +797,20 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         final_curvature = calculate_max_curveture_from_centers(center_points)
         mean_curvature = average_curvature_from_centers(center_points)
 
-        states, x_centers_normalized = normalize_centers(center_points)
+        states, x_centers_normalized, y_normalized = normalize_centers(center_points)
         v_goal = calculate_v_goal(mean_curvature,
-                                  final_curvature,
-                                  center_distance)
+                                  center_distance,
+                                  x_centers_normalized)
 
         states.append(0)
         states.append(0)
         # states.append(final_curvature)
         states.append(0)
         states.append(0)
-        states.append(v_goal/25)
+        if self.normalize:
+            states.append(v_goal / 25)
+        else:
+            states.append(v_goal)
         # states.append(0)
         # states.append(0)
         # if self.use_curves_state:
@@ -1277,6 +1286,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return all_x_points, all_x_normalized
 
     def apply_step(self, action):
+        # if self.all_steps % 10:
+        #     print(self.car.get_transform())
         self.all_steps += 1
         # action[1] = action[1] * 0.5
         # action[0] = 0.6
@@ -1316,7 +1327,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         final_curvature = calculate_max_curveture_from_centers(centers)
         mean_curvature = average_curvature_from_centers(centers)
 
-        states, x_centers_normalized = normalize_centers(centers)
+        states, x_centers_normalized, y_normalized = normalize_centers(centers)
         centers_image = np.zeros(raw_image.shape, dtype=np.uint8)
         for index in range(len(centers)):
             if centers[index][0] == self.NON_DETECTED:
@@ -1333,8 +1344,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         _, center_distance, _ = self.get_lane_position(self.car, self.map)
         # v_goal = calculate_v_goal(final_curvature, center_distance, curvature_weight=150)
         v_goal = calculate_v_goal(mean_curvature,
-                                  final_curvature,
-                                  center_distance)
+                                  center_distance,
+                                  y_normalized)
         self.v_goal_buffer.append(v_goal)
         v_goal = sum(self.v_goal_buffer) / len(self.v_goal_buffer)
 
@@ -1355,8 +1366,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # states.append(misalignment)
         states.append(action[0])
         states.append(action[1])
-        states.append(v_goal/25)
-       # states.append(last_points[0])
+        if self.normalize:
+            states.append(v_goal / 25)
+        else:
+            states.append(v_goal)
+        # states.append(last_points[0])
        # states.append(last_points[1])
         # states.append(self.lidar_front_distance/100)
         # states.append(curvature * 10)
@@ -1554,7 +1568,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #
         # # TODO ignore non detected centers
         # d_reward = 0 if len(d_rewards) == 0 else sum(d_rewards) / len(d_rewards)
-        d_reward = (1 - abs(center_distance)) ** 3
+        d_reward = (1 - abs(center_distance)) ** 2
 
         v = params["velocity"]
 
@@ -1573,7 +1587,15 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.steps_stopped = 0
 
         # print(f"monitoring last modification bro! current_v -> {params['velocity']}")
-        v_eff_reward = self.calculate_v_reward(v_goal, v, d_reward)
+        # calculate_v_reward
+        diff = abs(v_goal - float(v))
+        v_difference_error = diff / 2 # proportion error related to v_goal
+        v_component = max(0, 10 - v_difference_error)
+        v_eff_reward = v_component * d_reward
+
+        self.car.v_component = v_component
+        self.car.d_reward = d_reward
+        self.car.v_eff_reward = v_eff_reward
 
         if self.stage in ("v", "r"):
             if v > 32:
@@ -1758,7 +1780,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         trafo_matrix_global_to_camera = get_matrix_global(self.car, self.trafo_matrix_vehicle_to_cam)
 
         if self.k is None:
-            self.k = get_intrinsic_matrix(120, width, height)
+            self.k = get_intrinsic_matrix(110, width, height)
 
         _, center_distance, alignment = self.get_lane_position(self.car, self.map)
         opposite = alignment < 0.5
@@ -1791,12 +1813,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                     if keep:
                         first_true_index = i
                         break
-                else:
-                    # If mask is all False, remove all points
-                    first_true_index = len(mask)
                 self.lane_points["center"] = self.lane_points["center"][first_true_index:]
 
                 interpolated_center = interpolate_lane_points(visible_center, num_points)
+
+            if len(self.lane_points["center"]) < 30:
+                self.lane_points = None
 
         # If interpolation failed, return dummy points
         return ll_segment, misalignment, center_distance, interpolated_center
@@ -1949,7 +1971,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def set_init_pose(self):
         ## ---  Car
-        waypoints_town = self.world.get_map().generate_waypoints(5.0)
+        waypoints_town = self.world.get_map().generate_waypoints(1.0)
         # set self driving car
         if self.alternate_pose:
             self.car, init_pose = self.setup_car_random_pose(self.spawn_points)
@@ -2004,7 +2026,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # camera_bp.set_attribute("image_size_y", "600")
         # camera_bp.set_attribute("fov", "90")
 
-
         self.birds_eye_camera = SensorManager(
             self.world,
             self.display_manager,
@@ -2020,8 +2041,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.display_manager,
             "RGBCamera",
             carla.Transform(
-                carla.Location(x=2, y=0, z=2),
-                carla.Rotation(pitch=-2, yaw=0, roll=0.0)
+                carla.Location(x=1, y=0, z=3),
+                carla.Rotation(pitch=-2.5, yaw=0, roll=0.0)
             ),
             self.car,
             {},
@@ -2402,9 +2423,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def calculate_punish(self, params, action, v_goal, v, center_distance, x_centers_normalized):
         punish = 0
 
-        # is_centered = abs(x_centers_normalized[0] - x_centers_normalized[-1]) <= 0.3
+        half_image = len(x_centers_normalized)//2
+        is_centered = abs(x_centers_normalized[0] - x_centers_normalized[half_image]) <= 0.3
         # if params["final_curvature"] < 0.02 or is_centered:
-        punish += self.punish_zig_zag_value * abs(action[1])
+        if is_centered:
+            punish += self.punish_zig_zag_value * abs(action[1])
         self.car.zig_zag_punish = punish
         # punish += self.car.zig_zag_punish * abs(action[1] - self.previous_action[1]) * 10
 
@@ -2424,31 +2447,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             punish += 1 if action[0] > 0.95 else 0
 
         return punish
-
-    def calculate_v_reward(self, v_goal, v, d_reward):
-        # Sigmoid v_difference_error .......................
-        # Center at 10, stretch across 0–20
-        # center = 10
-        # scale = 1 / 2.0  # adjust this for more/less steepness
-        # v_difference_error = 1 / (1 + np.exp(-scale * (diff - center))) # Sigmoid ....
-        # v_component = 1 - v_difference_error
-        # diff = max(0.5, abs(v_goal - float(v)))
-        # v_component = (1 / diff) * 10
-        diff = abs(v_goal - float(v))
-        v_difference_error = diff / 2 # proportion error related to v_goal
-        v_component = max(0, 10 - v_difference_error)
-        v_eff_reward = v_component * d_reward
-
-        self.car.v_component = v_component
-        self.car.d_reward = d_reward
-        self.car.v_eff_reward = v_eff_reward
-
-        # print(f"----------------------------------------")
-        # print(f" d_reward = {d_reward}")
-        # print(f"(v_component = {v_component} | v_reward = {v_eff_reward}")
-        # print(f"----------------------------------------")
-        return v_eff_reward
-
 
 def init_client(ip, port):
     client = carla.Client(

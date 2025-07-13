@@ -106,6 +106,7 @@ class LoadEnvParams:
             ]
 
 
+
 class LoadGlobalParams:
     """
     Retrieves Global params from config.yaml
@@ -163,6 +164,7 @@ class LoadGlobalParams:
         self.steps_to_decrease = config["settings"]["steps_to_decrease"]
         self.decrease_substraction = config["settings"]["decrease_substraction"]
         self.decrease_min = config["settings"]["decrease_min"]
+        self.normalize = config["settings"]["normalize"]
 
 
 class LoadEnvVariablesDQNGazebo:
@@ -585,6 +587,7 @@ class LoadEnvVariablesDDPGCarla:
         self.environment["punish_braking"] = config["settings"]["reward_params"]["punish_braking"]
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
         self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
+        self.environment["normalize"] = config["settings"].get("normalize")
 
         # CARLA
         self.environment["carla_server"] = config["carla"]["carla_server"]
@@ -746,7 +749,7 @@ class LoadEnvVariablesSACCarla:
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
         self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
-
+        self.environment["normalize"] = config["settings"].get("normalize")
 
         # Training/inference
         self.environment["mode"] = config["settings"]["mode"]
@@ -909,6 +912,7 @@ class LoadEnvVariablesPPOCarla:
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
         self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
+        self.environment["normalize"] = config["settings"].get("normalize")
 
 
         # Training/inference
