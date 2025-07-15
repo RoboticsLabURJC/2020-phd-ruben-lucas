@@ -225,8 +225,8 @@ def calculate_v_goal(mean_curvature, center_distance, y_normalized):
     v_goal = max(7, 25 - (mean_curv + dist_error))
 
     farther_y = y_normalized[-1]
-    if farther_y > 0.65:
-        v_goal = max(3, v_goal - 4)
+    if farther_y > 0.6:
+        v_goal = max(3, v_goal - 5)
 
     # Snap to closest value in the allowed list
     # allowed_values = [6, 11, 16, 21, 26]
@@ -616,7 +616,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.lane_model.eval()
         else:
             self.camera_transform = carla.Transform(
-                carla.Location(x=-1, y=0, z=3),
+                carla.Location(x=-1, y=0, z=2),
                 carla.Rotation(pitch=-2.5, yaw=0, roll=0.0)
             )
 
@@ -800,7 +800,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         states, x_centers_normalized, y_normalized = normalize_centers(center_points)
         v_goal = calculate_v_goal(mean_curvature,
                                   center_distance,
-                                  x_centers_normalized)
+                                  y_normalized)
 
         states.append(0)
         states.append(0)
@@ -1360,7 +1360,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         # states = right_lane_normalized_distances
 
-        states.append(params["velocity"] / 25)
+        if self.normalize:
+            states.append(params["velocity"] / 25)
+        else:
+            states.append(params["velocity"])
         states.append(params["steering_angle"])
         #states.append(final_curvature)
         # states.append(misalignment)
@@ -1540,7 +1543,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         params["reward"] = 0
 
         # car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
-        car_deviated_punish = -20
+        car_deviated_punish = -10
+        stop_punish = -10
         lane_changed_punish = -1
 
         # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
@@ -1580,9 +1584,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 print("too much time stopped")
                 return car_deviated_punish, True, False
             # return car_deviated_punish + (action[0] * d_reward), False, False
-            reward = action[0] * d_reward/5
-            reward -= self.calculate_punish(params, action, v_goal, v, center_distance, x_centers_normalized)
-            return reward, False, False
+            return car_deviated_punish, False, False
+            # reward = action[0] * d_reward/5
+            # reward -= self.calculate_punish(params, action, v_goal, v, center_distance, x_centers_normalized)
+            # return reward, False, False
         else:
             self.steps_stopped = 0
 
@@ -1780,7 +1785,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         trafo_matrix_global_to_camera = get_matrix_global(self.car, self.trafo_matrix_vehicle_to_cam)
 
         if self.k is None:
-            self.k = get_intrinsic_matrix(110, width, height)
+            self.k = get_intrinsic_matrix(130, width, height)
 
         _, center_distance, alignment = self.get_lane_position(self.car, self.map)
         opposite = alignment < 0.5
@@ -2041,7 +2046,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.display_manager,
             "RGBCamera",
             carla.Transform(
-                carla.Location(x=1, y=0, z=3),
+                carla.Location(x=-1, y=0, z=3),
                 carla.Rotation(pitch=-2.5, yaw=0, roll=0.0)
             ),
             self.car,

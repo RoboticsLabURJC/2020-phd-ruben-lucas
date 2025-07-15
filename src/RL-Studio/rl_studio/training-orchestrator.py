@@ -74,10 +74,10 @@ def get_avg_reward_from_file(path):
     except Exception:
         return None, None
 
-def should_stop_early(start_time, reward_file, reward_history, patience_hours=6, batch_size=60):
+def should_stop_early(start_time, reward_file, reward_history, patience_hours=6, batch_size=50):
     import time
 
-    n_batches = 3
+    n_batches = 6
     current_time = time.time()
     avg_reward, timestamp = get_avg_reward_from_file(reward_file)
 
@@ -116,8 +116,8 @@ def should_stop_early(start_time, reward_file, reward_history, patience_hours=6,
         return True
     else:
         print(f"there were {stagnation_count} batches that not improved from {n_batches} batches ago.")
-        reward_history.clear()
-    return False
+        del reward_history[:batch_size]
+        return False
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
