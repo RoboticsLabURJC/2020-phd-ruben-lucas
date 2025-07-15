@@ -4,19 +4,19 @@ experiments:
     config: config/config_training_followlane_bs_ddpg_f1_carla.yaml
     town: [ Town03, Town01, Town04 ]
     carla_client: 4013
-    punish_zig_zag: 5
-    normalize: true
+    punish_zig_zag: 3
+    normalize: False
 
   - algorithm: sac
     config: config/config_training_followlane_bs_sac_f1_carla.yaml
     town: [ Town03, Town01, Town04 ]
     carla_client: 4013
-    punish_zig_zag: 5
-    normalize: true
+    punish_zig_zag: 3
+    normalize: False
 
   - algorithm: ppo
     config: config/config_training_followlane_bs_ppo_f1_carla.yaml
     town: [ Town03, Town01, Town04 ]
     carla_client: 4013
-    punish_zig_zag: 5
-    normalize: true
+    punish_zig_zag: 3
+    normalize: False
