@@ -273,6 +273,7 @@ class LoadEnvVariablesDQNGazebo:
         self.environment["min_reward"] = config["rewards"][self.rewards]["min_reward"]
         self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
+        self.environment["punish_deviation"] = config["settings"]["reward_params"]["punish_deviation"]
         self.environment["punish_braking"] = config["settings"]["reward_params"]["punish_braking"]
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
         self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
@@ -316,6 +317,7 @@ class LoadEnvVariablesDDPGGazebo:
         ]
         self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
+        self.environment["punish_deviation"] = config["settings"]["reward_params"]["punish_deviation"]
         self.environment["punish_braking"] = config["settings"]["reward_params"]["punish_braking"]
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
         self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
@@ -439,6 +441,7 @@ class LoadEnvVariablesManualCarla:
         self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
         self.environment["punish_braking"] = config["settings"]["reward_params"].get("punish_braking")
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
+        self.environment["punish_deviation"] = config["settings"]["reward_params"]["punish_deviation"]
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
         self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
 
@@ -584,6 +587,7 @@ class LoadEnvVariablesDDPGCarla:
         self.environment["appended_states"] = config["settings"]["appended_states"]
         self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
+        self.environment["punish_deviation"] = config["settings"]["reward_params"]["punish_deviation"]
         self.environment["punish_braking"] = config["settings"]["reward_params"]["punish_braking"]
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
         self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
@@ -747,6 +751,7 @@ class LoadEnvVariablesSACCarla:
         self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
         self.environment["punish_braking"] = config["settings"]["reward_params"].get("punish_braking")
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
+        self.environment["punish_deviation"] = config["settings"]["reward_params"]["punish_deviation"]
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
         self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
         self.environment["normalize"] = config["settings"].get("normalize")
@@ -910,6 +915,7 @@ class LoadEnvVariablesPPOCarla:
         self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
         self.environment["punish_braking"] = config["settings"]["reward_params"].get("punish_braking")
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
+        self.environment["punish_deviation"] = config["settings"]["reward_params"]["punish_deviation"]
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
         self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
         self.environment["normalize"] = config["settings"].get("normalize")
@@ -1071,6 +1077,7 @@ class LoadEnvVariablesPPOGazebo:
         ]
         self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
+        self.environment["punish_deviation"] = config["settings"]["reward_params"]["punish_deviation"]
         self.environment["punish_braking"] = config["settings"]["reward_params"]["punish_braking"]
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
         self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
@@ -1196,6 +1203,7 @@ class LoadEnvVariablesSACGazebo:
         ]
         self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
+        self.environment["punish_deviation"] = config["settings"]["reward_params"]["punish_deviation"]
         self.environment["punish_braking"] = config["settings"]["reward_params"]["punish_braking"]
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
         self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
