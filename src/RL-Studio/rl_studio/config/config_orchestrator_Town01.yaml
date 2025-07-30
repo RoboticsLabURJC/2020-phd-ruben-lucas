@@ -1,22 +1,46 @@
 experiments:
 
-  - algorithm: ddpg
-    config: config/config_training_followlane_bs_ddpg_f1_carla.yaml
-    town: [ Town03, Town01, Town04 ]
-    carla_client: 5013
-    punish_zig_zag: 3
-    normalize: false
+  - config: config/config_training_followlane_bs_ddpg_f1_carla.yaml
+    carla:
+      carla_client: 5013
+    carla_environments:
+      follow_lane:
+        town: [ Town03, Town01, Town04 ]
+    settings:
+      algorithm: ddpg
+      normalize: true
+      appended_states: 20
+      reward_params:
+        punish_zig_zag_value: 5
+        punish_deviation: 100
+        beta_1: 0.1
 
-  - algorithm: sac
-    config: config/config_training_followlane_bs_sac_f1_carla.yaml
-    town: [ Town03, Town01, Town04 ]
-    carla_client: 5013
-    punish_zig_zag: 3
-    normalize: false
+  - config: config/config_training_followlane_bs_ppo_f1_carla.yaml
+    carla:
+      carla_client: 5013
+    carla_environments:
+      follow_lane:
+        town: [Town03, Town01, Town04]
+    settings:
+      algorithm: ppo_continuous
+      normalize: true
+      appended_states: 20
+      reward_params:
+        punish_zig_zag_value: 5
+        punish_deviation: 100
+        beta_1: 0.1
 
-  - algorithm: ppo
-    config: config/config_training_followlane_bs_ppo_f1_carla.yaml
-    town: [ Town03, Town01, Town04 ]
-    carla_client: 5013
-    punish_zig_zag: 3
-    normalize: false
+  - config: config/config_training_followlane_bs_sac_f1_carla.yaml
+    carla:
+      carla_client: 5013
+    carla_environments:
+      follow_lane:
+        town: [Town03, Town01, Town04]
+    settings:
+      algorithm: sac
+      normalize: true
+      appended_states: 20
+      reward_params:
+        punish_zig_zag_value: 5
+        punish_deviation: 100
+        beta_1: 0.1

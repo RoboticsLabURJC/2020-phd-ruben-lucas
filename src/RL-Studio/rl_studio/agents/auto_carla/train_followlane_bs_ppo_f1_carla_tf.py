@@ -93,10 +93,10 @@ def update_scatter_plot(ax, x, y, z, xlabel, ylabel, zlabel):
 
 def collect_usage():
     cpu_usage = psutil.cpu_percent(interval=None)  # Get CPU usage percentage
-    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-    gpu_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
-    gpu_usage = gpu_info.gpu
-    return cpu_usage, gpu_usage
+    # handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+    # gpu_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
+    # gpu_usage = gpu_info.gpu
+    # return cpu_usage, gpu_usage
 
 
 def combine_attributes(obj1, obj2, obj3):
@@ -501,7 +501,7 @@ class TrainerFollowLanePPOCarla:
 
     def __init__(self, config):
 
-        pynvml.nvmlInit()
+        # pynvml.nvmlInit()
 
         self.actor_loss = 0
         self.critic_loss = 0
@@ -565,8 +565,8 @@ class TrainerFollowLanePPOCarla:
                 self.env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[128, 128, 128],  # The architecture for the policy network
-                        vf=[128, 128, 128, 128]  # The architecture for the value network
+                        pi=[128, 128, 128, 128, 128],  # The architecture for the policy network
+                        vf=[128, 128, 128, 128, 128]  # The architecture for the value network
                     ),
                     # activation_fn=nn.ReLU,
                     log_std_init=-1.5,

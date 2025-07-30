@@ -14,6 +14,7 @@ import numpy as np
 import json
 import traceback
 from collections import deque
+from statistics import mean
 
 from pyglet.libs.x11.xlib import None_
 from sympy.solvers.ode import infinitesimals
@@ -219,25 +220,6 @@ def interpolate_lane_points(lane_points: np.ndarray, num_points: int = 20, start
     interpolated = np.stack((interp_x, interp_y), axis=1)
     return interpolated.astype(np.int32)
 
-def calculate_v_goal(mean_curvature, center_distance, y_normalized):
-    mean_curv = max(0, mean_curvature - 1) * 25
-    dist_error = abs(center_distance) * 10
-    v_goal = max(7, 25 - (mean_curv + dist_error))
-
-    farther_y = y_normalized[-1]
-    if farther_y > 0.6:
-        v_goal = max(3, v_goal - 5)
-
-    # Snap to closest value in the allowed list
-    # allowed_values = [6, 11, 16, 21, 26]
-    # v_goal = min(allowed_values, key=lambda x: abs(x - v_goal))
-
-    # print(f"----------------------------------------")
-    # print(f"monitoring last modification bro! dist_minus -> {dist_error}")
-    # print(f"monitoring last modification bro! curv_minus -> {mean_curv}")
-    # print(f"monitoring last modification bro! v_goal -> {v_goal}")
-    # print(f"----------------------------------------")
-    return v_goal
 
 def curvature_from_three_points(p1, p2, p3):
     a = np.linalg.norm(p2 - p1)
@@ -510,10 +492,10 @@ def get_center_points(line_points, border_points):
 
 def normalize_centers(centers):
     x_centers = centers[:, 0]
-    x_centers_normalized = (x_centers / 512).tolist()
+    x_centers_normalized = (x_centers / 640).tolist()
     states = x_centers_normalized
     y_centers = centers[:, 1]
-    y_centers_normalized = (y_centers / 640).tolist()
+    y_centers_normalized = (y_centers / 512).tolist()
     states = states + y_centers_normalized # Returns a list
     return states, x_centers_normalized, y_centers_normalized
 
@@ -616,8 +598,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.lane_model.eval()
         else:
             self.camera_transform = carla.Transform(
-                carla.Location(x=-1, y=0, z=2),
-                carla.Rotation(pitch=-2.5, yaw=0, roll=0.0)
+                carla.Location(x=-2, y=0, z=3),
+                carla.Rotation(pitch=-3, yaw=0, roll=0.0)
             )
 
             # Translation matrix, convert vehicle reference system to camera reference system
@@ -645,7 +627,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.display_manager = DisplayManager(
             grid_size=[2, 3],
             window_size=[1500, 800],
-            headless=True
+            headless=False
         )
 
         try:
@@ -661,12 +643,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.no_detected = [[0]] * len(self.x_row)
 
-        self.num_points = 20
+        self.num_points = self.appended_states
         num_states = self.num_points * 2
         # num_states = 0
         # num_states += len(self.x_row) if self.x_row is not None else 0
         # num_states += len(self.projected_x) if self.projected_x is not None else 0
-        num_states += self.appended_states
+        num_states += 7
         if self.actions.get("b") is not None:
             self.action_space = spaces.Box(low=np.array([self.actions["v"][0],
                                                          self.actions["w"][0],
@@ -682,6 +664,43 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                                                           self.actions["w"][1]]),
                                            dtype=np.float32)
         self.observation_space = spaces.Box(low=-1, high=1, shape=(num_states,), dtype=np.float32)
+
+    def calculate_v_goal(self, mean_curvature, center_distance, deviated_points):
+        dist_error = abs(center_distance) * 10
+        close_error = 0
+
+        mean_curv = max(0, mean_curvature - 1) * 10
+
+        if deviated_points >= self.appended_states / 2:
+            mean_curv = max(0, mean_curvature - 1) * 30
+            close_error = 9
+
+        elif deviated_points >= self.appended_states / 3:
+            mean_curv = max(0, mean_curvature - 1) * 20
+            close_error = 6
+
+        elif deviated_points >= self.appended_states / 4:
+            mean_curv = max(0, mean_curvature - 1) * 15
+            close_error = 3
+
+        v_goal = max(9, 25 - (mean_curv + dist_error))
+        v_goal = max(2, v_goal - (close_error))
+
+        # print(f"25 - {mean_curv} - {dist_error} - {close_error}" )
+        # print(deviated_points)
+
+        # farther_y = y_normalized[-1]
+
+        # Snap to closest value in the allowed list
+        # allowed_values = [6, 11, 16, 21, 26]
+        # v_goal = min(allowed_values, key=lambda x: abs(x - v_goal))
+
+        # print(f"----------------------------------------")
+        # print(f"monitoring last modification bro! dist_minus -> {dist_error}")
+        # print(f"monitoring last modification bro! curv_minus -> {mean_curv}")
+        # print(f"monitoring last modification bro! v_goal -> {v_goal}")
+        # print(f"----------------------------------------")
+        return v_goal
 
     def setup_car_fix_pose(self, init):
         car_bp = self.world.get_blueprint_library().filter("vehicle.*")[0]
@@ -772,8 +791,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.car.zig_zag_punish = 0
         self.car.v_goal = 0
 
-        self.vary_car_orientation()  # Call the orientation variation method
-        # self.set_init_speed()
+        if self.map.name != 'Carla/Maps/Town01':
+            self.vary_car_orientation()  # Call the orientation variation method
+        # self.set_init_speed() # It is done in step 5 now!
 
         self.start_location_tag = get_car_location_tag(init_pose)
 
@@ -798,15 +818,21 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         mean_curvature = average_curvature_from_centers(center_points)
 
         states, x_centers_normalized, y_normalized = normalize_centers(center_points)
-        v_goal = calculate_v_goal(mean_curvature,
+
+        x_normalized = np.array(x_centers_normalized)
+        deviated_points = np.sum(np.abs(x_normalized - 0.5) > 0.05)
+
+        v_goal = self.calculate_v_goal(mean_curvature,
                                   center_distance,
-                                  y_normalized)
+                                  deviated_points)
 
         states.append(0)
         states.append(0)
         # states.append(final_curvature)
         states.append(0)
         states.append(0)
+        # states.append(0)
+        # states.append(0)
         if self.normalize:
             states.append(v_goal / 25)
         else:
@@ -1028,7 +1054,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def setup_car_random_pose(self, spawn_points):
         car_bp = self.world.get_blueprint_library().filter("vehicle.*")[0]
-        if self.spawn_points is not None:
+        if self.spawn_points is not None and self.map.name == 'Carla/Maps/Town01' :
             spawn_point_index = random.randint(0, len(spawn_points))
             spawn_point = spawn_points[spawn_point_index]
             if random.random() <= 1:  # TODO make it configurable
@@ -1232,24 +1258,24 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def show_debug_points(self, centers):
         if not self.debug_waypoints:
             return
-        average_abs = sum(abs(x) for x in centers) / len(centers)
-        # if average_abs > 0.8:
-        #     color = carla.Color(r=255, g=0, b=0)
-        # else:
-        #     green_value = max(int((1 - average_abs * 2 ) * 255), 0 )
-        #     color = carla.Color(r=0, g=green_value, b=0)
-        green_value = max(int((1 - average_abs * 2) * 255), 0)
-        color = carla.Color(r=0, g=green_value, b=0)
-
-        self.world.debug.draw_string(
-            self.car.get_transform().location,
-            "X",
-            draw_shadow=False,
-            color=color,
-            life_time=10000000,
-            persistent_lines=True,
-        )
-        if self.step_count % 100 == 1:
+        # average_abs = sum(abs(x) for x in centers) / len(centers)
+        # # if average_abs > 0.8:
+        # #     color = carla.Color(r=255, g=0, b=0)
+        # # else:
+        # #     green_value = max(int((1 - average_abs * 2 ) * 255), 0 )
+        # #     color = carla.Color(r=0, g=green_value, b=0)
+        # green_value = max(int((1 - average_abs * 2) * 255), 0)
+        # color = carla.Color(r=0, g=green_value, b=0)
+        #
+        # self.world.debug.draw_string(
+        #     self.car.get_transform().location,
+        #     "X",
+        #     draw_shadow=False,
+        #     color=color,
+        #     life_time=10000000,
+        #     persistent_lines=True,
+        # )
+        if self.step_count % 10 == 1:
             print(self.car.get_transform())
 
     def project_line(self, y_points, x_points, x_normalized, new_y_points):
@@ -1328,6 +1354,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         mean_curvature = average_curvature_from_centers(centers)
 
         states, x_centers_normalized, y_normalized = normalize_centers(centers)
+        # new_center_distance = x_centers_normalized[2] - 0.5 # OJO! TESTING. Solo funcionaría con 10 estados
+        new_center_distance = center_distance
+
         centers_image = np.zeros(raw_image.shape, dtype=np.uint8)
         for index in range(len(centers)):
             if centers[index][0] == self.NON_DETECTED:
@@ -1341,16 +1370,22 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         mask_3ch = np.stack([mask] * 3, axis=-1)
 
         stacked_image = np.where(mask_3ch, centers_image, raw_image)
-        _, center_distance, _ = self.get_lane_position(self.car, self.map)
-        # v_goal = calculate_v_goal(final_curvature, center_distance, curvature_weight=150)
-        v_goal = calculate_v_goal(mean_curvature,
-                                  center_distance,
-                                  y_normalized)
+
+        x_normalized = np.array(x_centers_normalized)
+        deviated_points = np.sum(np.abs(x_normalized - 0.5) > 0.05)
+
+        v_goal = self.calculate_v_goal(mean_curvature,
+                                  new_center_distance,
+                                  deviated_points)
+
         self.v_goal_buffer.append(v_goal)
         v_goal = sum(self.v_goal_buffer) / len(self.v_goal_buffer)
 
         params["final_curvature"] = final_curvature
-        reward, done, has_crashed = self.rewards_easy(center_distance, action, params, v_goal=v_goal, x_centers_normalized=x_centers_normalized)
+        half_image = len(x_centers_normalized)//2
+        close_points_dev = abs(x_centers_normalized[0] - x_centers_normalized[half_image])
+        is_centered = close_points_dev <= 0.15
+        reward, done, has_crashed = self.rewards_easy(new_center_distance, center_distance, action, params, x_centers_normalized, deviated_points, v_goal=v_goal)
         self.previous_action = action
 
         self.car.v_goal = v_goal
@@ -1369,6 +1404,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # states.append(misalignment)
         states.append(action[0])
         states.append(action[1])
+        # states.append(close_points_dev) # indicate how misaligned is
+        # states.append(deviated_points) #indicates how close to the curve is
         if self.normalize:
             states.append(v_goal / 25)
         else:
@@ -1384,7 +1421,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if self.visualize:
             # self.show_ll_seg_image(centers, ll_segment) # for carla_perfect_lines
             # self.show_image("road_and_lines", road_and_lines)
-            # self.show_debug_points(centers)
+            self.show_debug_points(centers)
             self.show_image('overlayed_image', stacked_image) # for carla_segmentated
             self.display_manager.render(vehicle=self.car)
 
@@ -1438,7 +1475,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     ################################################################################
     def step(self, action):
-        # time.sleep(1)
+        # time.sleep(0.1)
         self.step_count += 1
 
         # test code to verify the initial position
@@ -1531,19 +1568,19 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # Logarithmic scaling formula
         return math.log(1 + velocity) / math.log(1 + v_max)
 
-    def rewards_easy(self, center_distance, action, params, v_goal=None, x_centers_normalized=None):
+    def rewards_easy(self, new_center_distance, center_distance, action, params, x_centers_normalized, deviated_points, v_goal=None):
         # distance_error = error[3:]  # We are just rewarding the 3 lowest points!
         # distance_error = [abs(x) for x in centers_distances]
 
         ## EARLY RETURNS
-        params["distance_error"] = center_distance
+        params["distance_error"] = new_center_distance
         params["d_reward"] = 0
         params["v_reward"] = 0
         params["v_eff_reward"] = 0
         params["reward"] = 0
 
         # car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
-        car_deviated_punish = -10
+        punish_deviation = -self.punish_deviation
         stop_punish = -10
         lane_changed_punish = -1
 
@@ -1558,7 +1595,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # return -5 * action[0], done, crash
 
         if self.is_out(center_distance):
-            return car_deviated_punish, True, self.has_crashed()
+            return punish_deviation, True, self.has_crashed()
 
         # if x_centers is not None and self.centers_switched(x_centers):
         #     return lane_changed_punish, True, False
@@ -1572,7 +1609,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #
         # # TODO ignore non detected centers
         # d_reward = 0 if len(d_rewards) == 0 else sum(d_rewards) / len(d_rewards)
-        d_reward = (1 - abs(center_distance)) ** 2
+        d_reward = (1 - abs(new_center_distance))
+        # d_reward += abs(mean([x - 0.5 for x in x_centers_normalized[:4]]))
 
         v = params["velocity"]
 
@@ -1582,9 +1620,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.steps_stopped += 1
             if self.steps_stopped > 100:
                 print("too much time stopped")
-                return car_deviated_punish, True, False
+                return punish_deviation, True, False
             # return car_deviated_punish + (action[0] * d_reward), False, False
-            return car_deviated_punish, False, False
+            return punish_deviation, False, False
             # reward = action[0] * d_reward/5
             # reward -= self.calculate_punish(params, action, v_goal, v, center_distance, x_centers_normalized)
             # return reward, False, False
@@ -1593,7 +1631,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         # print(f"monitoring last modification bro! current_v -> {params['velocity']}")
         # calculate_v_reward
-        diff = abs(v_goal - float(v))
+        v_goal_km = v_goal * 3.6
+        v_km = v * 3.6
+        diff = abs(v_goal_km - float(v_km))
         v_difference_error = diff / 2 # proportion error related to v_goal
         v_component = max(0, 10 - v_difference_error)
         v_eff_reward = v_component * d_reward
@@ -1620,7 +1660,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         function_reward = d_reward_component + v_reward_component
 
         # PUNISH CALCULATION
-        function_reward -= self.calculate_punish(params, action, v_goal, v, center_distance, x_centers_normalized)
+        function_reward -= self.calculate_punish(params, action, v_goal, v, new_center_distance, deviated_points)
 
         self.episode_v_eff_reward = self.episode_v_eff_reward + (
                 v_eff_reward - self.episode_v_eff_reward) / self.step_count
@@ -1628,11 +1668,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # function_reward = d_reward * v_reward
         params["reward"] = function_reward
 
-        self.car.error = center_distance
+        self.car.error = new_center_distance
 
         self.episode_d_reward = self.episode_d_reward + (d_reward - self.episode_d_reward) / self.step_count
-        self.episode_d_deviation = self.episode_d_deviation + (center_distance - self.episode_d_deviation) / self.step_count
-        if center_distance < 0.05:
+        self.episode_d_deviation = self.episode_d_deviation + (new_center_distance - self.episode_d_deviation) / self.step_count
+        if new_center_distance < 0.05:
             # Step 1: Increase step count first
             self.step_count_no_curves += 1
             # --- Throttle action stats using Welford's algorithm ---
@@ -1785,7 +1825,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         trafo_matrix_global_to_camera = get_matrix_global(self.car, self.trafo_matrix_vehicle_to_cam)
 
         if self.k is None:
-            self.k = get_intrinsic_matrix(130, width, height)
+            self.k = get_intrinsic_matrix(90, width, height)
 
         _, center_distance, alignment = self.get_lane_position(self.car, self.map)
         opposite = alignment < 0.5
@@ -2046,8 +2086,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.display_manager,
             "RGBCamera",
             carla.Transform(
-                carla.Location(x=-1, y=0, z=3),
-                carla.Rotation(pitch=-2.5, yaw=0, roll=0.0)
+                carla.Location(x=-2, y=0, z=3),
+                carla.Rotation(pitch=-3, yaw=0, roll=0.0)
             ),
             self.car,
             {},
@@ -2236,15 +2276,15 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         )
         self.car.set_target_velocity(target_velocity)
 
-    def init_world(self):
-        if isinstance(self.towns, list):
-            for i in range(len(self.towns)):
-                world = self.load_world(self.clients[i], self.towns[i])
-                self.worlds.append(world)
-            self.world = random.choice(self.worlds)
-        else:
-            self.world = self.load_world(self.client, self.towns)
-            self.worlds.append(self.world)
+    # def init_world(self):
+    #     if isinstance(self.towns, list):
+    #         for i in range(len(self.towns)):
+    #             world = self.load_world(self.clients[i], self.towns[i])
+    #             self.worlds.append(world)
+    #         self.world = random.choice(self.worlds)
+    #     else:
+    #         self.world = self.load_world(self.client, self.towns)
+    #         self.worlds.append(self.world)
 
     def load_world(self, client, town):
         # print(f"\n maps in carla 0.9.13: {client.get_available_maps()}\n")
@@ -2416,23 +2456,24 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def update_all_tensorboard_stats(self):
         self.update_tensorboard_stats(self.tensorboard)
-        if self.spawn_points is None:
-            return
-        if self.start_location_tag not in self.tensorboard_location_writers:
-            self.tensorboard_location_writers[self.start_location_tag] = ModifiedTensorBoard(
-                log_dir=f"{self.tensorboard_logs_dir}/{self.start_location_tag}"
-            )
-        self.update_tensorboard_stats(self.tensorboard_location_writers[self.start_location_tag])
+        # if self.spawn_points is None:
+        #     return
+        # if self.start_location_tag not in self.tensorboard_location_writers:
+        #     self.tensorboard_location_writers[self.start_location_tag] = ModifiedTensorBoard(
+        #         log_dir=f"{self.tensorboard_logs_dir}/{self.start_location_tag}"
+        #     )
+        # self.update_tensorboard_stats(self.tensorboard_location_writers[self.start_location_tag])
         # self.tensorboard.update_fps(self.step_fps)
 
-    def calculate_punish(self, params, action, v_goal, v, center_distance, x_centers_normalized):
+    def calculate_punish(self, params, action, v_goal, v, center_distance, deviated_points):
         punish = 0
 
-        half_image = len(x_centers_normalized)//2
-        is_centered = abs(x_centers_normalized[0] - x_centers_normalized[half_image]) <= 0.3
+        # if deviated_points >= self.appended_states - 2:
+        #     punish += 10
+
         # if params["final_curvature"] < 0.02 or is_centered:
-        if is_centered:
-            punish += self.punish_zig_zag_value * abs(action[1])
+        # if is_centered:
+        punish += self.punish_zig_zag_value * abs(action[1])
         self.car.zig_zag_punish = punish
         # punish += self.car.zig_zag_punish * abs(action[1] - self.previous_action[1]) * 10
 

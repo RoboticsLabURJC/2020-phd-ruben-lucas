@@ -13,24 +13,33 @@ def load_experiments(file_path="experiments.yaml"):
 
 SCRIPT_PATH = "rl-studio.py"  # Your main training script name
 
-# Utility to patch the YAML config
-def patch_config(config_path, town, carla_client, punish_z, normalize):
+def deep_update(target, updates):
+    for key, value in updates.items():
+        if isinstance(value, dict) and key in target and isinstance(target[key], dict):
+            deep_update(target[key], value)
+        else:
+            target[key] = value
+
+def patch_config(exp):
+    config_path = exp['config']
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
 
-    config['carla_environments']['follow_lane']['town'] = town
-    config['carla']['carla_client'] = carla_client
-    config['carla']['carla_client'] = carla_client
-    config['carla']['carla_client'] = carla_client
-    config['settings']['reward_params']['punish_zig_zag_value'] = punish_z
-    config['settings']['normalize'] = normalize
+    # Merge exp into config recursively (skip 'config' key itself)
+    exp_copy = {k: v for k, v in exp.items() if k != 'config'}
+    deep_update(config, exp_copy)
 
+    # Optional: overwrite original or write to /tmp
+    # Overwrite original:
+    # with open(config_path, 'w') as f:
+    #     yaml.dump(config, f)
+
+    # Or save as a patched temp config:
     temp_config_path = f"/tmp/patched_{os.path.basename(config_path)}"
     with open(temp_config_path, 'w') as f:
         yaml.dump(config, f)
 
     return temp_config_path
-
 
 def launch_training(config_path):
     print(f"[INFO] Launching training with config: {config_path}")
@@ -40,18 +49,11 @@ def launch_training(config_path):
 def orchestrate(experiments):
     for exp in experiments:
         print("=" * 60)
-        print(f"{datetime.now()} Starting experiment: {exp['algorithm'].upper()}")
-        print(f"{datetime.now()} Config file: {exp['config']}")
-        print(f"{datetime.now()} Town: {exp['town']}")
-        print(f"{datetime.now()} CARLA client port: {exp['carla_client']}")
+        print(f"{datetime.now()} Starting experiment: {exp['settings']['algorithm'].upper()}")
         print("="*60)
 
-        patched_config = patch_config(exp['config'],
-                                      exp['town'],
-                                      exp['carla_client'],
-                                      exp['punish_zig_zag'],
-                                      exp['normalize'])
-        process = launch_training(patched_config)
+        patched_config_path = patch_config(exp)
+        process = launch_training(patched_config_path)
 
         reward_file = f"/tmp/rlstudio_reward_monitor_{process.pid}.json"
         reward_history = []
@@ -64,8 +66,6 @@ def orchestrate(experiments):
                 break
             time.sleep(10)
 
-        print(f"[END] {datetime.now()} Training completed or stopped: {exp['algorithm']}\n")
-
 def get_avg_reward_from_file(path):
     try:
         with open(path, "r") as f:
@@ -74,10 +74,10 @@ def get_avg_reward_from_file(path):
     except Exception:
         return None, None
 
-def should_stop_early(start_time, reward_file, reward_history, patience_hours=6, batch_size=50):
+def should_stop_early(start_time, reward_file, reward_history, patience_hours=10, batch_size=200):
     import time
 
-    n_batches = 6
+    n_batches = 10
     current_time = time.time()
     avg_reward, timestamp = get_avg_reward_from_file(reward_file)
 
@@ -88,8 +88,8 @@ def should_stop_early(start_time, reward_file, reward_history, patience_hours=6,
     if (current_time - start_time) < patience_hours * 3600:
         return False
 
-    # Require at least 4 full batches to start comparison
-    required_length = batch_size * 5
+    # Require at least n_batches full batches to start comparison
+    required_length = batch_size * n_batches
     if len(reward_history) < required_length:
         return False
 
@@ -108,8 +108,9 @@ def should_stop_early(start_time, reward_file, reward_history, patience_hours=6,
     for batch in batches[-n_batches:]:
         batch_avg = sum(batch) / len(batch)
         batch_max = max(batch)
-        if batch_avg <= first_avg and batch_max <= first_max:
-            stagnation_count += 1
+        # if batch_avg <= first_avg and batch_max <= first_max:
+        if batch_avg <= first_avg:
+                stagnation_count += 1
 
     if stagnation_count == n_batches:
         print(f"🛑 Early stopping: reward stagnation over {n_batches} batches of {batch_size} episodes.")

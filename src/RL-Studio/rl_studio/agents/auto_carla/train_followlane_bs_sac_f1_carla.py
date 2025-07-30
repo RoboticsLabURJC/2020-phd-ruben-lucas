@@ -90,10 +90,10 @@ def update_scatter_plot(ax, x, y, z, xlabel, ylabel, zlabel):
 
 def collect_usage():
     cpu_usage = psutil.cpu_percent(interval=None)  # Get CPU usage percentage
-    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-    gpu_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
-    gpu_usage = gpu_info.gpu
-    return cpu_usage, gpu_usage
+    # handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+    # gpu_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
+    # gpu_usage = gpu_info.gpu
+    # return cpu_usage, gpu_usage
 
 
 def combine_attributes(obj1, obj2, obj3):
@@ -193,8 +193,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = 0.1
             self.v_initial = 0.3
         else:
-            self.w_initial = 0.4
-            self.v_initial = 0.4
+            self.w_initial = 0.3
+            self.v_initial = 0.5
 
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
@@ -236,7 +236,7 @@ class ExplorationRateCallback(BaseCallback):
                 print(f"Step {self.current_step}: Updated exploration rates to v={self.v_exploration_rate}, w={self.w_exploration_rate}")
 
         exp_rand = np.random.rand()
-        if exp_rand < 0.3:
+        if exp_rand < 0.2:
             self.model.action_noise = NormalActionNoise(
                 mean=np.zeros(self.n_actions),
                 sigma=np.array([0, 0])
@@ -350,7 +350,7 @@ class TrainerFollowLaneSACCarla:
 
     def __init__(self, config):
 
-        pynvml.nvmlInit()
+        # pynvml.nvmlInit()
 
         self.actor_loss = 0
         self.critic_loss = 0
@@ -429,8 +429,8 @@ class TrainerFollowLaneSACCarla:
                 env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[128, 128, 128, 128],  # The architecture for the policy network
-                        qf=[128, 128, 128, 128]
+                        pi=[128, 128, 128, 128, 128],  # The architecture for the policy network
+                        qf=[128, 128, 128, 128, 128]
                     ),
                     # activation_fn=nn.ReLU,
                     # ortho_init=True,
@@ -499,8 +499,8 @@ class TrainerFollowLaneSACCarla:
         if self.environment.environment["mode"] in ["inference"]:
             self.evaluate_ddpg_agent(self.env, self.sac_agent, 10000, 2000)
 
-        #callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
-        callback_list = CallbackList([eval_callback, periodic_save_callback])
+        callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
+        # callback_list = CallbackList([eval_callback, periodic_save_callback])
         #callback_list = CallbackList([periodic_save_callback])
 
         self.sac_agent.learn(total_timesteps=self.params["total_timesteps"],

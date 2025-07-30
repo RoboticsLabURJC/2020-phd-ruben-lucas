@@ -26,6 +26,7 @@ settings:
   reward_params:
     function: pow
     punish_zig_zag_value: 5
+    punish_deviation: 10
     punish_ineffective_vel: 1 # velocity below which reward is not calculated (0)
     beta_1: 0
 
@@ -114,7 +115,7 @@ carla_environments:
     traffic_pedestrians: False
     city_lights: False
     car_lights: False
-    estimated_steps: 600
+    estimated_steps: 1000
     save_episodes: 5 # not used in this carla sac
     save_every_step: 100 # not used in this carla sac
     init_pose:
@@ -140,6 +141,19 @@ carla_environments:
       #   [235.603699, 12.395636, 5.228042, 3.577455, 0.124573, -0.008118], # straight reverse
 #      [389.385938, -179.152158, 0.457793, 0.082516, 270.889893, 0.078263] # straight reverse
 #    ]
+    # Town01
+      [
+        [ 92.363960, 45.682278, 0.3, 0.146555, -87.603996, 0.038929 ], # to left from right lane, intersection
+        [ 374.528381, -1.992010, 0.510610, 0.401014, 0.017142, -0.004486 ], # To left intersection
+        [ 40.865658, -2.057781, 0.3, 0.036166, -179.905731, -0.161072 ], # to left from right lane, smooth
+        [ 1.960665, 259.266327, 0.3, 0.022096, 89.392151, 0.141889 ], # to left from left lane, smooth
+
+        [ 227.506790, 59.392529, 0.3, 0.063309, 179.985626, 0.007553 ], # To left from right lane, then right
+
+        [ 152.093750, 326.573151, 0.3, 0.093799, -179.874603, -0.080688 ], # To right from right, intersection
+        [ 107.057098, 55.511978, 0.3, 0.090930, -179.793869, -0.060181 ], # To right from right, intersection
+        [ -2.114511, 28.115679, 0.3, 0.173569, -85.910088, 0.153735 ], # to right from left line, smooth
+      ]
     waypoints_meters: 5 #distance between waypoints in meters
     waypoints_init: 839 # {6912} 6927 1471 For Town04. 839 For Town01
     waypoints_target: 959 #961

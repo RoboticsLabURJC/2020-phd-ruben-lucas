@@ -417,8 +417,8 @@ class TrainerFollowLaneDDPGCarla:
                 "MlpPolicy",
                 self.env,
                 policy_kwargs=dict(net_arch=dict(
-                    pi=[128, 128, 128, 128],
-                    qf=[128, 128, 128, 128])),
+                    pi=[128, 128, 128, 128, 128],
+                    qf=[128, 128, 128, 128, 128])),
                 learning_rate=self.params["learning_rate"],
                 buffer_size=self.params["buffer_size"],
                 batch_size=self.params["batch_size"],

@@ -204,7 +204,7 @@ class SensorManager:
             # camera_bp.set_attribute("image_size_y", str(disp_size[1]))
             camera_bp.set_attribute("image_size_x", "640")
             camera_bp.set_attribute("image_size_y", "512")
-            camera_bp.set_attribute("fov", "130")
+            camera_bp.set_attribute("fov", "90")
 
             for key in sensor_options:
                 camera_bp.set_attribute(key, sensor_options[key])
