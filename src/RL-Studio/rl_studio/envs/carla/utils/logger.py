@@ -5,53 +5,47 @@ import sys
 from rl_studio.envs.carla.utils.colors import Colors
 from rl_studio.envs.carla.utils.constants import ROOT_PATH
 
+from datetime import datetime
 
 class ColorLogger(logging.Formatter):
-    """Class for colored python logs for the application.
+    """Colored logger with beautified datetime in every message."""
 
-    Use only if terminal supports coloring.
-    """
-
-    prefix = '{}[%(name)s]{} - '.format(Colors.CVIOLET2, Colors.ENDC)
-    err_fmt = prefix + "{}%(levelname)s (%(module)s: %(lineno)d): {}{}%(message)s{}".format(
-                                                                Colors.FAIL, Colors.ENDC, Colors.CBOLD, Colors.ENDC)
-    info_fmt = prefix + "{}%(levelname)s: {}{}%(message)s{}".format(
-                                                                Colors.CBLUE2, Colors.ENDC, Colors.CBOLD, Colors.ENDC)
-    wrn_fmt = prefix + "{}%(levelname)s: {}{}%(message)s{}".format(
-                                                                Colors.CYELLOW, Colors.ENDC, Colors.CBOLD, Colors.ENDC)
-    dbg_fmt = prefix + "{}%(levelname)s (%(module)s: %(lineno)d): {}{}%(message)s{}".format(
-                                                                Colors.CGREEN2, Colors.ENDC, Colors.CBOLD, Colors.ENDC)
-
-    def __init__(self, fmt="%(levelno)s: %(msg)s"):
-        logging.Formatter.__init__(self, fmt)
+    def __init__(self):
+        super().__init__()
+        self.err_fmt = "{}%(levelname)s (%(module)s: %(lineno)d): {}{}%(message)s{}".format(
+            Colors.FAIL, Colors.ENDC, Colors.CBOLD, Colors.ENDC
+        )
+        self.info_fmt = "{}%(levelname)s: {}{}%(message)s{}".format(
+            Colors.CBLUE2, Colors.ENDC, Colors.CBOLD, Colors.ENDC
+        )
+        self.wrn_fmt = "{}%(levelname)s: {}{}%(message)s{}".format(
+            Colors.CYELLOW, Colors.ENDC, Colors.CBOLD, Colors.ENDC
+        )
+        self.dbg_fmt = "{}%(levelname)s (%(module)s: %(lineno)d): {}{}%(message)s{}".format(
+            Colors.CGREEN2, Colors.ENDC, Colors.CBOLD, Colors.ENDC
+        )
 
     def format(self, record):
+        # Apply argument substitution first
+        record.message = record.getMessage()
 
-        # Save the original format configured by the user
-        # when the logger formatter was instantiated
-        format_orig = self._fmt
+        # Add beautified datetime
+        record.asctime = datetime.now().strftime("%A, %B %d, %Y %I:%M:%S %p")
 
-        # Replace the original format with one customized by logging level
+        # Select format based on log level
         if record.levelno == logging.DEBUG:
-            self._fmt = ColorLogger.dbg_fmt
-
+            log_fmt = f"[{record.asctime}] {self.dbg_fmt}"
         elif record.levelno == logging.INFO:
-            self._fmt = ColorLogger.info_fmt
-
+            log_fmt = f"[{record.asctime}] {self.info_fmt}"
         elif record.levelno == logging.ERROR:
-            self._fmt = ColorLogger.err_fmt
-
+            log_fmt = f"[{record.asctime}] {self.err_fmt}"
         elif record.levelno == logging.WARNING:
-            self._fmt = ColorLogger.wrn_fmt
+            log_fmt = f"[{record.asctime}] {self.wrn_fmt}"
+        else:
+            log_fmt = f"[{record.asctime}] {self.info_fmt}"
 
-        # Call the original formatter class to do the grunt work
-        result = logging.Formatter.format(self, record)
-
-        # Restore the original format configured by the user
-        self._fmt = format_orig
-
-        return result
-
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
 
 class PlainLogger(logging.Formatter):
     """Class for plain white python logs for the application.
@@ -59,11 +53,10 @@ class PlainLogger(logging.Formatter):
     Use if terminal does not support coloring.
     """
 
-    prefix = '[%(name)s] - '
-    err_fmt = prefix + "%(levelname)s (%(module)s: %(lineno)d): %(message)s"
-    info_fmt = prefix + "%(levelname)s: %(message)s"
-    wrn_fmt = prefix + "%(levelname)s: %(message)s"
-    dbg_fmt = prefix + "%(levelname)s (%(module)s: %(lineno)d): %(message)s"
+    err_fmt = "%(levelname)s (%(module)s: %(lineno)d): %(message)s"
+    info_fmt = "%(levelname)s: %(message)s"
+    wrn_fmt = "%(levelname)s: %(message)s"
+    dbg_fmt = "%(levelname)s (%(module)s: %(lineno)d): %(message)s"
 
     def __init__(self, fmt="%(levelno)s: %(msg)s"):
         logging.Formatter.__init__(self, fmt)
@@ -106,13 +99,12 @@ def std_handler():
     return logging.StreamHandler(sys.stdout)
 
 
-logger = logging.getLogger('Behavior-Log')
-
-fmt = ColorLogger()
-# stdout as output
-hdlr = std_handler()
-# file as output
-# hdlr = file_handler(ROOT_PATH + '/logs/log.log')
-hdlr.setFormatter(fmt)
-logger.addHandler(hdlr)
+logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(ColorLogger())
+
+logger.addHandler(handler)
+
+logger.info("Step time: %f", 0.523451)

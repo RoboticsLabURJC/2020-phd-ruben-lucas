@@ -162,6 +162,8 @@ class LoadGlobalParams:
         self.rewards = config["settings"]["rewards"]
         ###### Exploration
         self.steps_to_decrease = config["settings"]["steps_to_decrease"]
+        self.initial_std_v = config["settings"].get("initial_std_v")
+        self.initial_std_w = config["settings"].get("initial_std_v")
         self.decrease_substraction = config["settings"]["decrease_substraction"]
         self.decrease_min = config["settings"]["decrease_min"]
         self.normalize = config["settings"]["normalize"]

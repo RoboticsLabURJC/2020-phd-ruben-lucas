@@ -12,6 +12,7 @@ import mlflow.sklearn
 from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import MlpExtractor
+from rl_studio.agents.utilities.extract_reward_function import extract_reward_function
 
 import torch as th
 import torch.nn as nn
@@ -178,7 +179,11 @@ class PeriodicSaveCallback(BaseCallback):
 
 class ExplorationRateCallback(BaseCallback):
     def __init__(self, tensorboard, stage=None, initial_exploration_rate=1.0,
-                 exploration_min=0.03, decay_rate=0.005, decay_steps=1000, verbose=1):
+                 exploration_min=0.03,
+                 decay_rate=0.005,
+                 initial_std_v=None,
+                 initial_std_w=None,
+                 decay_steps=1000, verbose=1):
         super(ExplorationRateCallback, self).__init__(verbose)
         self.min_exploration_rate = exploration_min
         self.decay_rate = decay_rate
@@ -187,14 +192,14 @@ class ExplorationRateCallback(BaseCallback):
         self.tensorboard = tensorboard
         # Configure noise rates based on stage
         if stage in (None, "w"):
-            self.w_initial = 0.4
-            self.v_initial = 0
+            self.w_initial = 0.4 if initial_std_w is None else initial_std_w
+            self.v_initial = 0 if initial_std_v is None else initial_std_v
         elif stage == "v":
-            self.w_initial = 0.1
-            self.v_initial = 0.3
+            self.w_initial = 0.1 if initial_std_w is None else initial_std_w
+            self.v_initial = 0.3 if initial_std_v is None else initial_std_v
         else:
-            self.w_initial = 0.3
-            self.v_initial = 0.5
+            self.w_initial = 0.3 if initial_std_w is None else initial_std_w
+            self.v_initial = 0.6 if initial_std_v is None else initial_std_v
 
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
@@ -235,8 +240,10 @@ class ExplorationRateCallback(BaseCallback):
             if self.verbose > 0:
                 print(f"Step {self.current_step}: Updated exploration rates to v={self.v_exploration_rate}, w={self.w_exploration_rate}")
 
-        exp_rand = np.random.rand()
-        if exp_rand < 0.2:
+        cycle = 1000
+        active_phase = 800
+
+        if (self.current_step % cycle) < active_phase and np.random.rand() < 0.5:
             self.model.action_noise = NormalActionNoise(
                 mean=np.zeros(self.n_actions),
                 sigma=np.array([0, 0])
@@ -429,8 +436,8 @@ class TrainerFollowLaneSACCarla:
                 env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[128, 128, 128, 128, 128],  # The architecture for the policy network
-                        qf=[128, 128, 128, 128, 128]
+                        pi=[128, 128, 128, 128, 128, 128],  # The architecture for the policy network
+                        qf=[128, 128, 128, 128, 128, 128]
                     ),
                     # activation_fn=nn.ReLU,
                     # ortho_init=True,
@@ -460,7 +467,11 @@ class TrainerFollowLaneSACCarla:
         hyperparams = combine_attributes(self.algoritmhs_params,
                                          self.environment,
                                          self.global_params)
-        self.tensorboard.update_hyperparams(hyperparams)
+        reward_filename = f"{os.getcwd()}/envs/carla/followlane/followlane_carla_sb_3.py"
+        reward_method = 'rewards_easy'
+        reward_function = extract_reward_function(reward_filename, reward_method)
+        hyperparams['reward_function'] = reward_function
+        self.tensorboard.update_hpparams(hyperparams)
         # run = wandb.init(
         #     project="rl-follow-lane",
         #     config=self.params,
@@ -470,6 +481,8 @@ class TrainerFollowLaneSACCarla:
         exploration_rate_callback = ExplorationRateCallback(self.tensorboard,
                                                             stage=self.environment.environment.get("stage"),
                                                             initial_exploration_rate=self.exploration,
+                                                            initial_std_v=self.global_params.initial_std_v,
+                                                            initial_std_w=self.global_params.initial_std_w,
                                                             decay_rate= self.global_params.decrease_substraction,
                                                             decay_steps=self.global_params.steps_to_decrease,
                                                             exploration_min=self.global_params.decrease_min,

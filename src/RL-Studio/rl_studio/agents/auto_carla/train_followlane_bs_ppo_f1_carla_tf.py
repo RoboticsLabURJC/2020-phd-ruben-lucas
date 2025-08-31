@@ -11,6 +11,7 @@ import mlflow.sklearn
 from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import MlpExtractor
+from rl_studio.agents.utilities.extract_reward_function import extract_reward_function
 
 import torch as th
 import torch.nn as nn
@@ -206,6 +207,8 @@ class DynamicClipRange:
 
 class ExplorationRateCallback(BaseCallback):
     def __init__(self, stage=None, initial_log_std=-1.0,
+                 initial_std_v=-0.2,
+                 initial_std_w=-0.4,
                  min_log_std=-5.8, decay_rate=0.01, decay_steps=1000, verbose=1):
         super(ExplorationRateCallback, self).__init__(verbose)
         self.initial_log_std = initial_log_std
@@ -215,11 +218,11 @@ class ExplorationRateCallback(BaseCallback):
 
         # log_std = -0.223 <= 0.8;  -1 <= 0.36
         if stage in (None, "w"):
-            self.w_initial = initial_log_std
-            self.v_initial = initial_log_std
+            self.w_initial = 0.5 if initial_std_w is None else initial_std_w
+            self.v_initial = 0 if initial_std_v is None else initial_std_v
         else:
-            self.w_initial = -1.5
-            self.v_initial = 0.5
+            self.w_initial = initial_log_std if initial_std_w is None else initial_std_w
+            self.v_initial = initial_log_std if initial_std_v is None else initial_std_v
         self.current_step = 0
 
     def _on_training_start(self):
@@ -249,24 +252,24 @@ class ExplorationRateCallback(BaseCallback):
         # ):
         #     return True
 
-        if (
-            torch.all(self.model.policy.log_std[:1] <= self.min_log_std).item() and
-            torch.all(self.model.policy.log_std[1:2] <= self.min_log_std).item()
-        ):
-            # Reset to initial values
-            self.model.policy.log_std.data[1:2] = torch.full_like(
-                self.model.policy.log_std[1:2], self.w_initial
-            ).to(self.model.policy.log_std.device)
-            self.model.policy.log_std.data[:1] = torch.full_like(
-                self.model.policy.log_std[:1], self.v_initial
-            ).to(self.model.policy.log_std.device)
-
-            if self.verbose > 0:
-                print(
-                    f"Step {self.current_step}: log_std reset to initial values "
-                    f"v_initial={self.v_initial}, w_initial={self.w_initial}"
-                )
-            return True
+        # if (
+        #     torch.all(self.model.policy.log_std[:1] <= self.min_log_std).item() and
+        #     torch.all(self.model.policy.log_std[1:2] <= self.min_log_std).item()
+        # ):
+        #     # Reset to initial values
+        #     self.model.policy.log_std.data[1:2] = torch.full_like(
+        #         self.model.policy.log_std[1:2], self.w_initial
+        #     ).to(self.model.policy.log_std.device)
+        #     self.model.policy.log_std.data[:1] = torch.full_like(
+        #         self.model.policy.log_std[:1], self.v_initial
+        #     ).to(self.model.policy.log_std.device)
+        #
+        #     if self.verbose > 0:
+        #         print(
+        #             f"Step {self.current_step}: log_std reset to initial values "
+        #             f"v_initial={self.v_initial}, w_initial={self.w_initial}"
+        #         )
+        #     return True
 
         if self.current_step % self.decay_steps == 0:
             new_log_std = self.model.policy.log_std.clone()
@@ -565,8 +568,8 @@ class TrainerFollowLanePPOCarla:
                 self.env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[128, 128, 128, 128, 128],  # The architecture for the policy network
-                        vf=[128, 128, 128, 128, 128]  # The architecture for the value network
+                        pi=[128, 128, 128, 128, 128, 128],  # The architecture for the policy network
+                        vf=[128, 128, 128, 128, 128, 128]  # The architecture for the value network
                     ),
                     # activation_fn=nn.ReLU,
                     log_std_init=-1.5,
@@ -596,7 +599,11 @@ class TrainerFollowLanePPOCarla:
         hyperparams = combine_attributes(self.algoritmhs_params,
                                          self.environment,
                                          self.global_params)
-        self.tensorboard.update_hyperparams(hyperparams)
+        reward_filename = f"{os.getcwd()}/envs/carla/followlane/followlane_carla_sb_3.py"
+        reward_method = 'rewards_easy'
+        reward_function = extract_reward_function(reward_filename, reward_method)
+        hyperparams['reward_function'] = reward_function
+        self.tensorboard.update_hpparams(hyperparams)
         # run = wandb.init(
         #     project="rl-follow-lane",
         #     config=self.params,
@@ -606,13 +613,15 @@ class TrainerFollowLanePPOCarla:
         # log_std = -0.223 <= 0.8;  -1 <= 0.36
         exploration_rate_callback = ExplorationRateCallback(
             stage=self.environment.environment.get("stage"), initial_log_std=-0.5,
+            initial_std_v=self.global_params.initial_std_v,
+            initial_std_w=self.global_params.initial_std_w,
             min_log_std=self.environment.environment.get("decrease_min"), decay_rate=0.03,
             decay_steps=self.global_params.steps_to_decrease)
         entropy_callback = EntropyCoefficientCallback(
             initial_ent_coef=0.05,  # Starting entropy coefficient
-            min_ent_coef=0.01,  # Minimum entropy coefficient
+            min_ent_coef=0.02,  # Minimum entropy coefficient
             decay_rate=0.001,  # Decay amount per step
-            decay_steps=5000,  # Decay every 1000 steps
+            decay_steps=10000,  # Decay every 1000 steps
             verbose=1
         )
 

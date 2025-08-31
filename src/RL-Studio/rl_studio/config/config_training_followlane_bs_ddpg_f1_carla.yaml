@@ -19,16 +19,16 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 5000
+  steps_to_decrease: 2000
   decrease_substraction: 0.003
   decrease_min: 0.003
   entropy_factor: 0
   use_curves_state: False
   reward_params:
     function: pow
-    punish_zig_zag_value: 10
-    punish_deviation: 10
-    punish_braking: 0
+    punish_zig_zag_value: 2
+    punish_deviation: 0
+    punish_braking: 2
     punish_ineffective_vel: 1
     beta_1: 0
 
@@ -45,7 +45,7 @@ retraining:
 #    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250622-131058/best_model.zip
 #    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250714-194040/best_model.zip
 #    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250723-083519/model_1650000_steps.zip
-    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250730-003343/best_model.zip
+    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/best_checkpoints/ddpg_bs/10states_normalized_x-1_90fov_5_states_-2_3_-3/0708_best_model.zip
 inference:
   ddpg:
   #    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250429-225407/best_model.zip
