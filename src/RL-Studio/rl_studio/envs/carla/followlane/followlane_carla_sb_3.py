@@ -51,9 +51,11 @@ from rl_studio.envs.carla.utils.ground_truth.camera_geometry import (
 
 from PIL import Image, ImageTk, ImageDraw
 
+from rl_studio.envs.carla.utils.logger import logger
+
 NO_DETECTED = 0
 
-def select_device(logger=None, device='', batch_size=None):
+def select_device(device='', batch_size=None):
     # device = 'cpu' or '0' or '0,1,2,3'
     cpu_request = device.lower() == 'cpu'
     if device and not cpu_request:  # if device requested other than 'cpu'
@@ -71,14 +73,7 @@ def select_device(logger=None, device='', batch_size=None):
         for i in range(0, ng):
             if i == 1:
                 s = ' ' * len(s)
-            if logger:
-                logger.info("%sCUDA:%g (%s, %dMB)" % (s, i, x[i].name, x[i].total_memory / c))
-    else:
-        if logger:
-            logger.info(f'Using torch {torch.__version__} CPU')
 
-    if logger:
-        logger.info('')  # skip a line
     return torch.device('cuda:0' if cuda else 'cpu')
 
 
@@ -305,7 +300,7 @@ def calculate_curvature_from(x, y):
         y = y[mask]
 
         if len(x) < 3:
-            print("Not enough points to fit a 2nd degree polynomial.")
+            logger.info("Not enough points to fit a 2nd degree polynomial.")
             return -1.0
 
         coefficients = np.polyfit(x, y, 2)  # Returns [a, b, c]
@@ -316,7 +311,7 @@ def calculate_curvature_from(x, y):
         y_double_prime = 2 * a
         curvature = abs(y_double_prime) / ((1 + y_prime ** 2) ** (3 / 2))
     except Exception as e:
-        print("exception calculating the curvature" + repr(e))
+        logger.info("exception calculating the curvature" + repr(e))
         curvature = -1
     return curvature
 
@@ -511,7 +506,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.start = time.time()
 
         self.last_lane_id = None
-        self.prev_throtle = 0
+        self.prev_action = [0, 0]
         self.episode_d_reward = 0
         self.curves_states = 0
         self.abs_w_no_curves_avg = 0
@@ -633,7 +628,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         try:
             self.initialize_carla()
         except Exception as e:
-            print("Waiting for CARLA to become available to reconnect...")
+            logger.info("Waiting for CARLA to become available to reconnect...")
             self.reconnect_to_carla()
 
         self.car = None
@@ -646,9 +641,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.num_points = self.appended_states
         num_states = self.num_points * 2
         # num_states = 0
+        # num_states = 0
         # num_states += len(self.x_row) if self.x_row is not None else 0
         # num_states += len(self.projected_x) if self.projected_x is not None else 0
-        num_states += 7
+        num_states += 5
         if self.actions.get("b") is not None:
             self.action_space = spaces.Box(low=np.array([self.actions["v"][0],
                                                          self.actions["w"][0],
@@ -680,13 +676,14 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             close_error = 6
 
         elif deviated_points >= self.appended_states / 4:
-            mean_curv = max(0, mean_curvature - 1) * 15
+            mean_curv = max(0, mean_curvature - 1) * 10
             close_error = 3
 
         v_goal = max(9, 25 - (mean_curv + dist_error))
         v_goal = max(2, v_goal - (close_error))
 
-        # print(f"25 - {mean_curv} - {dist_error} - {close_error}" )
+        # print(f" 1 {v_goal} - {mean_curv} - {dist_error} " )
+        # print(f" 2 {v_goal} - {close_error}" )
         # print(deviated_points)
 
         # farther_y = y_normalized[-1]
@@ -731,7 +728,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def doReset(self):
         ep_time = time.time() - self.start
-        print("Step time:", ep_time / self.step_count)
+        logger.info("Step time: %f", ep_time / self.step_count)
         if self.tensorboard is not None:
             self.calculate_and_report_episode_stats()
 
@@ -820,7 +817,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         states, x_centers_normalized, y_normalized = normalize_centers(center_points)
 
         x_normalized = np.array(x_centers_normalized)
-        deviated_points = np.sum(np.abs(x_normalized - 0.5) > 0.05)
+        deviated_points = np.sum(np.abs(x_normalized - 0.5) > 0.1)
 
         v_goal = self.calculate_v_goal(mean_curvature,
                                   center_distance,
@@ -828,11 +825,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         states.append(0)
         states.append(0)
-        # states.append(final_curvature)
-        states.append(0)
         states.append(0)
         # states.append(0)
         # states.append(0)
+        states.append(0)
         if self.normalize:
             states.append(v_goal / 25)
         else:
@@ -849,7 +845,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.step_count_no_curves = 1
         self.episodes_speed = []
         self.episode_d_deviation = 0
-        self.prev_throtle = 0
+        self.prev_action = [0, 0]
         self.curves_states = 0
         self.abs_w_no_curves_avg = 0
         self.throttle_action_avg_no_curves = 0
@@ -867,7 +863,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         try:
             return self.doReset()
         except Exception as e:
-            print(f"Waiting for CARLA to become available to reset... after {e}")
+            logger.info(f"Waiting for CARLA to become available to reset... after {e}")
             traceback.print_exc()
             self.reconnect_to_carla()
             return self.reset()
@@ -1111,8 +1107,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         Callback function to process detected obstacles.
         """
         # Access the obstacle data directly (not as a list)
-        print(obstacle_data.other_actor)
-        print(f"Obstacle detected at: ")
+        logger.info(obstacle_data.other_actor)
+        logger.info(f"Obstacle detected at: ")
 
     def add_lidar_to_vehicle(self, world, vehicle, lidar_range=50.0, channels=32, rotation_frequency=10.0,
                              points_per_second=56000):
@@ -1276,7 +1272,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #     persistent_lines=True,
         # )
         if self.step_count % 10 == 1:
-            print(self.car.get_transform())
+            logger.info(self.car.get_transform())
 
     def project_line(self, y_points, x_points, x_normalized, new_y_points):
         # Filter indices where x_normalized != 1
@@ -1354,8 +1350,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         mean_curvature = average_curvature_from_centers(centers)
 
         states, x_centers_normalized, y_normalized = normalize_centers(centers)
-        # new_center_distance = x_centers_normalized[2] - 0.5 # OJO! TESTING. Solo funcionaría con 10 estados
-        new_center_distance = center_distance
 
         centers_image = np.zeros(raw_image.shape, dtype=np.uint8)
         for index in range(len(centers)):
@@ -1372,20 +1366,21 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         stacked_image = np.where(mask_3ch, centers_image, raw_image)
 
         x_normalized = np.array(x_centers_normalized)
-        deviated_points = np.sum(np.abs(x_normalized - 0.5) > 0.05)
+        deviated_points = np.sum(np.abs(x_normalized - 0.5) > 0.1)
 
         v_goal = self.calculate_v_goal(mean_curvature,
-                                  new_center_distance,
+                                  center_distance,
                                   deviated_points)
 
         self.v_goal_buffer.append(v_goal)
         v_goal = sum(self.v_goal_buffer) / len(self.v_goal_buffer)
 
         params["final_curvature"] = final_curvature
-        half_image = len(x_centers_normalized)//2
-        close_points_dev = abs(x_centers_normalized[0] - x_centers_normalized[half_image])
-        is_centered = close_points_dev <= 0.15
-        reward, done, has_crashed = self.rewards_easy(new_center_distance, center_distance, action, params, x_centers_normalized, deviated_points, v_goal=v_goal)
+        # half_image = len(x_centers_normalized)//2
+        # close_points_dev = abs(x_centers_normalized[0] - x_centers_normalized[half_image])
+        # is_centered = close_points_dev <= 0.15
+
+        reward, done, has_crashed = self.rewards_easy(center_distance, action, params, x_centers_normalized, deviated_points, v_goal=v_goal)
         self.previous_action = action
 
         self.car.v_goal = v_goal
@@ -1400,7 +1395,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         else:
             states.append(params["velocity"])
         states.append(params["steering_angle"])
-        #states.append(final_curvature)
+        # states.append(final_curvature)
         # states.append(misalignment)
         states.append(action[0])
         states.append(action[1])
@@ -1418,6 +1413,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # if self.use_curves_state:
         #     states.append(curve)
 
+        self.prev_action = action
         if self.visualize:
             # self.show_ll_seg_image(centers, ll_segment) # for carla_perfect_lines
             # self.show_image("road_and_lines", road_and_lines)
@@ -1496,7 +1492,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             # for _ in range(1):  # Apply the action for 3 consecutive steps
             states, reward, done, done, params = self.apply_step(action)
         except Exception as e:
-            print(f"Waiting for CARLA to become available to step... after {e}")
+            logger.info(f"Waiting for CARLA to become available to step... after {e}")
             traceback.print_exc()
             self.reconnect_to_carla()
             states, reward, done, done, params = self.step(action)
@@ -1568,12 +1564,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # Logarithmic scaling formula
         return math.log(1 + velocity) / math.log(1 + v_max)
 
-    def rewards_easy(self, new_center_distance, center_distance, action, params, x_centers_normalized, deviated_points, v_goal=None):
+    def rewards_easy(self, center_distance, action, params, x_centers_normalized, deviated_points, v_goal=None):
         # distance_error = error[3:]  # We are just rewarding the 3 lowest points!
         # distance_error = [abs(x) for x in centers_distances]
 
         ## EARLY RETURNS
-        params["distance_error"] = new_center_distance
+        params["distance_error"] = center_distance
         params["d_reward"] = 0
         params["v_reward"] = 0
         params["v_eff_reward"] = 0
@@ -1597,20 +1593,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if self.is_out(center_distance):
             return punish_deviation, True, self.has_crashed()
 
-        # if x_centers is not None and self.centers_switched(x_centers):
-        #     return lane_changed_punish, True, False
 
-        # DISTANCE REWARD CALCULATION
-        # d_rewards = []
-        # for _, dist_error in enumerate(distance_error):
-        #     if dist_error is None or 0 > dist_error or dist_error > 1:
-        #         continue
-        #     d_rewards.append(math.pow((1 - dist_error), 3))
-        #
-        # # TODO ignore non detected centers
-        # d_reward = 0 if len(d_rewards) == 0 else sum(d_rewards) / len(d_rewards)
-        d_reward = (1 - abs(new_center_distance))
-        # d_reward += abs(mean([x - 0.5 for x in x_centers_normalized[:4]]))
+        d_reward = (1 - abs(center_distance)) ** self.punish_braking
 
         v = params["velocity"]
 
@@ -1619,7 +1603,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if v < self.punish_ineffective_vel:
             self.steps_stopped += 1
             if self.steps_stopped > 100:
-                print("too much time stopped")
+                logger.info("too much time stopped")
                 return punish_deviation, True, False
             # return car_deviated_punish + (action[0] * d_reward), False, False
             return punish_deviation, False, False
@@ -1633,21 +1617,20 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # calculate_v_reward
         v_goal_km = v_goal * 3.6
         v_km = v * 3.6
-        diff = abs(v_goal_km - float(v_km))
-        v_difference_error = diff / 2 # proportion error related to v_goal
-        v_component = max(0, 10 - v_difference_error)
+
+        # diff = abs(v_goal_km - float(v_km))
+        # v_difference_error = diff / 2 # proportion error related to v_goal
+        # v_component = max(0, 10 - v_difference_error)
+
+        sigma = 25 # km / h tolerance parameter
+        v_component = 4 * np.exp(-((v_km - v_goal_km) ** 2) / (2 * sigma ** 2))
+
+        # v_eff_reward = v_component * d_reward
         v_eff_reward = v_component * d_reward
 
         self.car.v_component = v_component
         self.car.d_reward = d_reward
         self.car.v_eff_reward = v_eff_reward
-
-        if self.stage in ("v", "r"):
-            if v > 32:
-                return -1 * max(action[0], 0), True, False
-            if v > 28:
-                v_eff_reward = 0
-                # v_eff_reward = -max(action[0], 0)
 
         # TOTAL REWARD CALCULATION
         beta = 1 if self.stage == "w" else beta
@@ -1659,8 +1642,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         function_reward = d_reward_component + v_reward_component
 
-        # PUNISH CALCULATION
-        function_reward -= self.calculate_punish(params, action, v_goal, v, new_center_distance, deviated_points)
+        steering_change = abs(action[1] - self.prev_action[1])
+        self.car.zig_zag_punish = self.punish_zig_zag_value * steering_change
+        self.car.zig_zag_punish += self.punish_zig_zag_value * action[1]
+
+        function_reward = function_reward - self.car.zig_zag_punish
 
         self.episode_v_eff_reward = self.episode_v_eff_reward + (
                 v_eff_reward - self.episode_v_eff_reward) / self.step_count
@@ -1668,11 +1654,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # function_reward = d_reward * v_reward
         params["reward"] = function_reward
 
-        self.car.error = new_center_distance
+        self.car.error = center_distance
 
         self.episode_d_reward = self.episode_d_reward + (d_reward - self.episode_d_reward) / self.step_count
-        self.episode_d_deviation = self.episode_d_deviation + (new_center_distance - self.episode_d_deviation) / self.step_count
-        if new_center_distance < 0.05:
+        self.episode_d_deviation = self.episode_d_deviation + (center_distance - self.episode_d_deviation) / self.step_count
+
+        if center_distance < 0.05:
             # Step 1: Increase step count first
             self.step_count_no_curves += 1
             # --- Throttle action stats using Welford's algorithm ---
@@ -1707,10 +1694,72 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 self.throttle_action_std_dev_curves = 0.0  # Not enough data yet
 
         if self.step_count > self.estimated_steps:
-            print("episode finished")
+            logger.info("episode finished")
             return function_reward, True, False
 
         return function_reward, False, False
+
+
+    # def backup_old_reward_funct(self, center_distance, action, params, x_centers_normalized, deviated_points, v_goal=None):
+    #
+    #     params["distance_error"] = center_distance
+    #     params["d_reward"] = 0
+    #     params["v_reward"] = 0
+    #     params["v_eff_reward"] = 0
+    #     params["reward"] = 0
+    #
+    #     d_reward = (1 - abs(center_distance)) ** 2
+    #
+    #     v = params["velocity"]
+    #
+    #     punish_deviation = -self.punish_deviation
+    #
+    #     if self.is_out(center_distance):
+    #         return punish_deviation, True, self.has_crashed()
+    #
+    #     beta = self.beta
+    #     if v < self.punish_ineffective_vel:
+    #         self.steps_stopped += 1
+    #         if self.steps_stopped > 100:
+    #             print("too much time stopped")
+    #             return punish_deviation, True, False
+    #         return punish_deviation, False, False
+    #     else:
+    #         self.steps_stopped = 0
+    #
+    #     steering_change = abs(action[1] - self.prev_action[1])
+    #     self.car.zig_zag_punish = self.punish_zig_zag_value * steering_change
+    #
+    #     function_reward = -self.car.zig_zag_punish
+    #
+    #     v_goal_km = v_goal * 3.6
+    #     v_km = v * 3.6
+    #     sigma = 15
+    #     v_component = np.exp(-((v_km - v_goal_km) ** 2) / (2 * sigma ** 2))
+    #     v_eff_reward = v_component * d_reward
+    #
+    #     self.car.v_component = v_component
+    #     self.car.d_reward = d_reward
+    #     self.car.v_eff_reward = v_eff_reward
+    #
+    #     beta = 1 if self.stage == "w" else beta
+    #     d_reward_component = beta * d_reward
+    #     v_reward_component = (1 - beta) * v_eff_reward
+    #
+    #     function_reward += d_reward_component + v_reward_component
+    #
+    #     self.episode_v_eff_reward = self.episode_v_eff_reward + (
+    #             v_eff_reward - self.episode_v_eff_reward) / self.step_count
+    #     params["v_eff_reward"] = v_eff_reward
+    #     params["reward"] = function_reward
+    #
+    #     self.car.error = center_distance
+    #
+    #     if self.step_count > self.estimated_steps:
+    #         print("episode finished")
+    #         return function_reward, True, False
+    #
+    #     return function_reward, False, False
 
     def slice_image(self, red_mask):
         height = red_mask.shape[0]
@@ -1996,13 +2045,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def has_crashed(self):
         if len(self.collision_hist) > 0:  # te has chocado, baby
-            print("crash!")
+            logger.info("crash!")
             return True
         return False
 
     def has_invaded(self):
         if len(self.invasion_hist) > 0:  # te has chocado, baby
-            print("lane invaded!")
+            logger.info("lane invaded!")
             return True
         return False
 
@@ -2036,12 +2085,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             init_waypoint = waypoints_town[self.waypoints_init]
             waypoints_lane = init_waypoint.next_until_lane_end(1000)
             waypoints_next = init_waypoint.next(1000)
-            print(f"{init_waypoint.transform.location.x = }")
-            print(f"{init_waypoint.transform.location.y = }")
-            print(f"{init_waypoint.lane_id = }")
-            print(f"{init_waypoint.road_id = }")
-            print(f"{len(waypoints_lane) = }")
-            print(f"{len(waypoints_next) = }")
+            logger.info(f"{init_waypoint.transform.location.x = }")
+            logger.info(f"{init_waypoint.transform.location.y = }")
+            logger.info(f"{init_waypoint.lane_id = }")
+            logger.info(f"{init_waypoint.road_id = }")
+            logger.info(f"{len(waypoints_lane) = }")
+            logger.info(f"{len(waypoints_next) = }")
             w_road = []
             w_lane = []
             for x in waypoints_next:
@@ -2050,8 +2099,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
             counter_lanes = Counter(w_lane)
             counter_road = Counter(w_road)
-            print(f"{counter_lanes = }")
-            print(f"{counter_road = }")
+            logger.info(f"{counter_lanes = }")
+            logger.info(f"{counter_road = }")
 
             self.car = self.setup_car_fix_pose(init_waypoint)
 
@@ -2155,7 +2204,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # Draw the merged lines on the original image
         merged_image = np.zeros_like(ll_segment, dtype=np.uint8)  # Ensure dtype is uint8
         # if len(merged_lines) < 2 or len(merged_lines) > 2:
-        #    print("ii")
+        #    logger.info("ii")
         for line in merged_lines:
             x1, y1, x2, y2 = line['x1'], line['y1'], line['x2'], line['y2']
             cv2.line(merged_image, (x1, y1), (x2, y2), (255, 0, 0), 2)
@@ -2290,16 +2339,16 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # print(f"\n maps in carla 0.9.13: {client.get_available_maps()}\n")
         # traffic_manager = client.get_trafficmanager(self.config["manager_port"])
         world = client.load_world(town)
-        print(f"loading world {town}")
+        logger.info(f"loading world {town}")
         time.sleep(2.0)  # Needed to the simulator to be ready. TODO May be decrease to 1?
         self.load_world_settings(world)
-        print(f"Current World Settings: {world.get_settings()}")
+        logger.info(f"Current World Settings: {world.get_settings()}")
         return world
 
     def load_any_world(self):
         town = random.choice(self.towns)
         self.world = self.client.load_world(town)
-        print(f"loading world {town}")
+        logger.info(f"loading world {town}")
         time.sleep(2.0)  # Needed to the simulator to be ready. TODO May be decrease to 1?
         self.load_world_settings(self.world)
         # print(f"Current World Settings: {self.world.get_settings()}")
@@ -2319,7 +2368,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             if abs(distances[i] - self.last_centers[i]) > 0.2:
                 differents += 1
                 if differents > len(distances) // 4:
-                    print("centers switched!")
+                    logger.info("centers switched!")
                     # print(f"from {self.last_centers} to {distances}!")
                     return True
         return False
@@ -2357,7 +2406,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             with open(self.REWARD_FILE_PATH, "w") as f:
                 json.dump({"avg_reward": avg_reward, "timestamp": time.time()}, f)
         except Exception as e:
-            print(f"Could not write reward monitor file: {e}")
+            logger.info(f"Could not write reward monitor file: {e}")
 
     def update_tensorboard_stats(self, tensorboard):
         tensorboard.update_stats(
@@ -2408,7 +2457,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 #self.init_world()
                 self.load_any_world()
             except Exception as e:
-                print(f"Waiting for CARLA server... after {e}")
+                logger.info(f"Waiting for CARLA server... after {e}")
                 traceback.print_exc()
                 # time.sleep(20)
 
@@ -2450,7 +2499,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         try:
             self.initialize_carla()
         except Exception as e:
-            print(f"Waiting for CARLA to become available to reconnect... after {e}")
+            logger.info(f"Waiting for CARLA to become available to reconnect... after {e}")
             traceback.print_exc()
             self.reconnect_to_carla()
 
@@ -2465,34 +2514,34 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # self.update_tensorboard_stats(self.tensorboard_location_writers[self.start_location_tag])
         # self.tensorboard.update_fps(self.step_fps)
 
-    def calculate_punish(self, params, action, v_goal, v, center_distance, deviated_points):
-        punish = 0
-
-        # if deviated_points >= self.appended_states - 2:
-        #     punish += 10
-
-        # if params["final_curvature"] < 0.02 or is_centered:
-        # if is_centered:
-        punish += self.punish_zig_zag_value * abs(action[1])
-        self.car.zig_zag_punish = punish
-        # punish += self.car.zig_zag_punish * abs(action[1] - self.previous_action[1]) * 10
-
-        if abs(center_distance) > 0.2 and v > 15:
-            punish += (v - 15) * 0.5
-            self.car.v_punish = (v - 15) * 0.5
-
-        if v_goal > v + 3 and action[0] < 0.4:
-            punish += 1
-            self.car.v_punish += 1
-
-        if v_goal < v + 3 and action[0] > 0.7:
-            punish += 1
-            self.car.v_punish += 1
-
-        if self.stage in ("v", "r"):
-            punish += 1 if action[0] > 0.95 else 0
-
-        return punish
+    # def calculate_punish(self, params, action, v_goal, v, center_distance, deviated_points):
+    #     punish = 0
+    #
+    #     # if deviated_points >= self.appended_states - 2:
+    #     #     punish += 10
+    #
+    #     # if params["final_curvature"] < 0.02 or is_centered:
+    #     # if is_centered:
+    #     punish += self.punish_zig_zag_value * abs(action[1])
+    #     self.car.zig_zag_punish = punish
+    #     # punish += self.car.zig_zag_punish * abs(action[1] - self.previous_action[1]) * 10
+    #
+    #     if abs(center_distance) > 0.2 and v > 15:
+    #         punish += (v - 15) * 0.5
+    #         self.car.v_punish = (v - 15) * 0.5
+    #
+    #     if v_goal > v + 3 and action[0] < 0.4:
+    #         punish += 1
+    #         self.car.v_punish += 1
+    #
+    #     if v_goal < v + 3 and action[0] > 0.7:
+    #         punish += 1
+    #         self.car.v_punish += 1
+    #
+    #     if self.stage in ("v", "r"):
+    #         punish += 1 if action[0] > 0.95 else 0
+    #
+    #     return punish
 
 def init_client(ip, port):
     client = carla.Client(

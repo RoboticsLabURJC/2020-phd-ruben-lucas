@@ -187,8 +187,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = 0.05
             self.v_initial = 0.5
         elif stage == "r":
-            self.w_initial = 0.4
-            self.v_initial = 0.4
+            self.w_initial = 0.3
+            self.v_initial = 0.6
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
         self.n_actions = None  # Will be initialized at training start
@@ -232,7 +232,10 @@ class ExplorationRateCallback(BaseCallback):
             self.tensorboard.update_stats(std_dev_v=self.v_exploration_rate)
             self.tensorboard.update_stats(std_dev_w=self.w_exploration_rate)
 
-        if np.random.rand() < 0.3:
+        cycle = 1000
+        active_phase = 800
+
+        if (self.current_step % cycle) < active_phase and np.random.rand() < 0.5:
             self.model.action_noise = NormalActionNoise(
                 mean=np.zeros(self.n_actions),
                 sigma=np.array([0, 0])
@@ -417,8 +420,8 @@ class TrainerFollowLaneDDPGCarla:
                 "MlpPolicy",
                 self.env,
                 policy_kwargs=dict(net_arch=dict(
-                    pi=[128, 128, 128, 128, 128],
-                    qf=[128, 128, 128, 128, 128])),
+                    pi=[128, 128, 128, 128, 128, 128],
+                    qf=[128, 128, 128, 128, 128, 128])),
                 learning_rate=self.params["learning_rate"],
                 buffer_size=self.params["buffer_size"],
                 batch_size=self.params["batch_size"],
@@ -449,7 +452,7 @@ class TrainerFollowLaneDDPGCarla:
         reward_function = extract_reward_function(reward_filename, reward_method)
         hyperparams['reward_function'] = reward_function
 
-        self.tensorboard.update_hyperparams(hyperparams)
+        self.tensorboard.update_hpparams(hyperparams)
         # run = wandb.init(
         #     project="rl-follow-lane",
         #     config=self.params,

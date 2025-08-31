@@ -9,7 +9,7 @@ settings:
   agent: auto_carla # f1, autoparkingRL, auto_carla, mountain_car, robot_mesh, cartpole, turtlebot
   actions: slow # slow, fast
   states: sp10 #image, sp1 (simplified perception with 1 point), sp3 (simplified perception with 3 points), spn (simplified perception with n points)
-  appended_states: 5
+  appended_states: 10
   rewards: followline_center # followline_center, followline_center_v_w_linear
   framework: baselines # TensorFlow, Pytorch
   total_episodes: 500000
@@ -18,7 +18,7 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 4000
+  steps_to_decrease: 1000
   entropy_factor: 0
   normalize: true
   decrease_substraction: 0.003
@@ -27,6 +27,7 @@ settings:
     function: pow
     punish_zig_zag_value: 5
     punish_deviation: 10
+    punish_braking: 2
     punish_ineffective_vel: 1 # velocity below which reward is not calculated (0)
     beta_1: 0
 
@@ -40,7 +41,7 @@ ros:
 
 retraining:
   sac:
-    retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/best_checkpoints/sac_bs/20states+vgoal/2025_06_28_best_model.zip
+    retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20250821-190923/best_model.zip
 
 inference:
   sac:
@@ -49,13 +50,13 @@ inference:
 
 algorithm:
   sac:
-    gamma: 0.8
-    std_dev: 0.25
+    gamma: 0.9
+    std_dev: 0.15
     tau: 0.02
     episodes_update: 0 # dooing nothing here
     replay_memory_size: 50_000
     memory_fraction: 0.20
-    critic_lr: 0.00005 # This is the only one applying to both now
+    critic_lr: 0.0002 # This is the only one applying to both now
     actor_lr: 0.0001
     model_name: sac_Actor_conv2d32x64_Critic_conv2d32x64
 

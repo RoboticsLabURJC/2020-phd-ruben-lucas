@@ -1,7 +1,11 @@
 import math
 
 import numpy as np
+import matplotlib
+matplotlib.use('TkAgg')  # or 'Qt5Agg' if using PyQt/PySide
+
 import matplotlib.pyplot as plt
+
 import threading
 
 
@@ -62,27 +66,27 @@ def rewards_followline_velocity_center(v, pos, range_v):
     return reward
 
 
-def rewards_easy(v, pos):
-    if v < 1:
-        return 0
-
-    if abs(pos) > 0.3:
-        return 0
-
-    rewarded_v = min(v, 34) # min to not to reward speeds over 120km/h
-
-    d_reward = math.pow(1 - abs(pos), 1)
-    # v_eff_reward = np.log(rewarded_v)/np.log(20) * math.pow(d_reward, (rewarded_v/5) + 1)
-    v_eff_reward = np.log1p(v) * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
-
-    beta = 0
-    # TODO Ver que valores toma la velocity para compensarlo mejor
-    function_reward = beta * d_reward + (1 - beta) * v_eff_reward
-    punish = 0
-    # if v > 34:
-    #     punish = (v - 34) / 100
-        
-    return max(function_reward - punish, 0)
+# def rewards_easy(v, pos):
+#     if v < 1:
+#         return 0
+#
+#     if abs(pos) > 0.3:
+#         return 0
+#
+#     rewarded_v = min(v, 34) # min to not to reward speeds over 120km/h
+#
+#     d_reward = math.pow(1 - abs(pos), 1)
+#     # v_eff_reward = np.log(rewarded_v)/np.log(20) * math.pow(d_reward, (rewarded_v/5) + 1)
+#     v_eff_reward = np.log1p(v) * math.pow(max(d_reward, 0), (abs(v) / 5) + 1)
+#
+#     beta = 0
+#     # TODO Ver que valores toma la velocity para compensarlo mejor
+#     function_reward = beta * d_reward + (1 - beta) * v_eff_reward
+#     punish = 0
+#     # if v > 34:
+#     #     punish = (v - 34) / 100
+#
+#     return max(function_reward - punish, 0)
 
 
 #
@@ -113,8 +117,31 @@ def rewards_easy(v, pos):
 #
 #     return function_reward
 
+def rewards_with_v_goal(v, pos, v_goal, beta=0):
+    if v < 1:
+        return 0
 
-range_v = [0, 50]
+    d_reward = (1 - abs(pos)) ** 2
+
+    # Convert to km/h
+    v_goal_km = v_goal * 3.6
+    v_km = v * 3.6
+
+    # diff = abs(v_goal_km - v_km)
+    # v_difference_error = diff / 2  # You may want to tune this divisor
+
+    sigma = 25 # km / h tolerance parameter
+    v_component = np.exp(-((v_km - v_goal_km) ** 2) / (2 * sigma ** 2))
+    # v_component = max(0, 10 - v_difference_error)
+    v_eff_reward = v_component * d_reward
+
+    d_reward_component = beta * d_reward
+    v_reward_component = (1 - beta) * v_eff_reward
+
+    return max(d_reward_component + v_reward_component, 0)
+
+
+range_v = [0, 30]
 
 # Define the ranges for v, w, and pos
 v_range = np.linspace(range_v[0], range_v[1],  1000)  # Adjust the range as needed
@@ -126,10 +153,13 @@ V, POS = np.meshgrid(v_range, pos_range)
 # Calculate the rewards for each combination of v, w, and pos
 rewards = np.empty_like(V)
 rewards2 = np.empty_like(V)
+
+v_goal = 10
+
 for i in range(V.shape[0]):
     for j in range(V.shape[1]):
         # rewards[i, j] = rewards_followline_velocity_center(V[i, j], POS[i, j], range_v)
-        rewards[i, j] = rewards_easy(V[i, j], POS[i, j])
+        rewards[i, j] = rewards_with_v_goal(V[i, j], POS[i, j], v_goal)
         # rewards2[i, j] = rewards_easy2(V[i, j], POS[i, j])
 
 # Create a 3D plot
@@ -155,7 +185,7 @@ ax.set_zlabel('Reward1')
 # Show the color bar
 # fig.colorbar(surf, shrink=0.5, aspect=5)
 plt.ion()
-plt.show()
+plt.show(block=True)
 
 def input_loop():
     while True:
@@ -164,7 +194,7 @@ def input_loop():
             pos = float(input("Enter the position (pos): "))
 
             # Print the result of the rewards_easy function
-            print(f"Reward: {rewards_easy(v, pos)}")
+            print(f"Reward: {rewards_with_v_goal(v, pos)}")
 
         except ValueError:
             print("Please enter valid numbers for velocity and position.")

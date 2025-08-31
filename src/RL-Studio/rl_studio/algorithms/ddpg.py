@@ -25,6 +25,7 @@ for gpu in gpus:
 if gpus:
     tf.config.set_visible_devices(gpus[0], 'GPU')
 import pickle
+from tensorboard.plugins.hparams import api as hp
 
 
 def build_markdown_table(data_dict):
@@ -128,6 +129,22 @@ class ModifiedTensorBoard(TensorBoard):
             tf.summary.experimental.set_step(0)
             tf.summary.text("HyperParams", table)
             self.writer.flush()
+
+    def update_hpparams(self, hparams, metrics=None):
+        """
+        hparams: dict of hyperparameters
+        metrics: dict of final evaluation metrics (e.g., {"reward": 250, "success_rate": 0.87})
+        """
+        if metrics is None:
+            metrics = {}
+
+        # Log hyperparameters + final metrics in HParams dashboard
+        with self.writer.as_default():
+            hp.hparams(hparams)  # logs hyperparameters
+            for k, v in metrics.items():
+                tf.summary.scalar(k, v, step=0)
+            self.writer.flush()
+
 
 class OUActionNoise:
     def __init__(self, mean, std_deviation, theta=0.15, dt=1e-2, x_initial=None):
