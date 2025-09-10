@@ -2,6 +2,7 @@ import time
 
 import numpy as np
 import tensorflow as tf
+from pydantic.typing import NoneType
 from tensorflow.keras import Input, Model, layers
 from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.layers import (
@@ -27,6 +28,8 @@ if gpus:
 import pickle
 from tensorboard.plugins.hparams import api as hp
 
+import pprint
+import inspect
 
 def build_markdown_table(data_dict):
     markdown_table = "```\n"
@@ -132,19 +135,130 @@ class ModifiedTensorBoard(TensorBoard):
 
     def update_hpparams(self, hparams, metrics=None):
         """
-        hparams: dict of hyperparameters
-        metrics: dict of final evaluation metrics (e.g., {"reward": 250, "success_rate": 0.87})
+        Log hyperparameters as TensorBoard HParams with explicit values, along with optional metrics.
+
+        Args:
+            hparams: dict of hyperparameters to log
+            metrics: dict of evaluation metrics, e.g., {"reward": 250, "success_rate": 0.87}
         """
         if metrics is None:
             metrics = {}
 
-        # Log hyperparameters + final metrics in HParams dashboard
+        # Dynamically build hparam objects from provided dict
+        hparam_objects = {}
+        for k, v in hparams.items():
+            if isinstance(v, (int, float)):
+                v_float = float(v)
+                hparam_objects[k] = hp.HParam(k, hp.RealInterval(v_float, v_float))
+            elif isinstance(v, str):
+                hparam_objects[k] = hp.HParam(k, hp.Discrete([v]))
+            elif isinstance(v, bool):
+                hparam_objects[k] = hp.HParam(k, hp.Discrete([v]))
+            else:
+                print(f"⚠️ Warning: skipping non-serializable hparam {k}={v} ({type(v)})")
+
         with self.writer.as_default():
-            hp.hparams(hparams)  # logs hyperparameters
-            for k, v in metrics.items():
-                tf.summary.scalar(k, v, step=0)
+            # Log hyperparameters with their values
+            hp.hparams(
+                {hparam_objects[k]: v for k, v in hparams.items() if k in hparam_objects},
+                trial_id=self.log_dir
+            )
+
+            # Log metrics (if any)
+            for metric_name, metric_value in metrics.items():
+                tf.summary.scalar(metric_name, metric_value, step=0)
+
             self.writer.flush()
 
+    def combine_attributes(self, obj1, obj2, obj3):
+        combined_dict = {}
+
+        # Extract attributes from obj1
+        obj1_dict = obj1.__dict__
+        for key, value in obj1_dict.items():
+            combined_dict[key] = value
+
+        # Extract attributes from obj2
+        obj2_dict = obj2.__dict__
+        for key, value in obj2_dict.items():
+            combined_dict[key] = value
+
+        # Extract attributes from obj3
+        obj3_dict = obj3.__dict__
+        for key, value in obj3_dict.items():
+            combined_dict[key] = value
+
+        return combined_dict
+
+    def get_hparams(self, obj1, obj2, obj3):
+        hparams = {}
+
+        # --- Exploration hyperparameters (obj1: LoadAlgorithmParams) ---
+        algo_params = ["batch_size", "buffer_capacity", "gamma", "model_name", "std_dev", "tau"]
+        for k in algo_params:
+            if hasattr(obj1, k):
+                hparams[k] = getattr(obj1, k)
+
+        # --- Appended states (obj2.environment or obj3.settings) ---
+        if hasattr(obj2, "environment") and "appended_states" in obj2.environment:
+            hparams["appended_states"] = obj2.environment["appended_states"]
+        elif hasattr(obj3, "settings") and "appended_states" in obj3.settings:
+            hparams["appended_states"] = obj3.settings["appended_states"]
+
+        # --- Punish-related params (obj2.environment or obj3.settings["reward_params"]) ---
+        punish_keys = ["punish_braking", "punish_deviation", "punish_ineffective_vel", "punish_zig_zag_value"]
+
+        if hasattr(obj2, "environment"):
+            for pk in punish_keys:
+                if pk in obj2.environment:
+                    hparams[pk] = obj2.environment[pk]
+
+        if hasattr(obj3, "settings") and "reward_params" in obj3.settings:
+            for pk in punish_keys:
+                if pk in obj3.settings["reward_params"]:
+                    hparams[pk] = obj3.settings["reward_params"][pk]
+
+        return hparams
+
+
+import json
+
+def debug_object(obj, name="obj"):
+    print(f"\n🔎 Inspecting {name} ({type(obj).__name__}):")
+
+    if hasattr(obj, "__dict__"):
+        # Pretty-print all attributes
+        pprint.pprint(obj.__dict__)
+    else:
+        # If it doesn’t have __dict__, try inspecting members
+        attrs = inspect.getmembers(obj, lambda a: not (inspect.isroutine(a)))
+        pprint.pprint({k: v for k, v in attrs if not k.startswith("__")})
+
+
+def flatten_value(value, parent_key="", sep=":"):
+    """Recursively flatten dicts and lists into namespaced keys."""
+    items = {}
+    if isinstance(value, dict):
+        for k, v in value.items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            items.update(flatten_value(v, new_key, sep=sep))
+    elif isinstance(value, (list, tuple)):
+        for i, v in enumerate(value):
+            new_key = f"{parent_key}{sep}{i}" if parent_key else str(i)
+            items.update(flatten_value(v, new_key, sep=sep))
+    else:
+        # base case: primitive
+        items[parent_key] = value
+    return items
+
+
+def is_serializable(value):
+    """Check if value can be JSON-serialized."""
+    try:
+        json.dumps(value)
+        return value is not None
+    except (TypeError, OverflowError):
+        return False
 
 class OUActionNoise:
     def __init__(self, mean, std_deviation, theta=0.15, dt=1e-2, x_initial=None):

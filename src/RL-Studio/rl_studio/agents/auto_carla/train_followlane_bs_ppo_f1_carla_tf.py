@@ -99,28 +99,6 @@ def collect_usage():
     # gpu_usage = gpu_info.gpu
     # return cpu_usage, gpu_usage
 
-
-def combine_attributes(obj1, obj2, obj3):
-    combined_dict = {}
-
-    # Extract attributes from obj1
-    obj1_dict = obj1.__dict__
-    for key, value in obj1_dict.items():
-        combined_dict[key] = value
-
-    # Extract attributes from obj2
-    obj2_dict = obj2.__dict__
-    for key, value in obj2_dict.items():
-        combined_dict[key] = value
-
-    # Extract attributes from obj3
-    obj3_dict = obj3.__dict__
-    for key, value in obj3_dict.items():
-        combined_dict[key] = value
-
-    return combined_dict
-
-
 class CustomPolicyNetwork(BaseFeaturesExtractor):
     def __init__(self, observation_space, features_dim=128):
         super(CustomPolicyNetwork, self).__init__(observation_space, features_dim)
@@ -512,9 +490,9 @@ class TrainerFollowLanePPOCarla:
         self.env_params = LoadEnvParams(config)
         self.global_params = LoadGlobalParams(config)
         self.environment = LoadEnvVariablesPPOCarla(config)
-        logs_dir = f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
+        logs_dir = f"{self.global_params.logs_tensorboard_dir}/{time.strftime('%Y%m%d-%H%M%S')}"
         self.tensorboard = ModifiedTensorBoard(
-            log_dir=f"{logs_dir}/overall"
+            log_dir=f"{logs_dir}/ppo/overall"
         )
         self.environment.environment["tensorboard"] = self.tensorboard
         self.environment.environment["tensorboard_logs_dir"] = logs_dir
@@ -596,14 +574,19 @@ class TrainerFollowLanePPOCarla:
         tf.compat.v1.random.set_random_seed(1)
 
     def main(self):
-        hyperparams = combine_attributes(self.algoritmhs_params,
-                                         self.environment,
-                                         self.global_params)
+        hyperparams = self.tensorboard.get_hparams(self.algoritmhs_params,
+                                                   self.environment,
+                                                   self.global_params)
+        all_config = self.tensorboard.combine_attributes(self.algoritmhs_params,
+                                                         self.environment,
+                                                         self.global_params)
         reward_filename = f"{os.getcwd()}/envs/carla/followlane/followlane_carla_sb_3.py"
         reward_method = 'rewards_easy'
         reward_function = extract_reward_function(reward_filename, reward_method)
-        hyperparams['reward_function'] = reward_function
+        all_config['reward_function'] = reward_function
+
         self.tensorboard.update_hpparams(hyperparams)
+        self.tensorboard.update_hyperparams(all_config)
         # run = wandb.init(
         #     project="rl-follow-lane",
         #     config=self.params,
