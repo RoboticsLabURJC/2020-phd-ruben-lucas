@@ -1,6 +1,6 @@
 ---
-title: "Carla follow lane DDPG Vs PPO Vs SAC [July 3rd]"
-excerpt: "Refine to excel town02 and bm metrics"
+title: "Carla follow lane DDPG Vs PPO Vs SAC [September 1st]"
+excerpt: "Refine metrics comparison and tune models to raise it to the best"
 
 sidebar:
   nav: "docs"
@@ -22,16 +22,12 @@ author: Tony Stark
 pinned: false
 ---
 
-- Linearizar `x, y` para mapearlo a una única coordenada **“l”**. Podemos utilizar la trayectoria ideal.
-- Mostrar en el eje **x** si son curvas pronunciadas, suaves o rectas.
-- Probar la velocidad más baja con FOV más razonable (e.g. 90 - 110).
-- Reducir aún más la velocidad ayuda más que ampliar el FOV, pero sigue fallando en algunas.
-- **Finalmente** se observó que el trazado obliga a hacer un giro abrupto, dificultando algunas curvas. **Solucionado reubicando la cámara.**
-- Rebalanceando dataset para que no dé tanta importancia a rectas y curvas suaves.
-- Castigando más el **“salirse”**.
-- Relajando la condición que establece que si no estás cerca de la línea, no te premio nada, para que en curvas sacrifique un poco en pos de reducir el riesgo a salirse.
-- Sacar todas las métricas de **BM** para revisar.
-- Ajustar cosas como distancia en metros.
-- Histogramas por ciudad, no por experimento.
+- Dejarlo un poco más de 1 vuelta para verificar que es circular (una poca repetición al principio)
+- Que todos los puntos aleatorios pertenezcan a la misma ruta (puntos predefinidos. No random)
+- Colorear tramos (4 con sentido) en gráfica y en mapa para poder relacionarlas al circuito
+- Almacenar sentido de ejecución para poder pintarlo en gráficas diferentes en las lineas de velocidad
+- Revisar duplicidad esporádica en la gráfica de velocidad lineal
+- Hacer gráficas con todos los agentes y refinar plots para hacer comparativas
 
-More details in the [following slides](https://docs.google.com/presentation/d/1P0TOuDb0i-igDBTC0QhF9PJ-wjylsEMKk9zJPUfp_Es/edit?slide=id.g347779b8fc6_0_0#slide=id.g347779b8fc6_0_0)
+
+More details in the [following slides](https://docs.google.com/presentation/d/13sJZ7Yh0hvpq2zFg9of0oCxbsrGkyAE0gkNBwTdvCtQ/edit?slide=id.g347779b8fc6_0_0#slide=id.g347779b8fc6_0_0)
