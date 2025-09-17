@@ -1,7 +1,7 @@
 settings:
   mode: training # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
-  algorithm: ppo_continuous # qlearn, dqn, ddpg, ppo
+  algorithm: a2c # qlearn, dqn, ddpg, a2c
   simulator: carla # openai, carla, gazebo, sumo
   environment_set: carla_environments # gazebo_environments, carla_environments
   env: follow_lane # Town01, simple, nurburgring, montreal, curves, simple_laser, manual, autoparking
@@ -42,18 +42,18 @@ ros:
   gazebo_master_uri: "11345"
 
 retraining:
-  ppo:
-#    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250625-000650/best_model.zip
-#    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250630-090131/best_model.zip
-#    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250819-230238/best_model.zip
-    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250916-001454/best_model.zip
+  a2c:
+#    retrain_a2c_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_a2c_continuous_auto_carla_baselines/20250625-000650/best_model.zip
+#    retrain_a2c_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_a2c_continuous_auto_carla_baselines/20250630-090131/best_model.zip
+#    retrain_a2c_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_a2c_continuous_auto_carla_baselines/20250819-230238/best_model.zip
+    retrain_a2c_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_a2c_continuous_auto_carla_baselines/20250915-152326/best_model.zip
 inference:
-  ppo:
-    inference_ppo_tf_actor_model_name:
-    inference_ppo_tf_critic_model_name:
+  a2c:
+    inference_a2c_tf_actor_model_name:
+    inference_a2c_tf_critic_model_name:
 
 algorithm:
-  ppo:
+  a2c:
     gamma: 0.9
     epsilon: 0.25
     std_dev: 0.1
@@ -62,7 +62,7 @@ algorithm:
     memory_fraction: 0.20
     critic_lr: 0.0001 # This is the only one applying to both now
     actor_lr: 0.00005
-    model_name: PPO_Actor_conv2d32x64_Critic_conv2d32x64
+    model_name: a2c_Actor_conv2d32x64_Critic_conv2d32x64
 
 agents:
   auto_carla:
@@ -122,8 +122,8 @@ carla_environments:
     city_lights: False
     car_lights: False
     estimated_steps: 1000
-    save_episodes: 5 # not used in this carla ppo
-    save_every_step: 100 # not used in this carla ppo
+    save_episodes: 5 # not used in this carla a2c
+    save_every_step: 100 # not used in this carla a2c
     init_pose:
     goal_pose:
     filter: vehicle.*
@@ -148,7 +148,7 @@ carla_environments:
    #   [389.385938, -179.152158, 0.457793, 0.082516, 270.889893, 0.078263] # straight reverse
     # TOWN02
 #      [34.967827, 191.772552, 0.457793, 0.068760, 1.016691, 0.078263] # smooth curve
-#      [0.014811, 187.609818, 0.612076, 0.099154, -178.807373, -0.632538]  # intermediate curve opposite lane
+#      [0.014811, 187.609818, 0.612076, 0.099154, -178.807373, -0.632538]  # intermediate curve oa2csite lane
 #      [0.014811, 191.609818, 0.612076, 0.099154, -178.807373, -0.632538]  # sharp curve
 #       [-3.462030, 205.855362, 0.611606, 0.069948, -90.364258, 0.008539] # intermediate curve left
     #]
@@ -162,7 +162,6 @@ carla_environments:
         [ 227.506790, 59.392529, 0.3, 0.063309, 179.985626, 0.007553 ], # To left from right lane, then right
 
         [ 152.093750, 326.573151, 0.3, 0.093799, -179.874603, -0.080688 ], # To right from right, intersection
-
         [ 107.057098, 55.511978, 0.3, 0.090930, -179.793869, -0.060181 ], # To right from right, intersection
         [ -2.114511, 28.115679, 0.3, 0.173569, -85.910088, 0.153735 ], # to right from left line, smooth
       ]

@@ -69,6 +69,7 @@ class TrainerFactory:
 
             return TrainerFollowLaneQlearnAutoCarla(config)
 
+
         # =============================
         # FollowLine - F1 - qlearn - Gazebo
         # =============================
@@ -195,6 +196,19 @@ class TrainerFactory:
             )
 
             return TrainerFollowLaneDDPGCarla(config)
+
+        elif (
+            task == TasksType.FOLLOWLANECARLA.value
+            and agent == AgentsType.AUTOCARLA.value
+            and algorithm == AlgorithmsType.A2C.value
+            and simulator == EnvsType.CARLA.value
+            and framework == FrameworksType.BASELINES.value
+        ):
+            from rl_studio.agents.auto_carla.train_followlane_bs_a2c_f1_carla_tf import (
+                TrainerFollowLaneA2CCarla,
+            )
+
+            return TrainerFollowLaneA2CCarla(config)
 
         elif (
                 task == TasksType.FOLLOWLANECARLA.value
@@ -710,6 +724,21 @@ class InferencerFactory:
             )
 
             return TrainerFollowLaneDDPGCarla(config)
+
+
+        elif (
+            task == TasksType.FOLLOWLANECARLA.value
+            and agent == AgentsType.AUTOCARLA.value
+            and algorithm == AlgorithmsType.A2C.value
+            and simulator == EnvsType.CARLA.value
+            and framework == FrameworksType.BASELINES.value
+        ):
+            from rl_studio.agents.auto_carla.train_followlane_bs_a2c_f1_carla_tf import (
+                TrainerFollowLaneA2CCarla,
+            )
+
+            return TrainerFollowLaneA2CCarla(config)
+
 
         elif (
                 task == TasksType.FOLLOWLANECARLA.value

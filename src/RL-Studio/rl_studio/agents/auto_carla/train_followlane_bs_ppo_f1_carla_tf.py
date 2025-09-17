@@ -175,6 +175,28 @@ class SetClipRangeCallback(BaseCallback):
     def _on_step(self):
         return True
 
+class SetLearningRateCallback(BaseCallback):
+    def __init__(self, learning_rate, verbose=0):
+        """
+        Callback to set the learning rate once at the start of training.
+
+        :param learning_rate: (float or callable) The new learning rate value or function.
+        :param verbose: (int) Verbosity level.
+        """
+        super(SetLearningRateCallback, self).__init__(verbose)
+        self.learning_rate = learning_rate
+
+    def _on_training_start(self) -> None:
+        # Update model's learning rate
+        self.model.learning_rate = self.learning_rate
+
+
+        if self.verbose > 0:
+            print(f"Set new learning rate: {self.learning_rate}")
+
+    def _on_step(self) -> bool:
+        return True
+
 class DynamicClipRange:
     def __init__(self, initial_clip_range, min_clip_range):
         self.initial_clip_range = initial_clip_range
@@ -601,16 +623,17 @@ class TrainerFollowLanePPOCarla:
             min_log_std=self.environment.environment.get("decrease_min"), decay_rate=0.03,
             decay_steps=self.global_params.steps_to_decrease)
         entropy_callback = EntropyCoefficientCallback(
-            initial_ent_coef=0.05,  # Starting entropy coefficient
+            initial_ent_coef=0.06,  # Starting entropy coefficient
             min_ent_coef=0.02,  # Minimum entropy coefficient
             decay_rate=0.001,  # Decay amount per step
-            decay_steps=10000,  # Decay every 1000 steps
+            decay_steps=5000,  # Decay every 1000 steps
             verbose=1
         )
 
         # Instantiate the dynamic clip range
-        dynamic_clip_range = DynamicClipRange(initial_clip_range=0.2, min_clip_range=0.1)
+        dynamic_clip_range = DynamicClipRange(initial_clip_range=0.3, min_clip_range=0.1)
         epsilon_callback = SetClipRangeCallback(clip_range=dynamic_clip_range)
+        learningCallback = SetLearningRateCallback(1e-4, verbose=1)
 
         # wandb_callback = WandbCallback(gradient_save_freq=100, verbose=2)
         eval_callback = CustomEvalCallback(
@@ -636,17 +659,21 @@ class TrainerFollowLanePPOCarla:
             verbose=1
         )
 
-        #callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
-        #callback_list = CallbackList([exploration_rate_callback, periodic_save_callback])
-        #callback_list = CallbackList([periodic_save_callback])
-        #callback_list = CallbackList([periodic_save_callback, eval_callback])
         callback_list = CallbackList([
             exploration_rate_callback,
             entropy_callback,
             periodic_save_callback,
-            # epsilon_callback,
             eval_callback
         ])
+
+        # callback_list = CallbackList([
+        #     exploration_rate_callback,
+        #     entropy_callback,
+        #     periodic_save_callback,
+        #     epsilon_callback,
+        #     learningCallback,
+        #     eval_callback
+        # ])
 
         if self.environment.environment["mode"] in ["inference"]:
             self.evaluate_ddpg_agent(self.env, self.ppo_agent, 10000)
