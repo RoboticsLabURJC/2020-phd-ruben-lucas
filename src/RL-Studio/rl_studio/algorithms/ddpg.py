@@ -194,7 +194,7 @@ class ModifiedTensorBoard(TensorBoard):
         hparams = {}
 
         # --- Exploration hyperparameters (obj1: LoadAlgorithmParams) ---
-        algo_params = ["batch_size", "buffer_capacity", "gamma", "model_name", "std_dev", "tau"]
+        algo_params = ["critic_lr", "epsilon", "batch_size", "buffer_capacity", "gamma", "model_name", "std_dev", "tau"]
         for k in algo_params:
             if hasattr(obj1, k):
                 hparams[k] = getattr(obj1, k)
@@ -217,6 +217,8 @@ class ModifiedTensorBoard(TensorBoard):
             for pk in punish_keys:
                 if pk in obj3.settings["reward_params"]:
                     hparams[pk] = obj3.settings["reward_params"][pk]
+        hparams["initial_std_w"] = obj3.settings["initial_std_w"]
+        hparams["initial_std_v"] = obj3.settings["initial_std_v"]
 
         return hparams
 

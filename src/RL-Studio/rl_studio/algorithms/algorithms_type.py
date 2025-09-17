@@ -8,6 +8,7 @@ class AlgorithmsType(Enum):
     DEPRECATED_QLEARN = "qlearn_deprecated"
     DQN = "dqn"
     DDPG = "ddpg"
+    A2C = "a2c"
     SAC = "sac"
     SAC_2 = "sac_2"
     DDPG_TORCH = "ddpg_torch"
