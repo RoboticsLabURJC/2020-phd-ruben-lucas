@@ -10,9 +10,9 @@ experiments:
       mode: training
       algorithm: ppo_continuous
       normalize: true
-      appended_states: 10
+      appended_states: 20
       decrease_min: -4
-      steps_to_decrease: 100000
+      steps_to_decrease: 40000
       initial_std_w: -0.6
       initial_std_v: -0.15
       reward_params:
