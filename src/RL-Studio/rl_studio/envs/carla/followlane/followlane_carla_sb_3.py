@@ -622,7 +622,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.display_manager = DisplayManager(
             grid_size=[2, 3],
             window_size=[1500, 800],
-            headless=True
+            headless=False
         )
 
         try:
@@ -668,15 +668,15 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         mean_curv = max(0, mean_curvature - 1) * 10
 
         if deviated_points >= self.appended_states / 2:
-            mean_curv = max(0, mean_curvature - 1) * 35
+            mean_curv = max(0, mean_curvature - 1) * 30
             close_error = 9
 
         elif deviated_points >= self.appended_states / 3:
-            mean_curv = max(0, mean_curvature - 1) * 25
+            mean_curv = max(0, mean_curvature - 1) * 20
             close_error = 6
 
         elif deviated_points >= self.appended_states / 4:
-            mean_curv = max(0, mean_curvature - 1) * 15
+            mean_curv = max(0, mean_curvature - 1) * 10
             close_error = 3
 
         v_goal = max(8, 25 - (mean_curv + dist_error))
@@ -1617,26 +1617,18 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         v_goal_km = v_goal * 3.6
         v_km = v * 3.6
 
-        # diff = abs(v_goal_km - float(v_km))
-        # v_difference_error = diff / 2 # proportion error related to v_goal
-        # v_component = max(0, 10 - v_difference_error)
-
         sigma = 25 # km / h tolerance parameter
         v_component = 4 * np.exp(-((v_km - v_goal_km) ** 2) / (2 * sigma ** 2))
 
-        # v_eff_reward = v_component * d_reward
         v_eff_reward = v_component * d_reward
 
         # TOTAL REWARD CALCULATION
         beta = 1 if self.stage == "w" else beta
-        # d_reward_component = beta * pos_reward
         d_reward_component = beta * d_reward
         v_reward_component = (1 - beta) * v_eff_reward
-        # progress_reward_component = advanced * 0.01
-        # aligned_component = abs(0.5 - np.mean(x_centers_normalized)) * 5
+        # aligned_component = abs(0.5 - np.mean(x_centers_normalized)) * ~ 5 DID NOT IMPROVE!
 
         function_reward = d_reward_component + v_reward_component
-        # function_reward = v_component
 
         self.car.v_component = v_component
         self.car.d_reward = d_reward
@@ -1644,9 +1636,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         steering_change = abs(action[1] - self.prev_action[1])
 
-
         self.car.zig_zag_punish = self.punish_zig_zag_value * steering_change
-        # self.car.zig_zag_punish += self.punish_zig_zag_value * action[1]
+        self.car.zig_zag_punish += self.punish_zig_zag_value * action[1]
 
         function_reward = function_reward - self.car.zig_zag_punish
 

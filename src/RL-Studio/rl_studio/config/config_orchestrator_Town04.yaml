@@ -10,26 +10,24 @@ experiments:
       mode: training
       algorithm: ppo_continuous
       normalize: true
-      appended_states: 20
-      decrease_min: -4
-      steps_to_decrease: 40000
+      appended_states: 10
+      steps_to_decrease: 5000
       initial_std_w: -0.6
-      initial_std_v: -0.15
+      initial_std_v: -0.4
       reward_params:
-        punish_braking: 1
-        punish_zig_zag_value: 5
-        punish_deviation: 10
+        punish_braking: 2 # used as d_reward_power
+        punish_zig_zag_value: 0
+        punish_deviation: 5
         beta_1: 0
     algorithm:
       ppo:
         gamma: 0.9
         epsilon: 0.3
-        std_dev: 0.1
         episodes_update: 50 # dooing nothing here
         replay_memory_size: 50_000
         memory_fraction: 0.20
-        critic_lr: 0.0002
-        actor_lr: 0.0001
+        critic_lr: 0.0004 # This is the only one applying to both now
+        actor_lr: 0.0002
 
   - config: config/config_training_followlane_bs_ppo_f1_carla.yaml
     carla:
@@ -42,26 +40,23 @@ experiments:
       algorithm: ppo_continuous
       normalize: true
       appended_states: 10
-      decrease_min: -4
-      steps_to_decrease: 10000
-      initial_std_w: -0.4
-      initial_std_v: -0.6
+      steps_to_decrease: 5000
+      initial_std_w: -0.6
+      initial_std_v: -0.4
       reward_params:
-        punish_braking: 2
+        punish_braking: 2 # used as d_reward_power
         punish_zig_zag_value: 0.5
-        punish_deviation: 5
+        punish_deviation: 10
         beta_1: 0
     algorithm:
       ppo:
         gamma: 0.9
         epsilon: 0.3
-        std_dev: 0.1
         episodes_update: 50 # dooing nothing here
         replay_memory_size: 50_000
         memory_fraction: 0.20
-        critic_lr: 0.0004
-        actor_lr: 0.0001
-
+        critic_lr: 0.0004 # This is the only one applying to both now
+        actor_lr: 0.0002
 #
 #  - config: config/config_training_followlane_bs_sac_f1_carla.yaml
 #    carla:

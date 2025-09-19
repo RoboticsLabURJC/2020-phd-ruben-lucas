@@ -219,6 +219,9 @@ class ModifiedTensorBoard(TensorBoard):
                     hparams[pk] = obj3.settings["reward_params"][pk]
         hparams["initial_std_w"] = obj3.settings["initial_std_w"]
         hparams["initial_std_v"] = obj3.settings["initial_std_v"]
+        hparams["decrease_min"] = obj3.settings["decrease_min"]
+        hparams["decrease_substraction"] = obj3.settings["decrease_substraction"]
+        hparams["steps_to_decrease"] = obj3.settings["steps_to_decrease"]
 
         return hparams
 

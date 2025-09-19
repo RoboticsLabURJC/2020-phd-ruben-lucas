@@ -659,12 +659,19 @@ class TrainerFollowLanePPOCarla:
             verbose=1
         )
 
-        callback_list = CallbackList([
-            exploration_rate_callback,
+        callbacks_to_add = [
             entropy_callback,
             periodic_save_callback,
             eval_callback
-        ])
+        ]
+
+        if self.global_params.steps_to_decrease < 100000:
+            print("Added exploration callback!")
+            callbacks_to_add.append(exploration_rate_callback)
+
+        callback_list = CallbackList(
+            callbacks_to_add
+        )
 
         # callback_list = CallbackList([
         #     exploration_rate_callback,
