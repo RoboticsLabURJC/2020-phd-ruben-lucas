@@ -41,80 +41,22 @@ experiments:
 #        punish_deviation: 10
 #        beta_1: 0
 
-  - config: config/config_training_followlane_bs_ppo_f1_carla.yaml
+
+  - config: config/config_training_followlane_bs_sac_f1_carla.yaml
     carla:
       carla_client: 5013
     carla_environments:
       follow_lane:
-        town: [Town03, Town01]
+        town: [Town03, Town01, Town04]
     settings:
-      mode: training
-      algorithm: ppo_continuous
+      algorithm: sac
       normalize: true
+      initial_std_w: 0.5
+      initial_std_v: 0.8
+      steps_to_decrease: 4000
       appended_states: 20
-      steps_to_decrease: 500000
-      initial_std_w: -0.6
-      initial_std_v: -0.3
       reward_params:
         punish_braking: 2 # used as d_reward_power
         punish_zig_zag_value: 0.5
-        punish_deviation: 10
+        punish_deviation: 5
         beta_1: 0
-    algorithm:
-      ppo:
-        gamma: 0.9
-        epsilon: 0.3
-        episodes_update: 50 # dooing nothing here
-        replay_memory_size: 50_000
-        memory_fraction: 0.20
-        critic_lr: 0.0004 # This is the only one applying to both now
-        actor_lr: 0.0002
-
-
-  - config: config/config_training_followlane_bs_ppo_f1_carla.yaml
-    carla:
-      carla_client: 5013
-    carla_environments:
-      follow_lane:
-        town: [Town03, Town01]
-    settings:
-      mode: training
-      algorithm: ppo_continuous
-      normalize: true
-      appended_states: 10
-      steps_to_decrease: 5000
-      initial_std_w: -0.5
-      initial_std_v: -0.3
-      reward_params:
-        punish_braking: 2 # used as d_reward_power
-        punish_zig_zag_value: 0.5
-        punish_deviation: 10
-        beta_1: 0
-    algorithm:
-      ppo:
-        gamma: 0.9
-        epsilon: 0.2
-        episodes_update: 50 # dooing nothing here
-        replay_memory_size: 50_000
-        memory_fraction: 0.20
-        critic_lr: 0.0002 # This is the only one applying to both now
-        actor_lr: 0.0002
-
-#  - config: config/config_training_followlane_bs_sac_f1_carla.yaml
-#    carla:
-#      carla_client: 5013
-#    carla_environments:
-#      follow_lane:
-#        town: [Town03, Town01, Town04]
-#    settings:
-#      algorithm: sac
-#      normalize: true
-#      initial_std_w: 0.5
-#      initial_std_v: 0.8
-#      steps_to_decrease: 4000
-#      appended_states: 10
-#      reward_params:
-#        punish_braking: 2 # used as d_reward_power
-#        punish_zig_zag_value: 0.5
-#        punish_deviation: 5
-#        beta_1: 0
