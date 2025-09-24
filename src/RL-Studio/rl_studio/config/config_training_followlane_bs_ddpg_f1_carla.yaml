@@ -1,5 +1,5 @@
 settings:
-  mode: training # training, retraining, inference
+  mode: inference # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: ddpg # qlearn, dqn, ddpg, ppo
   simulator: carla # openairee, carla, gazebo, sumo
@@ -7,7 +7,7 @@ settings:
   env: follow_lane # Town01, simple, nurburgring, montreal, curves, simple_laser, manual, autoparking
   agent: auto_carla # auto_carla, autoparkingRL, auto_carla, mountain_car, robot_mesh, cartpole, turtlebot
   actions: slow # slow, fast
-  appended_states: 10
+  appended_states: 20
   stage: r
   states: sp10 #image, sp1 (simplified perception with 1 point), sp3 (simplified perception with 3 points), spn (simplified perception with n points)
   rewards: followlane_center # followline_center, followline_center_v_w_linear
@@ -23,6 +23,8 @@ settings:
   decrease_substraction: 0.003
   decrease_min: 0.003
   entropy_factor: 0
+  initial_std_w: 0.5
+  initial_std_v: 0.5
   use_curves_state: False
   reward_params:
     function: pow
@@ -45,7 +47,7 @@ retraining:
 #    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250622-131058/best_model.zip
 #    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250714-194040/best_model.zip
 #    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250723-083519/model_1650000_steps.zip
-    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/best_checkpoints/ddpg_bs/10states_normalized_x-1_90fov_5_states_-2_3_-3/0708_best_model.zip
+    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250921-215610/model_710000_steps.zip
 inference:
   ddpg:
   #    retrain_ddpg_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20250429-225407/best_model.zip
