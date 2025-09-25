@@ -1,5 +1,5 @@
 settings:
-  mode: training # training, retraining, inference
+  mode: inference # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: ppo_continuous # qlearn, dqn, ddpg, ppo
   simulator: carla # openai, carla, gazebo, sumo
@@ -46,7 +46,7 @@ retraining:
 #    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250625-000650/best_model.zip
 #    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250630-090131/best_model.zip
 #    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250819-230238/best_model.zip
-    retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250916-001454/best_model.zip
+    retrain_ppo_tf_model_name: /home/alumnos/rlucasz/Escritorio/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20250924-144634/model_760000_steps.zip
 inference:
   ppo:
     inference_ppo_tf_actor_model_name:
@@ -177,6 +177,6 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: 2000
+  carla_client: 4013
 #  carla_client: [4013, 4015]
   manager_port: 8201
