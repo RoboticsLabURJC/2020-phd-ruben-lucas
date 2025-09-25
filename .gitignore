@@ -13,5 +13,5 @@ src/RL-Studio/rl_studio/agents/auto_carla/hyperparameter_tuning/logs/
 RL_Unibotics
 
 src/BehaviorMetrics/behavior_metrics/best_logs/
-*.v2
+
 .newEnv
