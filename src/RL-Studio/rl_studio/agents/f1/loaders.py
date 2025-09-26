@@ -155,7 +155,7 @@ class LoadGlobalParams:
         self.agent = config["settings"]["agent"]
         self.framework = config["settings"]["framework"]
         self.models_dir = f"{config['settings']['models_dir']}/{config['settings']['task']}_{config['settings']['algorithm']}_{config['settings']['agent']}_{config['settings']['framework']}"
-        self.logs_tensorboard_dir = f"{config['settings']['logs_dir']}/{config['settings']['mode']}/{config['settings']['task']}_{config['settings']['algorithm']}_{config['settings']['agent']}_{config['settings']['framework']}/TensorBoard"
+        self.logs_tensorboard_dir = f"{config['settings']['logs_dir']}/training/{config['settings']['task']}_{config['settings']['algorithm']}_{config['settings']['agent']}_{config['settings']['framework']}/TensorBoard"
         self.logs_dir = f"{config['settings']['logs_dir']}/{config['settings']['mode']}/{config['settings']['task']}_{config['settings']['algorithm']}_{config['settings']['agent']}_{config['settings']['framework']}/logs"
         self.metrics_data_dir = f"{config['settings']['metrics_dir']}/{config['settings']['mode']}/{config['settings']['task']}_{config['settings']['algorithm']}_{config['settings']['agent']}_{config['settings']['framework']}/data"
         self.metrics_graphics_dir = f"{config['settings']['metrics_dir']}/{config['settings']['mode']}/{config['settings']['task']}_{config['settings']['algorithm']}_{config['settings']['agent']}_{config['settings']['framework']}/graphics"
@@ -172,7 +172,8 @@ class LoadGlobalParams:
         ###### Exploration
         self.steps_to_decrease = config["settings"]["steps_to_decrease"]
         self.initial_std_v = config["settings"].get("initial_std_v")
-        self.initial_std_w = config["settings"].get("initial_std_v")
+        self.initial_std_w = config["settings"].get("initial_std_w")
+        self.random_inits = config["settings"].get("random_inits", True)
         self.decrease_substraction = config["settings"]["decrease_substraction"]
         self.decrease_min = config["settings"]["decrease_min"]
         self.normalize = config["settings"]["normalize"]

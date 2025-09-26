@@ -142,6 +142,7 @@ class TrainerFollowLaneA2CCarla:
         self.tensorboard = ModifiedTensorBoard(log_dir=f"{logs_dir}/a2c/overall")
         self.environment.environment["tensorboard"] = self.tensorboard
         self.environment.environment["tensorboard_logs_dir"] = logs_dir
+        self.environment.environment["random_inits"] = self.global_params.random_inits
 
         os.makedirs(f"{self.global_params.models_dir}", exist_ok=True)
         os.makedirs(f"{self.global_params.logs_dir}", exist_ok=True)

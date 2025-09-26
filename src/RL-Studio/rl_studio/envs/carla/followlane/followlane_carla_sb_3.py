@@ -502,7 +502,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.dashboard = config.get("dashboard")
         self.estimated_steps = config.get("estimated_steps")
         self.normalize =  config.get("normalize")
-
+        self.random_inits =  config.get("random_inits", True)
+        print(f"random_inits = {self.random_inits}")
         self.start = time.time()
 
         self.last_lane_id = None
@@ -622,7 +623,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.display_manager = DisplayManager(
             grid_size=[2, 3],
             window_size=[1500, 800],
-            headless=False
+            headless=True
         )
 
         try:
@@ -788,7 +789,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.car.zig_zag_punish = 0
         self.car.v_goal = 0
 
-        if self.map.name != 'Carla/Maps/Town01':
+        if self.map.name != 'Carla/Maps/Town01' and self.random_inits:
             self.vary_car_orientation()  # Call the orientation variation method
         # self.set_init_speed() # It is done in step 5 now!
 
@@ -1486,7 +1487,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # que trabaja con esta velocidad una vez aterriza en el suelo y se
         # endereza
         try:
-            if 5 < self.step_count <= 10:
+            if 5 < self.step_count <= 10 and self.random_inits:
                 self.set_init_speed()
 
             # for _ in range(1):  # Apply the action for 3 consecutive steps
@@ -1636,8 +1637,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         steering_change = abs(action[1] - self.prev_action[1])
 
-        self.car.zig_zag_punish = self.punish_zig_zag_value * steering_change
-        self.car.zig_zag_punish += self.punish_zig_zag_value * action[1]
+        # self.car.zig_zag_punish = self.punish_zig_zag_value * steering_change
+        self.car.zig_zag_punish += self.punish_zig_zag_value * abs(params["angular_velocity"])
 
         function_reward = function_reward - self.car.zig_zag_punish
 
