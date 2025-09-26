@@ -518,6 +518,7 @@ class TrainerFollowLanePPOCarla:
         )
         self.environment.environment["tensorboard"] = self.tensorboard
         self.environment.environment["tensorboard_logs_dir"] = logs_dir
+        self.environment.environment["random_inits"] = self.global_params.random_inits
 
         self.loss = 0
 
