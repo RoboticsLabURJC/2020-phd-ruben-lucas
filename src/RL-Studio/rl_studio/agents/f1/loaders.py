@@ -155,7 +155,7 @@ class LoadGlobalParams:
         self.agent = config["settings"]["agent"]
         self.framework = config["settings"]["framework"]
         self.models_dir = f"{config['settings']['models_dir']}/{config['settings']['task']}_{config['settings']['algorithm']}_{config['settings']['agent']}_{config['settings']['framework']}"
-        self.logs_tensorboard_dir = f"{config['settings']['logs_dir']}/training/{config['settings']['task']}_{config['settings']['algorithm']}_{config['settings']['agent']}_{config['settings']['framework']}/TensorBoard"
+        self.logs_tensorboard_dir = f"{config['settings']['logs_dir']}/{config['settings']['mode']}/{config['settings']['task']}_{config['settings']['algorithm']}_{config['settings']['agent']}_{config['settings']['framework']}/TensorBoard"
         self.logs_dir = f"{config['settings']['logs_dir']}/{config['settings']['mode']}/{config['settings']['task']}_{config['settings']['algorithm']}_{config['settings']['agent']}_{config['settings']['framework']}/logs"
         self.metrics_data_dir = f"{config['settings']['metrics_dir']}/{config['settings']['mode']}/{config['settings']['task']}_{config['settings']['algorithm']}_{config['settings']['agent']}_{config['settings']['framework']}/data"
         self.metrics_graphics_dir = f"{config['settings']['metrics_dir']}/{config['settings']['mode']}/{config['settings']['task']}_{config['settings']['algorithm']}_{config['settings']['agent']}_{config['settings']['framework']}/graphics"
