@@ -106,5 +106,3 @@ handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(ColorLogger())
 
 logger.addHandler(handler)
-
-logger.info("Step time: %f", 0.523451)

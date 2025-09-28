@@ -5,6 +5,7 @@ src/RL-Studio/logs/
 src/RL-Studio/.idea/
 src/RL-Studio/rl_studio/checkpoints/
 src/RL-Studio/rl_studio/logs/
+src/RL-Studio/rl_studio/logs_episode/
 src/RL-Studio/condaEnv/
 src/RL-Studio/rl_studio/CustomRobots/
 src/RL-Studio/rl_studio/installation/

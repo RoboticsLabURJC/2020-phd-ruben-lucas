@@ -497,7 +497,7 @@ def normalize_centers(centers):
 
 class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def __init__(self, **config):
-
+        
         self.NON_DETECTED = -1
         self.dashboard = config.get("dashboard")
         self.estimated_steps = config.get("estimated_steps")

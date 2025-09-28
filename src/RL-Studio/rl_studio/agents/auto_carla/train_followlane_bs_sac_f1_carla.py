@@ -6,6 +6,7 @@ import pynvml
 import psutil
 from typing import Callable
 from stable_baselines3.common.vec_env import DummyVecEnv
+from rl_studio.envs.carla.utils.logger import logger
 
 import mlflow
 import mlflow.sklearn
@@ -337,6 +338,10 @@ class TrainerFollowLaneSACCarla:
     def __init__(self, config):
 
         # pynvml.nvmlInit()
+        log_path = f"./logs_episode/sac/{time.strftime('%Y%m%d-%H%M%S')}.log"
+        file_handler = logging.FileHandler(log_path)
+        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        logger.addHandler(file_handler)
 
         self.actor_loss = 0
         self.critic_loss = 0
@@ -348,6 +353,7 @@ class TrainerFollowLaneSACCarla:
         self.tensorboard = ModifiedTensorBoard(
             log_dir=f"{logs_dir}/sac/overall"
         )
+
         self.environment.environment["tensorboard"] = self.tensorboard
         self.environment.environment["tensorboard_logs_dir"] = logs_dir
         self.environment.environment["random_inits"] = self.global_params.random_inits
