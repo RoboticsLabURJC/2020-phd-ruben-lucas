@@ -5,6 +5,7 @@ import time
 import pynvml
 import psutil
 from stable_baselines3.common.monitor import Monitor
+from rl_studio.envs.carla.utils.logger import logger
 
 import mlflow
 import mlflow.sklearn
@@ -316,6 +317,10 @@ class TrainerFollowLaneDDPGCarla:
     """
 
     def __init__(self, config):
+        log_path = f"./logs_episode/ppo/{time.strftime('%Y%m%d-%H%M%S')}.log"
+        file_handler = logging.FileHandler(log_path)
+        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        logger.addHandler(file_handler)
 
         pynvml.nvmlInit()
 
