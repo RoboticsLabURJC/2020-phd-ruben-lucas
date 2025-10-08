@@ -623,7 +623,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.display_manager = DisplayManager(
             grid_size=[2, 3],
             window_size=[1500, 800],
-            headless=True
+            headless=False
         )
 
         try:
@@ -1578,6 +1578,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         # car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
         punish_deviation = -self.punish_deviation
+        beta = self.beta
         stop_punish = -10
         lane_changed_punish = -1
 
@@ -1599,19 +1600,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         v = params["velocity"]
 
         # REWARD CALCULATION
-        beta = self.beta
-        if v < self.punish_ineffective_vel:
-            self.steps_stopped += 1
-            if self.steps_stopped > 100:
-                logger.info("too much time stopped")
-                return punish_deviation, True, False
-            # return car_deviated_punish + (action[0] * d_reward), False, False
-            return punish_deviation, False, False
-            # reward = action[0] * d_reward/5
-            # reward -= self.calculate_punish(params, action, v_goal, v, center_distance, x_centers_normalized)
-            # return reward, False, False
-        else:
-            self.steps_stopped = 0
 
         # print(f"monitoring last modification bro! current_v -> {params['velocity']}")
         # calculate_v_reward
@@ -1630,6 +1618,21 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # aligned_component = abs(0.5 - np.mean(x_centers_normalized)) * ~ 5 DID NOT IMPROVE!
 
         function_reward = d_reward_component + v_reward_component
+        if v < self.punish_ineffective_vel:
+            self.steps_stopped += 1
+            if self.steps_stopped > 100:
+                logger.info("too much time stopped")
+                return punish_deviation, True, False
+            # return car_deviated_punish + (action[0] * d_reward), False, False
+            self.car.v_component = 0
+            self.car.d_reward = d_reward
+            self.car.v_eff_reward = punish_deviation * (1 - d_reward)
+            return punish_deviation * (1 - d_reward), False, False
+            # reward = action[0] * d_reward/5
+            # reward -= self.calculate_punish(params, action, v_goal, v, center_distance, x_centers_normalized)
+            # return reward, False, False
+        else:
+            self.steps_stopped = 0
 
         self.car.v_component = v_component
         self.car.d_reward = d_reward

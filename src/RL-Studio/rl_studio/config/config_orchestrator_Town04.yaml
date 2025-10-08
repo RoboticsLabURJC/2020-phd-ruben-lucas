@@ -1,57 +1,23 @@
 experiments:
 
-  - config: config/config_training_followlane_bs_ppo_f1_carla.yaml
+  - config: config/config_training_followlane_bs_sac_f1_carla.yaml
     carla:
       carla_client: 4013
     carla_environments:
       follow_lane:
-        town: [Town01, Town03, Town04]
-        spawn_points:
+        town: [Town03, Town04, Town01]
     settings:
-      algorithm: ppo_continuous
+      algorithm: sac
       normalize: true
-      initial_std_w: -0.4
-      initial_std_v: -0.6
-      random_inits: false
-      steps_to_decrease: 200000
+      initial_std_w: 0.5
+      initial_std_v: 0.8
+      steps_to_decrease: 4000
       appended_states: 10
       reward_params:
         punish_braking: 2 # used as d_reward_power
         punish_zig_zag_value: 0.5
         punish_deviation: 5
         beta_1: 0
-    algorithm:
-      ppo:
-        gamma: 0.9
-        epsilon: 0.3
-        critic_lr: 0.0004 # This is the only one applying to both now
-
-  - config: config/config_training_followlane_bs_ppo_f1_carla.yaml
-    carla:
-      carla_client: 4013
-    carla_environments:
-      follow_lane:
-        town: [Town04]
-        spawn_points:
-    settings:
-      algorithm: ppo_continuous
-      normalize: true
-      initial_std_w: -0.4
-      initial_std_v: -0.6
-      random_inits: true
-      steps_to_decrease: 200000
-      appended_states: 10
-      reward_params:
-        punish_braking: 2 # used as d_reward_power
-        punish_zig_zag_value: 0.5
-        punish_deviation: 5
-        beta_1: 0
-    algorithm:
-      ppo:
-        gamma: 0.9
-        epsilon: 0.3
-        critic_lr: 0.0004 # This is the only one applying to both now
-
 
 #  - config: config/config_training_followlane_bs_ddpg_f1_carla.yaml
 #    carla:
