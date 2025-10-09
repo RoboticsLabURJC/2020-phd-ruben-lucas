@@ -502,8 +502,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.dashboard = config.get("dashboard")
         self.estimated_steps = config.get("estimated_steps")
         self.normalize =  config.get("normalize")
-        self.random_inits =  config.get("random_inits", True)
-        print(f"random_inits = {self.random_inits}")
+        self.compensated_inits =  config.get("compensated_inits", True)
+        self.random_speeds =  config.get("random_speeds", True)
+        self.random_direction =  config.get("random_direction", True)
+        print(f"compensated_inits = {self.compensated_inits}")
         self.start = time.time()
 
         self.last_lane_id = None
@@ -789,7 +791,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.car.zig_zag_punish = 0
         self.car.v_goal = 0
 
-        if self.map.name != 'Carla/Maps/Town01' and self.random_inits:
+        if self.random_direction and not self.compensated_inits:
             self.vary_car_orientation()  # Call the orientation variation method
         # self.set_init_speed() # It is done in step 5 now!
 
@@ -1051,7 +1053,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def setup_car_random_pose(self, spawn_points):
         car_bp = self.world.get_blueprint_library().filter("vehicle.*")[0]
-        if self.spawn_points is not None and self.map.name == 'Carla/Maps/Town01' :
+        if self.spawn_points[self.map.name] is not None:
             spawn_point_index = random.randint(0, len(spawn_points))
             spawn_point = spawn_points[spawn_point_index]
             if random.random() <= 1:  # TODO make it configurable
@@ -1480,14 +1482,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #     time.sleep(0.2)
         #     states, reward, done, done, params = self.apply_step([0.5, 0.0])
 
-        # if self.step_count <= 30 and self.step_count % 10 == 0:
-        #     self.set_init_speed()
-
         # TODO OJO, puede dañar el entrenamiento, pero con eso nos aseguramos
         # que trabaja con esta velocidad una vez aterriza en el suelo y se
         # endereza
         try:
-            if 5 < self.step_count <= 10 and self.random_inits:
+            if 5 < self.step_count <= 10 and self.random_speeds:
                 self.set_init_speed()
 
             # for _ in range(1):  # Apply the action for 3 consecutive steps
@@ -1579,8 +1578,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # car_deviated_punish = -100 if self.stage == "w" else -5 * max(0, action[0])
         punish_deviation = -self.punish_deviation
         beta = self.beta
-        stop_punish = -10
-        lane_changed_punish = -1
 
         # TODO (Ruben) OJO! Que tienen que ser todos  < 0.3!! Revisar si esto no es demasiado restrictivo
         #  En curvas
@@ -2066,18 +2063,18 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # set self driving car
         if self.alternate_pose:
             self.car, init_pose = self.setup_car_random_pose(self.spawn_points)
-        elif self.waypoints_init is not None:
-            init_waypoint = waypoints_town[self.waypoints_init]
-            if self.show_all_points:
-                self.draw_waypoints(
-                    waypoints_town,
-                    self.waypoints_init,
-                    self.waypoints_target,
-                    self.waypoints_lane_id,
-                    2000,
-                )
-            self.car = self.setup_car_fix_pose(init_waypoint)
-            init_pose = init_waypoint.transform
+        # elif self.waypoints_init is not None:
+        #     init_waypoint = waypoints_town[self.waypoints_init]
+        #     if self.show_all_points:
+        #         self.draw_waypoints(
+        #             waypoints_town,
+        #             self.waypoints_init,
+        #             self.waypoints_target,
+        #             self.waypoints_lane_id,
+        #             2000,
+        #         )
+        #     self.car = self.setup_car_fix_pose(init_waypoint)
+        #     init_pose = init_waypoint.transform
         else:  # TODO: hacer en el caso que se quiera poner el target con .next()
             init_waypoint = waypoints_town[self.waypoints_init]
             waypoints_lane = init_waypoint.next_until_lane_end(1000)

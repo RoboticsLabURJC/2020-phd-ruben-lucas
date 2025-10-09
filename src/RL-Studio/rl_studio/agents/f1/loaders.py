@@ -173,7 +173,9 @@ class LoadGlobalParams:
         self.steps_to_decrease = config["settings"]["steps_to_decrease"]
         self.initial_std_v = config["settings"].get("initial_std_v")
         self.initial_std_w = config["settings"].get("initial_std_w")
-        self.random_inits = config["settings"].get("random_inits", True)
+        self.compensated_inits = config["settings"].get("compensated_inits", True)
+        self.random_speeds = config["settings"].get("random_speeds", True)
+        self.random_direction = config["settings"].get("random_direction", True)
         self.decrease_substraction = config["settings"]["decrease_substraction"]
         self.decrease_min = config["settings"]["decrease_min"]
         self.normalize = config["settings"]["normalize"]
