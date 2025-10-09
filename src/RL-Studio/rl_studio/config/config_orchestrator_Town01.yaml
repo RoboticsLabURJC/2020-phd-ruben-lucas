@@ -5,21 +5,44 @@ experiments:
       carla_client: 5013
     carla_environments:
       follow_lane:
-        town: [Town03, Town04]
+        town: [Town01]
     settings:
-      mode: retraining
+#      mode: retraining
       algorithm: sac
       normalize: true
-      initial_std_w: 0.2
-      initial_std_v: 0.3
+      initial_std_w: 0.8
+      initial_std_v: 0.8
       steps_to_decrease: 4000
       appended_states: 10
       reward_params:
         punish_braking: 2 # used as d_reward_power
         punish_zig_zag_value: 0.5
-        punish_deviation: 5
+        punish_deviation: 10
         beta_1: 0
-    retraining:
-      sac:
-        retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20251007-212935/best_model.zip
+#    retraining:
+#      sac:
+#        retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20251007-212935/best_model.zip
+
+  - config: config/config_training_followlane_bs_sac_f1_carla.yaml
+    carla:
+      carla_client: 5013
+    carla_environments:
+      follow_lane:
+        town: [Town01]
+    settings:
+#      mode: retraining
+      algorithm: sac
+      normalize: true
+      initial_std_w: 0.8
+      initial_std_v: 0.8
+      steps_to_decrease: 4000
+      appended_states: 10
+      reward_params:
+        punish_braking: 2 # used as d_reward_power
+        punish_zig_zag_value: 0.5
+        punish_deviation: 10
+        beta_1: 0
+#    retraining:
+#      sac:
+#        retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20251007-212935/best_model.zip
 

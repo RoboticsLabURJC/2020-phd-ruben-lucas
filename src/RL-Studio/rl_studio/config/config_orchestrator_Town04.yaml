@@ -5,18 +5,37 @@ experiments:
       carla_client: 4013
     carla_environments:
       follow_lane:
-        town: [Town03, Town04, Town01]
+        town: [Town03, Town04, Town01, Town01]
     settings:
       algorithm: sac
       normalize: true
-      initial_std_w: 0.5
+      initial_std_w: 0.8
       initial_std_v: 0.8
       steps_to_decrease: 4000
       appended_states: 10
       reward_params:
         punish_braking: 2 # used as d_reward_power
         punish_zig_zag_value: 0.5
-        punish_deviation: 5
+        punish_deviation: 10
+        beta_1: 0
+
+  - config: config/config_training_followlane_bs_sac_f1_carla.yaml
+    carla:
+      carla_client: 4013
+    carla_environments:
+      follow_lane:
+        town: [Town03, Town04, Town01, Town01]
+    settings:
+      algorithm: sac
+      normalize: true
+      initial_std_w: 0.8
+      initial_std_v: 0.8
+      steps_to_decrease: 4000
+      appended_states: 10
+      reward_params:
+        punish_braking: 2 # used as d_reward_power
+        punish_zig_zag_value: 0.5
+        punish_deviation: 10
         beta_1: 0
 
 #  - config: config/config_training_followlane_bs_ddpg_f1_carla.yaml
