@@ -351,7 +351,9 @@ class TrainerFollowLaneDDPGCarla:
         # CarlaEnv.__init__(self)
         self.environment.environment["actions"] = self.global_params.actions_set
         self.environment.environment["use_curves_state"] = config["settings"]["use_curves_state"]
-        self.environment.environment["random_inits"] = self.global_params.random_inits
+        self.environment.environment["compensated_inits"] = self.global_params.compensated_inits
+        self.environment.environment["random_direction"] = self.global_params.random_direction
+        self.environment.environment["random_speeds"] = self.global_params.random_speeds
 
         self.env = gym.make(self.env_params.env_name, **self.environment.environment)
         self.all_steps = 0

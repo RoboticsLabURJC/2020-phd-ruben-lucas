@@ -356,7 +356,9 @@ class TrainerFollowLaneSACCarla:
 
         self.environment.environment["tensorboard"] = self.tensorboard
         self.environment.environment["tensorboard_logs_dir"] = logs_dir
-        self.environment.environment["random_inits"] = self.global_params.random_inits
+        self.environment.environment["compensated_inits"] = self.global_params.compensated_inits
+        self.environment.environment["random_direction"] = self.global_params.random_direction
+        self.environment.environment["random_speeds"] = self.global_params.random_speeds
 
         self.loss = 0
 
