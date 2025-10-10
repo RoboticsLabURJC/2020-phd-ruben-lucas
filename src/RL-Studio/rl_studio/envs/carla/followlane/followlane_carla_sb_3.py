@@ -503,9 +503,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.estimated_steps = config.get("estimated_steps")
         self.normalize =  config.get("normalize")
         self.compensated_inits =  config.get("compensated_inits", True)
-        self.random_speeds =  config.get("random_speeds", True)
-        self.random_direction =  config.get("random_direction", True)
         print(f"compensated_inits = {self.compensated_inits}")
+        self.random_speeds =  config.get("random_speeds", True)
+        print(f"random_speeds = {self.random_speeds}")
+        self.random_direction =  config.get("random_direction", True)
+        print(f"random_direction = {self.random_direction}")
         self.start = time.time()
 
         self.last_lane_id = None
@@ -1053,18 +1055,24 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def setup_car_random_pose(self, spawn_points):
         car_bp = self.world.get_blueprint_library().filter("vehicle.*")[0]
-        if self.spawn_points[self.map.name] is not None:
-            spawn_point_index = random.randint(0, len(spawn_points))
-            spawn_point = spawn_points[spawn_point_index]
-            if random.random() <= 1:  # TODO make it configurable
-                location = getTransformFromPoints(spawn_point)
-            else:
-                location = random.choice(self.world.get_map().get_spawn_points())
+        map_name = self.map.name.split('/')[-1]
+        if self.spawn_points is not None and map_name in self.spawn_points:
+            points = self.spawn_points[map_name]
+            # print(f"found compensated {len(points)}")
+            spawn_point_index = random.randint(0, len(points))
+            spawn_point = points[spawn_point_index]
+            location = getTransformFromPoints(spawn_point)
+
+            # if random.random() <= 1:  # TODO make it configurable
+            #     location = getTransformFromPoints(spawn_point)
+            # else:
+            #     location = random.choice(self.world.get_map().get_spawn_points())
 
             vehicle = self.world.spawn_actor(car_bp, location)
             while vehicle is None:
                 vehicle = self.world.spawn_actor(car_bp, location)
         else:
+            # print(f"random")
             location = random.choice(self.world.get_map().get_spawn_points())
             vehicle = self.world.try_spawn_actor(car_bp, location)
             while vehicle is None:
