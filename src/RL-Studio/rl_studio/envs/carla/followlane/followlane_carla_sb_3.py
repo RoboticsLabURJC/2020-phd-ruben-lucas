@@ -727,8 +727,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             vehicle = self.world.spawn_actor(car_bp, location)
 
         self.actor_list.append(vehicle)
-
-        return vehicle
+        vehicle.reward = 0
+        vehicle.error = 0
+        return vehicle, location
 
     def close(self):
         self.destroy_all_actors()
@@ -2107,7 +2108,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             logger.info(f"{counter_lanes = }")
             logger.info(f"{counter_road = }")
 
-            self.car = self.setup_car_fix_pose(init_waypoint)
+            self.car, init_pose = self.setup_car_fix_pose(init_waypoint)
 
         # set other car
         if self.front_car not in (None, "none"):
