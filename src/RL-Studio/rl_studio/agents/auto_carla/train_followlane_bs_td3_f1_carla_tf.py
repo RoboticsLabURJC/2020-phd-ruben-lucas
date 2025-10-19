@@ -114,7 +114,7 @@ class PeriodicSaveCallback(BaseCallback):
     def _on_step(self) -> bool:
         self.step_count += 1
         if self.step_count % self.save_freq == 0:
-            model_save_path = os.path.join(self.save_path, f"model_{self.step_count}_steps")
+            model_save_path = os.path.join(self.save_path, f"model_{self.step_count}_steps_{time.strftime('%Y%m%d-%H%M%S')}")
             self.model.save(model_save_path)
             # date_time = time.strftime('%Y%m%d-%H%M%S')
 
