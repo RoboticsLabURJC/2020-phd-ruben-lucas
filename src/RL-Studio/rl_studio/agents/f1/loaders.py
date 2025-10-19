@@ -23,7 +23,7 @@ class LoadAlgorithmParams:
             self.critic_lr = config["algorithm"][algorithm]["critic_lr"]
             self.epsilon = config["algorithm"][algorithm]["tau"]
 
-        if algorithm in ("ddpg", "ddpg_2"):
+        if algorithm in ("ddpg", "ddpg_2", "td3"):
             self.gamma = config["algorithm"][algorithm]["gamma"]
             self.tau = config["algorithm"][algorithm]["tau"]
             self.std_dev = config["algorithm"][algorithm]["std_dev"]
@@ -339,8 +339,8 @@ class LoadEnvVariablesDDPGGazebo:
 
         # Training/inference
         self.environment["mode"] = config["settings"]["mode"]
-        self.environment["retrain_ddpg_tf_actor_model_name"] = f"{config['retraining']['ddpg']['retrain_ddpg_tf_model_name']}/ACTOR"
-        self.environment["retrain_ddpg_tf_critic_model_name"] = f"{config['retraining']['ddpg']['retrain_ddpg_tf_model_name']}/CRITIC"
+        self.environment["retrain_ddpg_tf_actor_model_name"] = f"{config['retraining']['ddpg']['retrain_model_name']}/ACTOR"
+        self.environment["retrain_ddpg_tf_critic_model_name"] = f"{config['retraining']['ddpg']['retrain_model_name']}/CRITIC"
         self.environment["inference_ddpg_tf_actor_model_name"] = config["inference"][
             "ddpg"
         ]["inference_ddpg_tf_actor_model_name"]
@@ -614,13 +614,13 @@ class LoadEnvVariablesDDPGCarla:
 
         # Training/inference
         self.environment["mode"] = config["settings"]["mode"]
-        self.environment["retrain_ddpg_tf_model_name"] = config['retraining']['ddpg'].get('retrain_ddpg_tf_model_name')
-        self.environment["retrain_ddpg_tf_model_name_w"] = config['retraining']['ddpg'].get('retrain_ddpg_tf_model_name_w')
-        self.environment["retrain_ddpg_tf_model_name_v"] = config['retraining']['ddpg'].get('retrain_ddpg_tf_model_name_v')
-        # self.environment["retrain_ddpg_tf_actor_model_name"] = f"{config['retraining']['ddpg']['retrain_ddpg_tf_model_name']}/ACTOR"
-        # self.environment["retrain_ddpg_tf_critic_model_name"] = f"{config['retraining']['ddpg']['retrain_ddpg_tf_model_name']}/CRITIC"
-        # self.environment["inference_ddpg_tf_actor_model_name"] = f"{config['inference']['ddpg']['retrain_ddpg_tf_model_name']}/ACTOR"
-        # self.environment["inference_ddpg_tf_critic_model_name"] = f"{config['inference']['ddpg']['retrain_ddpg_tf_model_name']}/CRITIC"
+        self.environment["retrain_model_name"] = config['retraining'].get('retrain_model_name')
+        self.environment["retrain_model_name_w"] = config['retraining'].get('retrain_model_name_w')
+        self.environment["retrain_model_name_v"] = config['retraining'].get('retrain_model_name_v')
+        # self.environment["retrain_ddpg_tf_actor_model_name"] = f"{config['retraining']['ddpg']['retrain_model_name']}/ACTOR"
+        # self.environment["retrain_ddpg_tf_critic_model_name"] = f"{config['retraining']['ddpg']['retrain_model_name']}/CRITIC"
+        # self.environment["inference_ddpg_tf_actor_model_name"] = f"{config['inference']['ddpg']['retrain_model_name']}/ACTOR"
+        # self.environment["inference_ddpg_tf_critic_model_name"] = f"{config['inference']['ddpg']['retrain_model_name']}/CRITIC"
 
         # Env
         self.environment["env"] = config["settings"]["env"]
