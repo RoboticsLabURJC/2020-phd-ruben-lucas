@@ -497,7 +497,10 @@ def normalize_centers(centers):
 
 class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def __init__(self, **config):
-        
+        random.seed(0)
+        np.random.seed(0)
+        torch.manual_seed(0)
+
         self.NON_DETECTED = -1
         self.dashboard = config.get("dashboard")
         self.estimated_steps = config.get("estimated_steps")
@@ -627,7 +630,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.display_manager = DisplayManager(
             grid_size=[2, 3],
             window_size=[1500, 800],
-            headless=False
+            headless=True
         )
 
         try:
@@ -723,7 +726,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         while vehicle is None:
             vehicle = self.world.spawn_actor(car_bp, location)
 
-        self.acor_list.append(vehicle)
+        self.actor_list.append(vehicle)
 
         return vehicle
 

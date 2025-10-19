@@ -438,7 +438,8 @@ class TrainerFollowLaneSACCarla:
                 target_entropy='auto',
                 gamma=0.90,
                 train_freq=2,
-                verbose=0
+                verbose=0,
+                seed=0
             )
             
         print(self.sac_agent.policy)

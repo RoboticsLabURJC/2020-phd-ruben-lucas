@@ -196,6 +196,22 @@ class TrainerFactory:
             )
 
             return TrainerFollowLaneDDPGCarla(config)
+        # =============================
+        # FollowLane - F1 - TD3 BASELINES - Carla
+        # =============================
+
+        elif (
+                task == TasksType.FOLLOWLANECARLA.value
+                and agent == AgentsType.AUTOCARLA.value
+                and algorithm == AlgorithmsType.TD3.value
+                and simulator == EnvsType.CARLA.value
+                and framework == FrameworksType.BASELINES.value
+        ):
+            from rl_studio.agents.auto_carla.train_followlane_bs_td3_f1_carla_tf import (
+                TrainerFollowLaneTD3Carla,
+            )
+
+            return TrainerFollowLaneTD3Carla(config)
 
         elif (
             task == TasksType.FOLLOWLANECARLA.value
@@ -724,6 +740,18 @@ class InferencerFactory:
             )
 
             return TrainerFollowLaneDDPGCarla(config)
+        elif (
+            task == TasksType.FOLLOWLANECARLA.value
+            and agent == AgentsType.AUTOCARLA.value
+            and algorithm == AlgorithmsType.TD3.value
+            and simulator == EnvsType.CARLA.value
+            and framework == FrameworksType.BASELINES.value
+        ):
+            from rl_studio.agents.auto_carla.train_followlane_bs_td3_f1_carla_tf import (
+                TrainerFollowLaneTD3Carla,
+            )
+
+            return TrainerFollowLaneTD3Carla(config)
 
 
         elif (

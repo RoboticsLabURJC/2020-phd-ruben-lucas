@@ -586,6 +586,7 @@ class TrainerFollowLanePPOCarla:
                 clip_range=self.algoritmhs_params.epsilon,
                 batch_size=1280,
                 verbose=1,
+                seed=0
                 # Uncomment if you want to log to TensorBoard
                 # tensorboard_log=f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
             )

@@ -317,7 +317,7 @@ class TrainerFollowLaneDDPGCarla:
     """
 
     def __init__(self, config):
-        log_path = f"./logs_episode/ppo/{time.strftime('%Y%m%d-%H%M%S')}.log"
+        log_path = f"./logs_episode/ddpg/{time.strftime('%Y%m%d-%H%M%S')}.log"
         file_handler = logging.FileHandler(log_path)
         file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
         logger.addHandler(file_handler)
@@ -415,6 +415,7 @@ class TrainerFollowLaneDDPGCarla:
                 tau=self.params["tau"],
                 gamma=self.params["gamma"],
                 verbose=1,
+                seed=0
                 # tensorboard_log=f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
             )
 
