@@ -737,7 +737,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def doReset(self):
         ep_time = time.time() - self.start
-        logger.info("Step time: %f", ep_time / self.step_count)
+        # logger.info("Step time: %f", ep_time / self.step_count)
         if self.tensorboard is not None:
             self.calculate_and_report_episode_stats()
 
