@@ -95,9 +95,6 @@ def collect_usage():
     gpu_usage = gpu_info.gpu
     return cpu_usage, gpu_usage
 
-def new_lr_schedule(progress_remaining):
-    return 0.00003
-
 class PeriodicSaveCallback(BaseCallback):
     def __init__(self, env, params, save_path, save_freq=10000, verbose=1):
         super(PeriodicSaveCallback, self).__init__(verbose)
@@ -313,7 +310,7 @@ class TrainerFollowLaneTD3Carla:
     """
 
     def __init__(self, config):
-        log_path = f"./logs_episode/ddpg/{time.strftime('%Y%m%d-%H%M%S')}.log"
+        log_path = f"./logs_episode/td3/{time.strftime('%Y%m%d-%H%M%S')}.log"
         file_handler = logging.FileHandler(log_path)
         file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
         logger.addHandler(file_handler)
@@ -401,8 +398,8 @@ class TrainerFollowLaneTD3Carla:
                 "MlpPolicy",
                 self.env,
                 policy_kwargs=dict(net_arch=dict(
-                    pi=[128, 128, 128, 128, 128, 128],
-                    qf=[128, 128, 128, 128, 128, 128]
+                    pi=self.global_params.net_arch,
+                    qf=self.global_params.net_arch
                 )),
                 learning_rate=self.params["learning_rate"],
                 buffer_size=self.params["buffer_size"],
@@ -488,9 +485,6 @@ class TrainerFollowLaneTD3Carla:
 
         if self.environment.environment["mode"] == "inference":
             self.evaluate_td3_agent(self.env, self.td3_agent, 10000)
-
-       # Apply the new learning rate schedule
-        self.td3_agent.learning_rate = new_lr_schedule
 
         if self.environment.environment.get("stage") == "w":
             self.td3_agent.replay_buffer = CustomReplayBuffer(

@@ -55,7 +55,7 @@ inference:
 
 algorithm:
   sac:
-    gamma: 0.9
+    gamma: 0.99
     std_dev: 0.15
     tau: 0.02
     episodes_update: 0 # dooing nothing here

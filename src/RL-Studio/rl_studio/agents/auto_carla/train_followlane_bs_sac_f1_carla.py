@@ -407,7 +407,6 @@ class TrainerFollowLaneSACCarla:
             "gamma": self.algoritmhs_params.gamma,
             "epsilon": self.algoritmhs_params.epsilon,
             "total_timesteps": 5000000,
-            "batch_size": 1024
         }
 
         env = DummyVecEnv([lambda: self.env])
@@ -424,19 +423,19 @@ class TrainerFollowLaneSACCarla:
                 env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[128, 128, 128, 128, 128, 128],  # The architecture for the policy network
-                        qf=[128, 128, 128, 128, 128, 128]
+                        pi=self.global_params.net_arch,  # The architecture for the policy network
+                        qf=self.global_params.net_arch
                     ),
                     # activation_fn=nn.ReLU,
                     # ortho_init=True,
                 ),
-                learning_rate=1e-4,
-                buffer_size=10000,
-                batch_size=128,
+                learning_rate=self.params["learning_rate"],
+                buffer_size=500000,
+                batch_size=256,
                 tau=0.002,
                 ent_coef='auto_0.1',
                 target_entropy='auto',
-                gamma=0.90,
+                gamma=self.params["gamma"],
                 train_freq=2,
                 verbose=0,
                 seed=0
@@ -506,9 +505,18 @@ class TrainerFollowLaneSACCarla:
         if self.environment.environment["mode"] in ["inference"]:
             self.evaluate_ddpg_agent(self.env, self.sac_agent, 10000, 2000)
 
-        callback_list = CallbackList([exploration_rate_callback, eval_callback, periodic_save_callback])
-        # callback_list = CallbackList([eval_callback, periodic_save_callback])
-        #callback_list = CallbackList([periodic_save_callback])
+        callbacks_to_add = [
+            periodic_save_callback,
+            eval_callback
+        ]
+
+        if self.global_params.steps_to_decrease < 100000:
+            print("Added exploration callback!")
+            callbacks_to_add.append(exploration_rate_callback)
+
+        callback_list = CallbackList(
+            callbacks_to_add
+        )
 
         self.sac_agent.learn(total_timesteps=self.params["total_timesteps"],
                               callback=callback_list)

@@ -54,11 +54,11 @@ inference:
 
 algorithm:
   td3:
-    gamma: 0.9
+    gamma: 0.99
     tau: 0.005
     std_dev: 0.3 # Note this std dev is applied to normalized actions (-1, 1) and generates noise between +-2*std_dev
     model_name: td3_Actor_conv2d32x64_Critic_conv2d32x64
-    replay_memory_size: 10_000
+    replay_memory_size: 500000
     memory_fraction: 0.20
     critic_lr: 0.0002
     actor_lr: 0.0001
