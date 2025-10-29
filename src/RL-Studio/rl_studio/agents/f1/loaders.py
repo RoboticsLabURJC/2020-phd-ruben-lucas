@@ -30,6 +30,7 @@ class LoadAlgorithmParams:
             self.model_name = config["algorithm"][algorithm]["model_name"]
             self.buffer_capacity = config["algorithm"][algorithm]["buffer_capacity"]
             self.batch_size = config["algorithm"][algorithm]["batch_size"]
+            self.critic_lr = config["algorithm"][algorithm]["critic_lr"]
 
         if algorithm == "ppo_continuous":
             self.gamma = config["algorithm"]["ppo"]["gamma"]
