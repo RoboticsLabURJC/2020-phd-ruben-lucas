@@ -10,7 +10,7 @@ experiments:
 #      mode: retraining
       algorithm: sac
       normalize: true
-      net_arch: [ 128, 128, 128, 128, 128 ]
+      net_arch: [ 128, 128, 128 ]
       initial_std_w: 0.8
       initial_std_v: 0.8
       steps_to_decrease: 10000000000
@@ -54,7 +54,7 @@ experiments:
       normalize: true
       initial_std_w: 0.8
       initial_std_v: 0.8
-      net_arch: [ 256, 256, 256 ]
+      net_arch: [ 128, 128, 128, 128, 128 ]
       steps_to_decrease: 2000
       appended_states: 10
       reward_params:
@@ -82,4 +82,3 @@ experiments:
         punish_zig_zag_value: 0.5
         punish_deviation: 10
         beta_1: 0
-#

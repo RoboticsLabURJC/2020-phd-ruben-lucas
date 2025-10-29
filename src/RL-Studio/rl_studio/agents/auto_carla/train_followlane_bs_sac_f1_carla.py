@@ -441,7 +441,7 @@ class TrainerFollowLaneSACCarla:
                 seed=0
             )
             
-        print(self.sac_agent.policy)
+        logger.info(self.sac_agent.policy)
 
         agent_logger = configure(agent_log_file, ["stdout", "csv", "tensorboard"])
         # agent_logger = configure(agent_log_file, ["tensorboard"])

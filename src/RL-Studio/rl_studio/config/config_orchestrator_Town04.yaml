@@ -10,7 +10,7 @@ experiments:
 #      mode: retraining
       algorithm: td3
       normalize: true
-      net_arch: [256, 256, 256]
+      net_arch: [128, 128, 128, 128, 128]
       initial_std_w: 0.8
       initial_std_v: 0.8
       steps_to_decrease: 2000
@@ -31,7 +31,7 @@ experiments:
 #      mode: retraining
       algorithm: td3
       normalize: true
-      net_arch: [256, 256, 256]
+      net_arch: [128, 128, 128, 128, 128]
       initial_std_w: 0.8
       initial_std_v: 0.8
       steps_to_decrease: 2000
