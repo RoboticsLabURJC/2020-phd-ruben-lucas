@@ -55,7 +55,7 @@ experiments:
       initial_std_w: 0.8
       initial_std_v: 0.8
       net_arch: [ 128, 128, 128, 128, 128 ]
-      steps_to_decrease: 2000
+      steps_to_decrease: 10000000000
       appended_states: 10
       reward_params:
         punish_braking: 2 # used as d_reward_power
@@ -75,7 +75,7 @@ experiments:
       initial_std_w: 0.8
       initial_std_v: 0.8
       net_arch: [ 128, 128, 128, 128, 128 ]
-      steps_to_decrease: 3000
+      steps_to_decrease: 10000000000
       appended_states: 10
       reward_params:
         punish_braking: 2 # used as d_reward_power
