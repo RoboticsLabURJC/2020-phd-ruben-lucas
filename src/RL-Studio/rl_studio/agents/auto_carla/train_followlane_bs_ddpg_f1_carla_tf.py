@@ -149,7 +149,7 @@ class PeriodicSaveCallback(BaseCallback):
 
 
 class ExplorationRateCallback(BaseCallback):
-    def __init__(self, tensorboard, stage=None, initial_exploration_rate=1.0,
+    def __init__(self, tensorboard, stage=None, initial_exploration_rate_w=1.0, initial_exploration_rate_v=1.0,
                  exploration_min=0.03, decay_rate=0.005, decay_steps=1000, verbose=1):
         super(ExplorationRateCallback, self).__init__(verbose)
         self.min_exploration_rate = exploration_min
@@ -167,8 +167,8 @@ class ExplorationRateCallback(BaseCallback):
             self.w_initial = 0.05
             self.v_initial = 0.5
         elif stage == "r":
-            self.w_initial = 0.3
-            self.v_initial = 0.6
+            self.w_initial = initial_exploration_rate_w
+            self.v_initial = initial_exploration_rate_v
         self.w_exploration_rate = self.w_initial
         self.v_exploration_rate = self.v_initial
         self.n_actions = None  # Will be initialized at training start
@@ -378,6 +378,9 @@ class TrainerFollowLaneDDPGCarla:
 
         self.exploration = self.algoritmhs_params.std_dev if self.global_params.mode != "inference" else 0
         self.n_actions = self.env.action_space.shape[-1]
+        self.exploration_w = self.global_params.initial_std_w if self.global_params.mode != "inference" else 0
+        self.exploration_v = self.global_params.initial_std_v if self.global_params.mode != "inference" else 0
+
         action_noise = NormalActionNoise(mean=np.zeros(self.n_actions), sigma=self.exploration * np.ones(self.n_actions))
 
 
@@ -450,13 +453,16 @@ class TrainerFollowLaneDDPGCarla:
         #     config=self.params,
         #     sync_tensorboard=True,
         # )
-        exploration_rate_callback = ExplorationRateCallback(self.tensorboard,
-                                                            stage=self.environment.environment.get("stage"),
-                                                            initial_exploration_rate=self.exploration,
-                                                            decay_rate= self.global_params.decrease_substraction,
-                                                            decay_steps=self.global_params.steps_to_decrease,
-                                                            exploration_min=self.global_params.decrease_min,
-                                                            verbose=1)
+        exploration_rate_callback = ExplorationRateCallback(
+            self.tensorboard,
+            stage=self.environment.environment.get("stage"),
+            initial_exploration_rate_w=self.exploration_w,
+            initial_exploration_rate_v=self.exploration_v,
+            decay_rate=self.global_params.decrease_substraction,
+            decay_steps=self.global_params.steps_to_decrease,
+            exploration_min=self.global_params.decrease_min,
+            verbose=1
+        )
 
         # Assuming `self.env` is your original environment
         self.eval_env = Monitor(self.env)
