@@ -54,14 +54,14 @@ inference:
 
 algorithm:
   ppo:
-    gamma: 0.9
-    epsilon: 0.25
+    gamma: 0.99
+    epsilon: 0.2
     std_dev: 0.1
     episodes_update: 50 # dooing nothing here
     replay_memory_size: 50_000
     memory_fraction: 0.20
-    critic_lr: 0.0001 # This is the only one applying to both now
-    actor_lr: 0.00005
+    critic_lr: 0.0003 # This is the only one applying to both now
+    actor_lr: 0.000025
     model_name: PPO_Actor_conv2d32x64_Critic_conv2d32x64
 
 agents:
