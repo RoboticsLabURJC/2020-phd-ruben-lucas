@@ -572,8 +572,8 @@ class TrainerFollowLanePPOCarla:
                 self.env,
                 policy_kwargs=dict(
                     net_arch=dict(
-                        pi=[128, 128, 128, 128, 128, 128],  # The architecture for the policy network
-                        vf=[128, 128, 128, 128, 128, 128]  # The architecture for the value network
+                        pi=self.global_params.net_arch,  # The architecture for the policy network
+                        vf=self.global_params.net_arch  # The architecture for the value network
                     ),
                     # activation_fn=nn.ReLU,
                     log_std_init=-1.5,
@@ -582,9 +582,9 @@ class TrainerFollowLanePPOCarla:
                 learning_rate=linear_schedule(self.environment.environment["critic_lr"]),
                 gamma=self.algoritmhs_params.gamma,
                 # gae_lambda=0.9,
-                ent_coef=0.05,
+                ent_coef=0.02,
                 clip_range=self.algoritmhs_params.epsilon,
-                batch_size=1280,
+                batch_size=256,
                 verbose=1,
                 seed=0
                 # Uncomment if you want to log to TensorBoard
@@ -634,7 +634,7 @@ class TrainerFollowLanePPOCarla:
             decay_steps=self.global_params.steps_to_decrease)
         entropy_callback = EntropyCoefficientCallback(
             initial_ent_coef=0.06,  # Starting entropy coefficient
-            min_ent_coef=0.02,  # Minimum entropy coefficient
+            min_ent_coef=0.005,  # Minimum entropy coefficient
             decay_rate=0.001,  # Decay amount per step
             decay_steps=5000,  # Decay every 1000 steps
             verbose=1
