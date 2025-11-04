@@ -42,6 +42,7 @@ from rl_studio.algorithms.ddpg import (
     ModifiedTensorBoard,
 )
 
+from stable_baselines3.td3.policies import TD3Policy
 
 from rl_studio.agents.f1.loaders import (
     LoadAlgorithmParams,
@@ -236,70 +237,83 @@ import numpy as np
 from stable_baselines3 import TD3
 from stable_baselines3.common.utils import polyak_update
 
-class CustomTD3(TD3):
-    def train(self, gradient_steps: int, batch_size: int = 100) -> None:
-        # Switch to train mode (this affects batch norm / dropout)
-        self.policy.set_training_mode(True)
+class CustomTD3Policy(TD3Policy):
+    def __init__(self, *args, actor_lr=1e-3, critic_lr=1e-4, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.actor_lr = actor_lr
+        self.critic_lr = critic_lr
 
-        # Update learning rate according to lr schedule
-        self._update_learning_rate([self.actor.optimizer, self.critic.optimizer])
+    def _setup_model(self):
+        super()._setup_model()
 
-        actor_losses, critic_losses = [], []
-        for _ in range(gradient_steps):
-            self._n_updates += 1
-            # Sample replay buffer
-            replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+        # Recreate optimizers with different LRs
+        self.actor.optimizer = th.optim.Adam(self.actor.parameters(), lr=self.actor_lr)
+        self.critic.optimizer = th.optim.Adam(self.critic.parameters(), lr=self.critic_lr)
 
-            with th.no_grad():
-                # Select action according to policy and add clipped noise
-                noise = replay_data.actions.clone().data.normal_(0, self.target_policy_noise)
-                noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
-                next_actions = (self.actor_target(replay_data.next_observations) + noise).clamp(-1, 1)
-
-                # Compute the next Q-values: min over all critics targets
-                next_q_values = th.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)
-                next_q_values, _ = th.min(next_q_values, dim=1, keepdim=True)
-                target_q_values = replay_data.rewards + (1 - replay_data.dones) * self.gamma * next_q_values
-
-            # Get current Q-values estimates for each critic network
-            current_q_values = self.critic(replay_data.observations, replay_data.actions)
-
-            # Compute critic loss
-            critic_loss = sum(F.mse_loss(current_q, target_q_values) for current_q in current_q_values)
-            assert isinstance(critic_loss, th.Tensor)
-            critic_losses.append(critic_loss.item())
-
-            # Optimize the critics
-            self.critic.optimizer.zero_grad()
-            critic_loss.backward()
-            self.critic.optimizer.step()
-
-            # Delayed policy updates
-            if self._n_updates % self.policy_delay == 0:
-                # Compute actor loss
-                actions = self.actor(replay_data.observations)
-
-                # 🛑 Freeze learning for action[1] by detaching it
-                actions = th.cat([actions[:, :1], actions[:, 1:2].detach(), actions[:, 2:]], dim=1)
-
-                actor_loss = -self.critic.q1_forward(replay_data.observations, actions).mean()
-                actor_losses.append(actor_loss.item())
-
-                # Optimize the actor
-                self.actor.optimizer.zero_grad()
-                actor_loss.backward()
-                self.actor.optimizer.step()
-
-                polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
-                polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
-                # Copy running stats, see GH issue #996
-                polyak_update(self.critic_batch_norm_stats, self.critic_batch_norm_stats_target, 1.0)
-                polyak_update(self.actor_batch_norm_stats, self.actor_batch_norm_stats_target, 1.0)
-
-        self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
-        if len(actor_losses) > 0:
-            self.logger.record("train/actor_loss", np.mean(actor_losses))
-        self.logger.record("train/critic_loss", np.mean(critic_losses))
+# class CustomTD3(TD3):
+#     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
+#         # Switch to train mode (this affects batch norm / dropout)
+#         self.policy.set_training_mode(True)
+#
+#         # Update learning rate according to lr schedule
+#         self._update_learning_rate([self.actor.optimizer, self.critic.optimizer])
+#
+#         actor_losses, critic_losses = [], []
+#         for _ in range(gradient_steps):
+#             self._n_updates += 1
+#             # Sample replay buffer
+#             replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+#
+#             with th.no_grad():
+#                 # Select action according to policy and add clipped noise
+#                 noise = replay_data.actions.clone().data.normal_(0, self.target_policy_noise)
+#                 noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
+#                 next_actions = (self.actor_target(replay_data.next_observations) + noise).clamp(-1, 1)
+#
+#                 # Compute the next Q-values: min over all critics targets
+#                 next_q_values = th.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)
+#                 next_q_values, _ = th.min(next_q_values, dim=1, keepdim=True)
+#                 target_q_values = replay_data.rewards + (1 - replay_data.dones) * self.gamma * next_q_values
+#
+#             # Get current Q-values estimates for each critic network
+#             current_q_values = self.critic(replay_data.observations, replay_data.actions)
+#
+#             # Compute critic loss
+#             critic_loss = sum(F.mse_loss(current_q, target_q_values) for current_q in current_q_values)
+#             assert isinstance(critic_loss, th.Tensor)
+#             critic_losses.append(critic_loss.item())
+#
+#             # Optimize the critics
+#             self.critic.optimizer.zero_grad()
+#             critic_loss.backward()
+#             self.critic.optimizer.step()
+#
+#             # Delayed policy updates
+#             if self._n_updates % self.policy_delay == 0:
+#                 # Compute actor loss
+#                 actions = self.actor(replay_data.observations)
+#
+#                 # 🛑 Freeze learning for action[1] by detaching it
+#                 actions = th.cat([actions[:, :1], actions[:, 1:2].detach(), actions[:, 2:]], dim=1)
+#
+#                 actor_loss = -self.critic.q1_forward(replay_data.observations, actions).mean()
+#                 actor_losses.append(actor_loss.item())
+#
+#                 # Optimize the actor
+#                 self.actor.optimizer.zero_grad()
+#                 actor_loss.backward()
+#                 self.actor.optimizer.step()
+#
+#                 polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
+#                 polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
+#                 # Copy running stats, see GH issue #996
+#                 polyak_update(self.critic_batch_norm_stats, self.critic_batch_norm_stats_target, 1.0)
+#                 polyak_update(self.actor_batch_norm_stats, self.actor_batch_norm_stats_target, 1.0)
+#
+#         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
+#         if len(actor_losses) > 0:
+#             self.logger.record("train/actor_loss", np.mean(actor_losses))
+#         self.logger.record("train/critic_loss", np.mean(critic_losses))
 
 class TrainerFollowLaneTD3Carla:
     """
@@ -378,8 +392,7 @@ class TrainerFollowLaneTD3Carla:
         action_noise = NormalActionNoise(mean=np.zeros(self.n_actions), sigma=np.array([self.exploration_w, self.exploration_v]))
 
         self.params = {
-            "policy": "CustomPolicy",
-            "learning_rate": 0.00035,
+            "learning_rate": self.algoritmhs_params.critic_lr,
             "buffer_size": 100000,
             "batch_size": 256,
             "gamma": self.algoritmhs_params.gamma,
@@ -390,15 +403,15 @@ class TrainerFollowLaneTD3Carla:
         # Init Agents
         if self.environment.environment["mode"] in ["inference", "retraining"]:
             actor_retrained_model = self.environment.environment['retrain_td3_tf_model_name']
-            if self.environment.environment.get("stage") == "v":
-                self.td3_agent = CustomTD3.load(actor_retrained_model)
-            else:
-                self.td3_agent = TD3.load(actor_retrained_model)
+            # if self.environment.environment.get("stage") == "v":
+            #     self.td3_agent = CustomTD3.load(actor_retrained_model)
+            # else:
+            self.td3_agent = TD3.load(actor_retrained_model)
             # Set the environment on the loaded model
             self.td3_agent.set_env(self.env)
         else:
             self.td3_agent = TD3(
-                "MlpPolicy",
+                CustomTD3Policy,
                 self.env,
                 policy_kwargs=dict(net_arch=dict(
                     pi=self.global_params.net_arch,
