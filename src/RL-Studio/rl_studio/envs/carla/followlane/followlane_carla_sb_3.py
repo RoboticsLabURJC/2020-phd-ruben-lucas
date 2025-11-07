@@ -8,7 +8,6 @@ import carla
 import random
 import cv2
 import torch
-from numpy import random
 import psutil
 import numpy as np
 import json
@@ -497,9 +496,10 @@ def normalize_centers(centers):
 
 class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def __init__(self, **config):
-        random.seed(config.get("seed"))
-        np.random.seed(config.get("seed"))
-        torch.manual_seed(config.get("seed"))
+        if config.get("seed") is not None:
+            random.seed(config.get("seed"))
+            np.random.seed(config.get("seed"))
+            torch.manual_seed(config.get("seed"))
 
         self.NON_DETECTED = -1
         self.dashboard = config.get("dashboard")
@@ -669,6 +669,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                                            dtype=np.float32)
         self.observation_space = spaces.Box(low=-1, high=1, shape=(num_states,), dtype=np.float32)
 
+        if config.get("seed") is not None:
+            self.action_space.seed(config.get("seed"))
+            self.observation_space.seed(config.get("seed"))
+
     def calculate_v_goal(self, mean_curvature, center_distance, deviated_points):
         dist_error = abs(center_distance) * 10
         close_error = 0
@@ -756,7 +760,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.update_from_hot_config(hot_config)
 
         if self.stage == "w":
-            self.fixed_random_throttle = random.uniform(0.4, 0.8)
+            self.fixed_random_throttle = np.random.uniform(0.4, 0.8)
 
         self.episode += 1
 
@@ -873,6 +877,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             random.seed(seed)
             np.random.seed(seed)
             torch.manual_seed(seed)
+            if hasattr(self, 'action_space') and self.action_space is not None:
+                self.action_space.seed(seed)
+            if hasattr(self, 'observation_space') and self.observation_space is not None:
+                self.observation_space.seed(seed)
         try:
             return self.doReset()
         except Exception as e:
@@ -1067,7 +1075,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if self.spawn_points is not None and map_name in self.spawn_points:
             points = self.spawn_points[map_name]
             # print(f"found compensated {len(points)}")
-            spawn_point_index = random.randint(0, len(points))
+            spawn_point_index = np.random.randint(0, len(points))
             spawn_point = points[spawn_point_index]
             location = getTransformFromPoints(spawn_point)
 
