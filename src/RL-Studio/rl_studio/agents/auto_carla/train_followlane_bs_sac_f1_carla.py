@@ -363,6 +363,7 @@ class TrainerFollowLaneSACCarla:
         self.environment.environment["random_direction"] = self.global_params.random_direction
         self.environment.environment["random_speeds"] = self.global_params.random_speeds
         self.environment.environment["seed"] = self.global_params.seed
+        self.environment.environment["algorithm_trained"] = "sac"
 
         self.loss = 0
 

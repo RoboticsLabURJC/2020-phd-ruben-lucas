@@ -506,11 +506,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.estimated_steps = config.get("estimated_steps")
         self.normalize =  config.get("normalize")
         self.compensated_inits =  config.get("compensated_inits", True)
-        print(f"compensated_inits = {self.compensated_inits}")
         self.random_speeds =  config.get("random_speeds", True)
-        print(f"random_speeds = {self.random_speeds}")
         self.random_direction =  config.get("random_direction", True)
-        print(f"random_direction = {self.random_direction}")
+
+        self.algorithm_trained =  config.get("algorithm_trained", "unknown")
+
         self.start = time.time()
 
         self.last_lane_id = None
@@ -1712,7 +1712,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 self.throttle_action_std_dev_curves = 0.0  # Not enough data yet
 
         if self.step_count > self.estimated_steps:
-            logger.info("episode finished")
+            logger.info(f"episode finished {self.algorithm_trained}")
             return function_reward, True, False
 
         return function_reward, False, False
