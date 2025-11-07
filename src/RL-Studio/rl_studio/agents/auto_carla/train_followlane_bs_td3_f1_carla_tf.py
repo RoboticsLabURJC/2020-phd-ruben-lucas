@@ -2,8 +2,9 @@ import logging
 from datetime import datetime, timedelta
 import glob
 import time
+import random
 
-import numpy
+import numpy as np
 import pynvml
 import psutil
 from stable_baselines3.common.monitor import Monitor
@@ -441,6 +442,11 @@ class TrainerFollowLaneTD3Carla:
         random.seed(self.global_params.seed)
         np.random.seed(self.global_params.seed)
         tf.compat.v1.random.set_random_seed(self.global_params.seed)
+        th.manual_seed(self.global_params.seed)
+        if th.cuda.is_available():
+            th.cuda.manual_seed_all(self.global_params.seed)
+            th.backends.cudnn.deterministic = True
+            th.backends.cudnn.benchmark = False
 
     def main(self):
 
