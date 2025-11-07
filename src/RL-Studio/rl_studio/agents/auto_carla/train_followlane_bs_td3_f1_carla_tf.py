@@ -364,6 +364,7 @@ class TrainerFollowLaneTD3Carla:
         self.environment.environment["compensated_inits"] = self.global_params.compensated_inits
         self.environment.environment["random_direction"] = self.global_params.random_direction
         self.environment.environment["random_speeds"] = self.global_params.random_speeds
+        self.environment.environment["seed"] = self.global_params.seed
 
         self.env = gym.make(self.env_params.env_name, **self.environment.environment)
         self.all_steps = 0
@@ -423,7 +424,7 @@ class TrainerFollowLaneTD3Carla:
                 tau=self.params["tau"],
                 gamma=self.params["gamma"],
                 verbose=1,
-                seed=0,
+                seed=self.global_params.seed,
             # Recommended new params for TD3
                 policy_delay=2,  # actor update frequency (default)
                 target_policy_noise=0.2,  # noise added to target policy during critic update
@@ -437,9 +438,9 @@ class TrainerFollowLaneTD3Carla:
         agent_logger = configure(agent_log_file, ["stdout", "csv", "tensorboard"])
 
         self.td3_agent.set_logger(agent_logger)
-        random.seed(1)
-        np.random.seed(1)
-        tf.compat.v1.random.set_random_seed(1)
+        random.seed(self.global_params.seed)
+        np.random.seed(self.global_params.seed)
+        tf.compat.v1.random.set_random_seed(self.global_params.seed)
 
     def main(self):
 

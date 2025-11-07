@@ -57,8 +57,9 @@ experiments:
       net_arch: [ 128, 128, 128, 128, 128 ]
       steps_to_decrease: 10000000000
       appended_states: 10
+      seed: 42
       reward_params:
-        gamma: 0.99
+        gamma: 0.9
         punish_braking: 2 # used as d_reward_power
         punish_zig_zag_value: 0.5
         punish_deviation: 10
@@ -75,9 +76,10 @@ experiments:
       normalize: true
       initial_std_w: 0.8
       initial_std_v: 0.8
-      net_arch: [ 128, 128, 128]
+      net_arch: [128, 128, 128, 128, 128]
       steps_to_decrease: 10000000000
       appended_states: 10
+      seed: 42
       reward_params:
         epsilon: 0.3
         gamma: 0.9
