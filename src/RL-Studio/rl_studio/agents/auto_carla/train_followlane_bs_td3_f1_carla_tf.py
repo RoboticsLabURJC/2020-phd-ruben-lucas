@@ -366,6 +366,7 @@ class TrainerFollowLaneTD3Carla:
         self.environment.environment["random_direction"] = self.global_params.random_direction
         self.environment.environment["random_speeds"] = self.global_params.random_speeds
         self.environment.environment["seed"] = self.global_params.seed
+        self.environment.environment["algorithm_trained"] = "td3"
 
         self.env = gym.make(self.env_params.env_name, **self.environment.environment)
         self.all_steps = 0
