@@ -181,6 +181,7 @@ class LoadGlobalParams:
         self.decrease_substraction = config["settings"]["decrease_substraction"]
         self.decrease_min = config["settings"]["decrease_min"]
         self.normalize = config["settings"]["normalize"]
+        self.seed = config["settings"].get("seed", 1)
 
 
 class LoadEnvVariablesDQNGazebo:

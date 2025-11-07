@@ -522,6 +522,7 @@ class TrainerFollowLanePPOCarla:
         self.environment.environment["compensated_inits"] = self.global_params.compensated_inits
         self.environment.environment["random_direction"] = self.global_params.random_direction
         self.environment.environment["random_speeds"] = self.global_params.random_speeds
+        self.environment.environment["seed"] = self.global_params.seed
 
         self.loss = 0
 
@@ -586,7 +587,7 @@ class TrainerFollowLanePPOCarla:
                 clip_range=self.algoritmhs_params.epsilon,
                 batch_size=256,
                 verbose=1,
-                seed=0
+                seed=self.global_params.seed
                 # Uncomment if you want to log to TensorBoard
                 # tensorboard_log=f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
             )
@@ -596,9 +597,9 @@ class TrainerFollowLanePPOCarla:
         agent_logger = configure(agent_log_file, ["stdout", "csv", "tensorboard"])
 
         self.ppo_agent.set_logger(agent_logger)
-        random.seed(1)
-        np.random.seed(1)
-        tf.compat.v1.random.set_random_seed(1)
+        random.seed(self.global_params.seed)
+        np.random.seed(self.global_params.seed)
+        tf.compat.v1.random.set_random_seed(self.global_params.seed)
 
     def main(self):
         log_path = f"./logs_episode/ppo/{time.strftime('%Y%m%d-%H%M%S')}"

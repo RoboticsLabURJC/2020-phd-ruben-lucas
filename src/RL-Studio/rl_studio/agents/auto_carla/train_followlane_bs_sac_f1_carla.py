@@ -359,6 +359,7 @@ class TrainerFollowLaneSACCarla:
         self.environment.environment["compensated_inits"] = self.global_params.compensated_inits
         self.environment.environment["random_direction"] = self.global_params.random_direction
         self.environment.environment["random_speeds"] = self.global_params.random_speeds
+        self.environment.environment["seed"] = self.global_params.seed
 
         self.loss = 0
 
@@ -438,7 +439,7 @@ class TrainerFollowLaneSACCarla:
                 gamma=self.params["gamma"],
                 train_freq=2,
                 verbose=0,
-                seed=0
+                seed=self.global_params.seed
             )
             
         logger.info(self.sac_agent.policy)
@@ -447,9 +448,9 @@ class TrainerFollowLaneSACCarla:
         # agent_logger = configure(agent_log_file, ["tensorboard"])
 
         self.sac_agent.set_logger(agent_logger)
-        random.seed(1)
-        np.random.seed(1)
-        tf.compat.v1.random.set_random_seed(1)
+        random.seed(self.global_params.seed)
+        np.random.seed(self.global_params.seed)
+        tf.compat.v1.random.set_random_seed(self.global_params.seed)
 
     def main(self):
         hyperparams = self.tensorboard.get_hparams(self.algoritmhs_params,
