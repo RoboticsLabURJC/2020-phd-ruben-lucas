@@ -869,13 +869,17 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return np.array(states), state_size
 
     def reset(self, seed=None, options=None):
+        if seed is not None:
+            random.seed(seed)
+            np.random.seed(seed)
+            torch.manual_seed(seed)
         try:
             return self.doReset()
         except Exception as e:
             logger.info(f"Waiting for CARLA to become available to reset... after {e}")
             traceback.print_exc()
             self.reconnect_to_carla()
-            return self.reset()
+            return self.reset(seed=seed, options=options)
 
     def calculate_and_report_episode_stats(self):
         if len(self.episodes_speed) == 0:
