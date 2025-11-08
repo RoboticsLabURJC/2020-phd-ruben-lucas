@@ -59,6 +59,8 @@ experiments:
       appended_states: 10
       seed: 42
       reward_params:
+        epsilon: 0.25
+        critic_lr: 0.0003
         gamma: 0.9
         punish_braking: 2 # used as d_reward_power
         punish_zig_zag_value: 0.5
@@ -81,9 +83,9 @@ experiments:
       appended_states: 10
       seed: 42
       reward_params:
-        epsilon: 0.3
+        epsilon: 0.2
         gamma: 0.9
-        critic_lr: 0.0004
+        critic_lr: 0.0003
         punish_braking: 2 # used as d_reward_power
         punish_zig_zag_value: 0.5
         punish_deviation: 10

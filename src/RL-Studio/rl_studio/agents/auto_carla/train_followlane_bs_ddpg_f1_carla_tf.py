@@ -388,7 +388,7 @@ class TrainerFollowLaneDDPGCarla:
 
         self.params = {
             "policy": "CustomPolicy",
-            "learning_rate": 0.00035,
+            "learning_rate": self.algoritmhs_params.critic_lr,
             "buffer_size": 100000,
             "batch_size": 256,
             "gamma": self.algoritmhs_params.gamma,
@@ -505,7 +505,7 @@ class TrainerFollowLaneDDPGCarla:
             self.evaluate_ddpg_agent(self.env, self.ddpg_agent, 10000)
 
        # Apply the new learning rate schedule
-        self.ddpg_agent.learning_rate = new_lr_schedule
+       #  self.ddpg_agent.learning_rate = new_lr_schedule
 
         if self.environment.environment.get("stage") == "w":
             self.ddpg_agent.replay_buffer = CustomReplayBuffer(

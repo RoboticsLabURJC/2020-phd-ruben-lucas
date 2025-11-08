@@ -60,8 +60,8 @@ algorithm:
     model_name: td3_Actor_conv2d32x64_Critic_conv2d32x64
     replay_memory_size: 500000
     memory_fraction: 0.20
-    critic_lr: 0.00003
-    actor_lr: 0.00002
+    critic_lr: 0.0003
+    actor_lr: 0.0002
     buffer_capacity: 600180
     batch_size: 333
 
