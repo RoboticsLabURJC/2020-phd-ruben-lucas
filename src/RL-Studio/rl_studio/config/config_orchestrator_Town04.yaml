@@ -61,6 +61,7 @@ experiments:
       reward_params:
         gamma: 0.9
         punish_braking: 2 # used as d_reward_power
+        critic_lr: 0.0001
         punish_zig_zag_value: 0.5
         punish_deviation: 10
         beta_1: 0
@@ -83,6 +84,7 @@ experiments:
       appended_states: 10
       reward_params:
         gamma: 0.9
+        critic_lr: 0.0003
         punish_braking: 2 # used as d_reward_power
         punish_zig_zag_value: 0.5
         punish_deviation: 10
