@@ -21,4 +21,12 @@ Examples of title:
 title: Doing some stuff (October week 3)
 title: Doing this and this (April week 1 - week 2)
 
-If no excerpt is provided, copy and paste the one in the last report.
+If no excerpt or title is provided, copy and paste the one in the last report (always leaving the date of this week).
+
+Finally, ask for permission to run the following commands
+
+git add .
+git commit -m "updated this week post"
+git push origin master
+
+And run all of them at once
