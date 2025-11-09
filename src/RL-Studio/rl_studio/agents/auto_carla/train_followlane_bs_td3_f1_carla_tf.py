@@ -226,30 +226,11 @@ class ExplorationRateCallback(BaseCallback):
         return True
 
 from stable_baselines3.common.buffers import ReplayBuffer
-class CustomReplayBuffer(ReplayBuffer):
-    def add(self, obs,next_obs, action, reward , done, infos=None):
-        action = np.array(action, copy=True)  # Ensure no inplace modification issues
-        action[0][0] = 0.7  # Force action[0] to always be 0.8
-        super().add(obs, next_obs, action, reward, done, infos)
-
 import torch as th
 import torch.nn.functional as F
 import numpy as np
 from stable_baselines3 import TD3
 from stable_baselines3.common.utils import polyak_update
-
-class CustomTD3Policy(TD3Policy):
-    def __init__(self, *args, actor_lr=1e-3, critic_lr=1e-4, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.actor_lr = actor_lr
-        self.critic_lr = critic_lr
-
-    def _setup_model(self):
-        super()._setup_model()
-
-        # Recreate optimizers with different LRs
-        self.actor.optimizer = th.optim.Adam(self.actor.parameters(), lr=self.actor_lr)
-        self.critic.optimizer = th.optim.Adam(self.critic.parameters(), lr=self.critic_lr)
 
 # class CustomTD3(TD3):
 #     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
@@ -414,7 +395,7 @@ class TrainerFollowLaneTD3Carla:
             self.td3_agent.set_env(self.env)
         else:
             self.td3_agent = TD3(
-                CustomTD3Policy,
+                "MlpPolicy",
                 self.env,
                 policy_kwargs=dict(net_arch=dict(
                     pi=self.global_params.net_arch,
@@ -510,17 +491,6 @@ class TrainerFollowLaneTD3Carla:
 
         if self.environment.environment["mode"] == "inference":
             self.evaluate_td3_agent(self.env, self.td3_agent, 10000)
-
-        if self.environment.environment.get("stage") == "w":
-            self.td3_agent.replay_buffer = CustomReplayBuffer(
-                self.td3_agent.buffer_size,
-                self.td3_agent.observation_space,
-                self.td3_agent.action_space,
-                self.td3_agent.device,
-                self.td3_agent.n_envs,
-                True,
-                False,
-            )
 
         self.td3_agent.learn(total_timesteps=self.params["total_timesteps"],
                               callback=callback_list)
