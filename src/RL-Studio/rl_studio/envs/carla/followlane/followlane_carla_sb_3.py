@@ -1712,7 +1712,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 self.throttle_action_std_dev_curves = 0.0  # Not enough data yet
 
         if self.step_count > self.estimated_steps:
-            logger.info(f"episode finished {self.algorithm_trained}")
+            logger.info(f"episode finished")
             return function_reward, True, False
 
         return function_reward, False, False
@@ -2357,7 +2357,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # print(f"\n maps in carla 0.9.13: {client.get_available_maps()}\n")
         # traffic_manager = client.get_trafficmanager(self.config["manager_port"])
         world = client.load_world(town)
-        logger.info(f"loading world {town}")
+        logger.info(f"loading world {town}, {self.algorithm_trained}")
         time.sleep(2.0)  # Needed to the simulator to be ready. TODO May be decrease to 1?
         self.load_world_settings(world)
         logger.info(f"Current World Settings: {world.get_settings()}")
@@ -2366,7 +2366,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def load_any_world(self):
         town = random.choice(self.towns)
         self.world = self.client.load_world(town)
-        logger.info(f"loading world {town}")
+        logger.info(f"loading world {town}, {self.algorithm_trained}")
         time.sleep(2.0)  # Needed to the simulator to be ready. TODO May be decrease to 1?
         self.load_world_settings(self.world)
         # print(f"Current World Settings: {self.world.get_settings()}")
