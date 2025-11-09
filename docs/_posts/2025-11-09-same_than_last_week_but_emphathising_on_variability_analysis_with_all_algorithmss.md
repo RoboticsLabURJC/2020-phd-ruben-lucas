@@ -1,6 +1,6 @@
 ---
-title: "Same than last week but emphathising on variability analysis with all algorithmss (November week 2)"
-excerpt: "Once we got the optimal implementation, perform regression experiments"
+title: "Deep dive on variability analysis for all algorithms (November week 2)"
+excerpt: "Deep dive on variability analysis for all algorithms"
 
 sidebar:
   nav: "docs"
