@@ -496,10 +496,10 @@ def normalize_centers(centers):
 
 class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     def __init__(self, **config):
-        if config.get("seed") is not None:
-            random.seed(config.get("seed"))
-            np.random.seed(config.get("seed"))
-            torch.manual_seed(config.get("seed"))
+        logger.info(f"using seed {config.get('seed')}")
+        random.seed(config.get("seed"))
+        np.random.seed(config.get("seed"))
+        torch.manual_seed(config.get("seed"))
 
         self.NON_DETECTED = -1
         self.dashboard = config.get("dashboard")

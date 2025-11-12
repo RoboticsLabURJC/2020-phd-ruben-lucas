@@ -398,7 +398,7 @@ class TrainerFollowLaneDDPGCarla:
 
         # Init Agents
         if self.environment.environment["mode"] in ["inference", "retraining"]:
-            actor_retrained_model = self.environment.environment['retrain_ddpg_tf_model_name']
+            actor_retrained_model = self.environment.environment['retrain_model_name']
             if self.environment.environment.get("stage") == "v":
                 self.ddpg_agent = CustomTD3.load(actor_retrained_model)
             else:
