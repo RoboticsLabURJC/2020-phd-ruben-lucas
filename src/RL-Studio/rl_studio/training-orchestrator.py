@@ -77,7 +77,7 @@ def get_avg_reward_from_file(path):
 def should_stop_early(start_time, reward_file, reward_history, patience_hours=12, batch_size=200):
     import time
 
-    n_batches = 25
+    n_batches = 15
     current_time = time.time()
     avg_reward, timestamp = get_avg_reward_from_file(reward_file)
 
