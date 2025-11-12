@@ -409,11 +409,12 @@ class TrainerFollowLaneTD3Carla:
                 verbose=1,
                 seed=self.global_params.seed,
             # Recommended new params for TD3
-                policy_delay=2,  # actor update frequency (default)
-                target_policy_noise=0.2,  # noise added to target policy during critic update
+                policy_delay=self.algoritmhs_params.policy_delay,  # actor update frequency (default)
+                target_policy_noise=self.algoritmhs_params.policy_noise,  # noise added to target policy during critic update
                 target_noise_clip=0.5,  # noise clip range
             )
 
+        logger.info(f"using policy_delay {self.algoritmhs_params.policy_delay} and policy_noise {self.algoritmhs_params.policy_noise}")
         logger.info(self.td3_agent.actor)
         # Set the action noise on the loaded model
         self.td3_agent.action_noise = action_noise

@@ -581,22 +581,23 @@ class TrainerFollowLanePPOCarla:
                         vf=self.global_params.net_arch  # The architecture for the value network
                     ),
                     # activation_fn=nn.ReLU,
-                    log_std_init=-1.5,
+                    log_std_init=-0.7,
                 ),
                 max_grad_norm=1,
                 learning_rate=linear_schedule(self.environment.environment["critic_lr"]),
                 gamma=self.algoritmhs_params.gamma,
                 # gae_lambda=0.9,
-                ent_coef=0.02,
+                ent_coef=self.algoritmhs_params.ent_coef,
                 clip_range=self.algoritmhs_params.epsilon,
-                batch_size=256,
+                batch_size=1280,
                 verbose=1,
                 seed=self.global_params.seed
                 # Uncomment if you want to log to TensorBoard
                 # tensorboard_log=f"{self.global_params.logs_tensorboard_dir}/{self.algoritmhs_params.model_name}-{time.strftime('%Y%m%d-%H%M%S')}"
             )
 
-        print(self.ppo_agent.policy)
+        logger.info(f"using ent_coef {self.algoritmhs_params.ent_coef}")
+        logger.info(self.ppo_agent.policy)
 
         agent_logger = configure(agent_log_file, ["stdout", "csv", "tensorboard"])
 

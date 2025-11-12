@@ -1712,7 +1712,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 self.throttle_action_std_dev_curves = 0.0  # Not enough data yet
 
         if self.step_count > self.estimated_steps:
-            logger.info(f"episode finished")
+            logger.info(f"episode finished, {self.algorithm_trained}")
             return function_reward, True, False
 
         return function_reward, False, False

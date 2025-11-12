@@ -1,63 +1,18 @@
 experiments:
 
-  - config: config/config_training_followlane_bs_ddpg_f1_carla.yaml
-    carla:
-      carla_client: 4013
-    carla_environments:
-      follow_lane:
-        town: [Town01, Town03, Town04]
-    settings:
-#      mode: retraining
-      algorithm: ddpg
-      normalize: true
-      net_arch: [128, 128, 128, 128, 128]
-      initial_std_w: 0.5
-      initial_std_v: 0.8
-      seed: 888
-      steps_to_decrease: 2000
-      appended_states: 10
-      reward_params:
-        punish_braking: 2 # used as d_reward_power
-        punish_zig_zag_value: 0.5
-        punish_deviation: 10
-        beta_1: 0
-
-  - config: config/config_training_followlane_bs_ddpg_f1_carla.yaml
-    carla:
-      carla_client: 4013
-    carla_environments:
-      follow_lane:
-        town: [Town01, Town03, Town04]
-    settings:
-#      mode: retraining
-      algorithm: ddpg
-      normalize: true
-      net_arch: [128, 128, 128, 128, 128]
-      initial_std_w: 0.5
-      initial_std_v: 0.8
-      steps_to_decrease: 2000
-      appended_states: 10
-      seed: 42
-      reward_params:
-        punish_braking: 2 # used as d_reward_power
-        punish_zig_zag_value: 0.5
-        punish_deviation: 10
-        beta_1: 0
-
-#  - config: config/config_training_followlane_bs_ddpg_f1_carla.yaml
+#  - config: config/config_training_followlane_bs_td3_f1_carla.yaml
 #    carla:
 #      carla_client: 4013
 #    carla_environments:
 #      follow_lane:
 #        town: [Town01, Town03, Town04]
 #    settings:
-#      mode: retraining
-#      algorithm: ddpg
+##      mode: retraining
+#      algorithm: td3
 #      normalize: true
 #      net_arch: [128, 128, 128, 128, 128]
-#      initial_std_w: 0.5
-#      initial_std_v: 0.5
-#      seed: 42
+#      initial_std_w: 0.8
+#      initial_std_v: 0.8
 #      steps_to_decrease: 2000
 #      appended_states: 10
 #      reward_params:
@@ -65,5 +20,80 @@ experiments:
 #        punish_zig_zag_value: 0.5
 #        punish_deviation: 10
 #        beta_1: 0
-#    retraining:
-#      retrain_model_name: /home/alumnos/rlucasz/Escritorio/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ddpg_auto_carla_baselines/20251109-202017/model_10000_steps.zip
+#
+#  - config: config/config_training_followlane_bs_td3_f1_carla.yaml
+#    carla:
+#      carla_client: 4013
+#    carla_environments:
+#      follow_lane:
+#        town: [Town01, Town03, Town04]
+#    settings:
+##      mode: retraining
+#      algorithm: td3
+#      normalize: true
+#      net_arch: [128, 128, 128, 128, 128]
+#      initial_std_w: 0.8
+#      initial_std_v: 0.8
+#      steps_to_decrease: 2000
+#      appended_states: 10
+#      reward_params:
+#        punish_braking: 2 # used as d_reward_power
+#        punish_zig_zag_value: 0.5
+#        punish_deviation: 10
+#        beta_1: 0
+
+  - config: config/config_training_followlane_bs_td3_f1_carla.yaml
+    carla:
+      carla_client: 4013
+    carla_environments:
+      follow_lane:
+        town: [Town01, Town03, Town04]
+    settings:
+#      mode: retraining
+      algorithm: td3
+      normalize: true
+      net_arch: [128, 128, 128, 128, 128]
+      initial_std_w: 0.5
+      initial_std_v: 0.8
+      steps_to_decrease: 3000
+      seed: 888
+      appended_states: 10
+      reward_params:
+        punish_braking: 2 # used as d_reward_power
+        punish_zig_zag_value: 0.5
+        punish_deviation: 10
+        beta_1: 0
+    algorithm:
+      td3:
+        critic_lr: 0.0003
+        gamma: 0.9
+        policy_delay: 2
+        policy_noise: 0.2
+
+  - config: config/config_training_followlane_bs_td3_f1_carla.yaml
+    carla:
+      carla_client: 4013
+    carla_environments:
+      follow_lane:
+        town: [Town01, Town03, Town04]
+    settings:
+#      mode: retraining
+      algorithm: td3
+      normalize: true
+      net_arch: [128, 128, 128, 128, 128]
+      initial_std_w: 0.5
+      initial_std_v: 0.8
+      steps_to_decrease: 3000
+      seed: 42
+      appended_states: 10
+      reward_params:
+        punish_braking: 2 # used as d_reward_power
+        punish_zig_zag_value: 0.5
+        punish_deviation: 10
+        beta_1: 0
+    algorithm:
+      td3:
+        critic_lr: 0.0003
+        gamma: 0.9
+        policy_delay: 1
+        policy_noise: 0.0
