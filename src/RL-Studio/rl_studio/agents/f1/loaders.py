@@ -31,6 +31,8 @@ class LoadAlgorithmParams:
             self.buffer_capacity = config["algorithm"][algorithm]["buffer_capacity"]
             self.batch_size = config["algorithm"][algorithm]["batch_size"]
             self.critic_lr = config["algorithm"][algorithm]["critic_lr"]
+            self.policy_delay = config["algorithm"][algorithm].get("policy_delay", 1)
+            self.policy_noise = config["algorithm"][algorithm].get("policy_noise", 0.0)
 
         if algorithm == "ppo_continuous":
             self.gamma = config["algorithm"]["ppo"]["gamma"]
@@ -40,6 +42,7 @@ class LoadAlgorithmParams:
             self.actor_lr = config["algorithm"]["ppo"]["actor_lr"]
             self.critic_lr = config["algorithm"]["ppo"]["critic_lr"]
             self.epsilon = config["algorithm"]["ppo"]["epsilon"]
+            self.ent_coef = config["algorithm"]["ppo"].get("ent_coef", 0.02)
 
         if algorithm == "a2c":
             self.gamma = config["algorithm"]["a2c"]["gamma"]
