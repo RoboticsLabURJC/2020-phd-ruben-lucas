@@ -74,7 +74,7 @@ def get_avg_reward_from_file(path):
     except Exception:
         return None, None
 
-def should_stop_early(start_time, reward_file, reward_history, patience_hours=12, batch_size=150):
+def should_stop_early(start_time, reward_file, reward_history, patience_hours=12, batch_size=180):
     import time
 
     n_batches = 20
