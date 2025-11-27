@@ -56,7 +56,7 @@ experiments:
       net_arch: [128, 128, 128, 128, 128]
       steps_to_decrease: 10000000000
       appended_states: 10
-      seed: 880
+      seed: 1234
       reward_params:
         punish_braking: 2 # used as d_reward_power
         punish_zig_zag_value: 0.5
