@@ -5,7 +5,7 @@ import time
 import random
 
 import numpy as np
-import pynvml
+# import pynvml
 import psutil
 from stable_baselines3.common.monitor import Monitor
 from rl_studio.envs.carla.utils.logger import logger
@@ -92,12 +92,12 @@ def update_scatter_plot(ax, x, y, z, xlabel, ylabel, zlabel):
     plt.pause(0.001)
 
 
-def collect_usage():
-    cpu_usage = psutil.cpu_percent(interval=None)  # Get CPU usage percentage
-    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-    gpu_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
-    gpu_usage = gpu_info.gpu
-    return cpu_usage, gpu_usage
+# def collect_usage():
+#     cpu_usage = psutil.cpu_percent(interval=None)  # Get CPU usage percentage
+#     handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+#     gpu_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
+#     gpu_usage = gpu_info.gpu
+#     return cpu_usage, gpu_usage
 
 class PeriodicSaveCallback(BaseCallback):
     def __init__(self, env, params, save_path, save_freq=10000, verbose=1):
@@ -313,7 +313,7 @@ class TrainerFollowLaneTD3Carla:
         file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
         logger.addHandler(file_handler)
 
-        pynvml.nvmlInit()
+        # pynvml.nvmlInit()
 
         self.actor_loss = 0
         self.critic_loss = 0
@@ -386,7 +386,7 @@ class TrainerFollowLaneTD3Carla:
 
         # Init Agents
         if self.environment.environment["mode"] in ["inference", "retraining"]:
-            actor_retrained_model = self.environment.environment['retrain_td3_tf_model_name']
+            actor_retrained_model = self.environment.environment['retrain_model_name']
             # if self.environment.environment.get("stage") == "v":
             #     self.td3_agent = CustomTD3.load(actor_retrained_model)
             # else:
