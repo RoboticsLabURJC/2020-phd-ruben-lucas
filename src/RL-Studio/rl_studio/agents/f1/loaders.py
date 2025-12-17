@@ -39,6 +39,7 @@ class LoadAlgorithmParams:
             self.std_dev = config["algorithm"]["ppo"]["std_dev"]
             self.model_name = config["algorithm"]["ppo"]["model_name"]
             self.episodes_update = config["algorithm"]["ppo"]["episodes_update"]
+            self.batch_size = config["algorithm"]["ppo"]["batch_size"]
             self.actor_lr = config["algorithm"]["ppo"]["actor_lr"]
             self.critic_lr = config["algorithm"]["ppo"]["critic_lr"]
             self.epsilon = config["algorithm"]["ppo"]["epsilon"]

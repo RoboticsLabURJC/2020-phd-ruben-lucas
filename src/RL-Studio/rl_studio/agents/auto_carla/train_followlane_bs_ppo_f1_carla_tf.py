@@ -589,7 +589,7 @@ class TrainerFollowLanePPOCarla:
                 # gae_lambda=0.9,
                 ent_coef=self.algoritmhs_params.ent_coef,
                 clip_range=self.algoritmhs_params.epsilon,
-                batch_size=1280,
+                batch_size=self.algoritmhs_params.batch_size,
                 verbose=1,
                 seed=self.global_params.seed
                 # Uncomment if you want to log to TensorBoard

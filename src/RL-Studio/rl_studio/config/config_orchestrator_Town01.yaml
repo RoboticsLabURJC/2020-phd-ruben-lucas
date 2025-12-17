@@ -42,32 +42,33 @@ experiments:
 #        punish_deviation: 10
 #        beta_1: 0
 
-  - config: config/config_training_followlane_bs_ppo_f1_carla.yaml
-    carla:
-      carla_client: 5013
-    carla_environments:
-      follow_lane:
-        town: [Town01, Town03, Town04]
-    settings:
-      algorithm: ppo_continuous
-      normalize: true
-      initial_std_w: 0.8
-      initial_std_v: 0.8
-      net_arch: [128, 128, 128, 128, 128]
-      steps_to_decrease: 10000000000
-      appended_states: 10
-      seed: 1234
-      reward_params:
-        punish_braking: 2 # used as d_reward_power
-        punish_zig_zag_value: 0.5
-        punish_deviation: 10
-        beta_1: 0
-    algorithm:
-      ppo:
-        gamma: 0.9
-        epsilon: 0.3
-        critic_lr: 0.0003
-        ent_coef: 0.05
+#  - config: config/config_training_followlane_bs_td3_f1_carla.yaml
+#    carla:
+#      carla_client: 5013
+#    carla_environments:
+#      follow_lane:
+#        town: [Town01, Town03, Town04]
+#    settings:
+#      mode: retraining
+#      algorithm: td3
+#      normalize: true
+#      net_arch: [128, 128, 128, 128, 128]
+#      initial_std_w: 0.5
+#      initial_std_v: 0.5
+#      seed: 1
+#      steps_to_decrease: 2000
+#      appended_states: 10
+#      reward_params:
+#        punish_braking: 2 # used as d_reward_power
+#        punish_zig_zag_value: 0.5
+#        punish_deviation: 10
+#        beta_1: 0
+#    algorithm:
+#      td3:
+#        gamma: 0.9
+#        critic_lr: 0.0003
+#    retraining:
+#        retrain_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_td3_auto_carla_baselines/20251205-182743/best_model.zip
 
   - config: config/config_training_followlane_bs_ppo_f1_carla.yaml
     carla:
@@ -76,6 +77,7 @@ experiments:
       follow_lane:
         town: [Town01, Town03, Town04]
     settings:
+      mode: retraining
       algorithm: ppo_continuous
       normalize: true
       initial_std_w: 0.8
@@ -83,7 +85,7 @@ experiments:
       net_arch: [ 128, 128, 128, 128, 128 ]
       steps_to_decrease: 10000000000
       appended_states: 10
-      seed: 42
+      seed: 1
       reward_params:
         punish_braking: 2 # used as d_reward_power
         punish_zig_zag_value: 0.5
@@ -91,7 +93,10 @@ experiments:
         beta_1: 0
     algorithm:
       ppo:
-        epsilon: 0.25
-        critic_lr: 0.0003
+        batch_size: 1024
         gamma: 0.9
-        ent_coef: 0.03
+        ent_coef: 0.02
+        critic_lr: 0.0002
+    retraining:
+      ppo:
+        retrain_ppo_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_ppo_continuous_auto_carla_baselines/20251207-230354/model_990000_steps.zip

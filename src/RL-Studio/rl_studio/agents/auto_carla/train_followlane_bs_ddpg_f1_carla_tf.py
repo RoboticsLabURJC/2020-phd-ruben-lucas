@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 import glob
 import time
-import pynvml
+# import pynvml
 import psutil
 from stable_baselines3.common.monitor import Monitor
 from rl_studio.envs.carla.utils.logger import logger
@@ -91,13 +91,12 @@ def update_scatter_plot(ax, x, y, z, xlabel, ylabel, zlabel):
     plt.draw()
     plt.pause(0.001)
 
-
-def collect_usage():
-    cpu_usage = psutil.cpu_percent(interval=None)  # Get CPU usage percentage
-    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-    gpu_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
-    gpu_usage = gpu_info.gpu
-    return cpu_usage, gpu_usage
+# def collect_usage():
+#     cpu_usage = psutil.cpu_percent(interval=None)  # Get CPU usage percentage
+#     handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+#     gpu_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
+#     gpu_usage = gpu_info.gpu
+#     return cpu_usage, gpu_usage
 
 def new_lr_schedule(progress_remaining):
     return 0.00003
