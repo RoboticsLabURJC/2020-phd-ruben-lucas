@@ -1,5 +1,5 @@
 ---
-title: "finishing paper first iteration (December week 1)"
+title: "finishing paper first iteration (December weeks 2nd and 3rd)"
 excerpt: "paper writting"
 
 sidebar:
