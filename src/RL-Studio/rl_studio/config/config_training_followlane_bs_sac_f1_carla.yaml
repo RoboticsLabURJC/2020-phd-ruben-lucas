@@ -162,6 +162,10 @@ carla_environments:
           [ 107.057098, 55.511978, 0.3, 0.090930, -179.793869, -0.060181 ], # To right from right, intersection
           [ -2.114511, 28.115679, 0.3, 0.173569, -85.910088, 0.153735 ], # to right from left line, smooth
         ]
+    front_car: fixed # none, fixed, stopped, driving, incoming, outgoing
+#    front_car_spawn_points: [
+#      [ 382.315643, -263.973114, 0.805201, -0.211087, 76.833618, -0.360352 ]
+#    ]
     waypoints_meters: 5 #distance between waypoints in meters
     waypoints_init: 839 # {6912} 6927 1471 For Town04. 839 For Town01
     waypoints_target: 959 #961
