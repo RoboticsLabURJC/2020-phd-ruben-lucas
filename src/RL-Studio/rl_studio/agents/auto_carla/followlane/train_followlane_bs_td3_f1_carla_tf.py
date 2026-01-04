@@ -378,7 +378,7 @@ class TrainerFollowLaneTD3Carla:
         self.params = {
             "learning_rate": self.algoritmhs_params.critic_lr,
             "buffer_size": 100000,
-            "batch_size": 256,
+            "batch_size": 100,
             "gamma": self.algoritmhs_params.gamma,
             "tau": self.algoritmhs_params.tau,
             "total_timesteps": 5000000

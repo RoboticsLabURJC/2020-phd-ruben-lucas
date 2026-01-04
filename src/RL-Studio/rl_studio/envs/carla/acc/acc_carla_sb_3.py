@@ -15,6 +15,7 @@ import traceback
 from collections import deque
 from statistics import mean
 from rl_studio.envs.carla.utils.navigation.behavior_agent import BehaviorAgent
+from rl_studio.envs.carla.utils.navigation.behavior_agent import BasicAgent
 
 from pyglet.libs.x11.xlib import None_
 from sympy.solvers.ode import infinitesimals
@@ -509,6 +510,9 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.compensated_inits =  config.get("compensated_inits", True)
         self.random_speeds =  config.get("random_speeds", True)
         self.random_direction =  config.get("random_direction", True)
+        self.front_vehicle = None
+        self.front_car_collisions = 0
+        self.town = None
 
         self.algorithm_trained =  config.get("algorithm_trained", "unknown")
 
@@ -550,7 +554,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.failures = 0
         self.tensorboard = config.get("tensorboard")
         self.tensorboard_logs_dir = config.get("tensorboard_logs_dir")
-
+    
         self.actor_list = []
         self.episodes_speed = []
 
@@ -653,7 +657,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # num_states = 0
         # num_states += len(self.x_row) if self.x_row is not None else 0
         # num_states += len(self.projected_x) if self.projected_x is not None else 0
-        num_states += 5
+        num_states += 6
         if self.actions.get("b") is not None:
             self.action_space = spaces.Box(low=np.array([self.actions["v"][0],
                                                          self.actions["w"][0],
@@ -737,10 +741,31 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return vehicle, location
 
     def close(self):
+        logger.info(f"[Episode {self.episode}] CLOSE - Actors before cleanup: {len(self.world.get_actors())}")
+
+        if self.front_vehicle is not None and self.front_vehicle.is_alive:
+            tm = self.client.get_trafficmanager(self.config["manager_port"])
+            self.front_vehicle.set_autopilot(False, tm.get_port())
+            self.world.tick() 
+
+        # The new destroy_all_actors is now the primary and only cleanup mechanism
         self.destroy_all_actors()
-        self.display_manager.destroy()
+        self.front_vehicle = None 
+
+        if self.display_manager is not None:
+            self.display_manager.destroy()
+        
+        # A few ticks to let the server process the batch destruction
+        for _ in range(5):
+            self.world.tick()
+            
+        import gc
+        gc.collect()
+        
+        logger.info(f"[Episode {self.episode}] CLOSE - Actors after cleanup: {len(self.world.get_actors())}")
 
     def doReset(self):
+        logger.info(f"[Episode {self.episode}] PRE-RESET - Actor count: {len(self.world.get_actors())}")
         ep_time = time.time() - self.start
         # logger.info("Step time: %f", ep_time / self.step_count)
         if self.tensorboard is not None:
@@ -748,17 +773,17 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.close()
 
-        if self.episode % 25 == 0:  # Adjust step frequency as needed
+        if self.episode % 100 == 0:  # Adjust step frequency as needed
             gc.collect()
-            # self.reload_worlds()
             self.load_any_world()
+            # self.reload_worlds()
             # print(psutil.Process(os.getpid()).memory_info().rss / 1e6, "MB")
             # print(self.world.get_actors().filter("*"))
             # print("Thread count:", threading.active_count())
 
-        if self.episode % 10 == 0:
-            hot_config = config_loader.load_hot_config()
-            self.update_from_hot_config(hot_config)
+        #if self.episode % 10 == 0:
+        #    hot_config = config_loader.load_hot_config()
+        #    self.update_from_hot_config(hot_config)
 
         if self.stage == "w":
             self.fixed_random_throttle = np.random.uniform(0.4, 0.8)
@@ -787,8 +812,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.invasion_hist = []
         self.actor_list = []
         self.previous_time = 0
+        self.front_car_collisions = 0
 
         init_pose = self.set_init_pose()
+
+        # set other car
+
         if self.sync_mode:
             self.world.tick()
         else:
@@ -802,9 +831,83 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.car.zig_zag_punish = 0
         self.car.v_goal = 0
 
-        if self.random_direction and not self.compensated_inits:
+        facing_way = self.is_facing_lane_direction()
+
+        if self.random_direction:
             self.vary_car_orientation()  # Call the orientation variation method
-        # self.set_init_speed() # It is done in step 5 now!
+        elif not facing_way:
+            # place it watching the lane direction (OJO! Esto hace que esté desbalanceado)
+            self.rotate_car()
+
+        if self.front_car not in (None, "none"):
+            # 1. Setup
+            carla_map = self.world.get_map()
+            ego_transform = self.car.get_transform()
+            current_waypoint = carla_map.get_waypoint(ego_transform.location)
+
+            # 2. Determine "In Front" location
+            distance = 15.0
+
+            # We use .next if we follow lane, .previous if we are against it
+            # to ensure the waypoint is physically ahead of the windshield
+            next_waypoints = current_waypoint.next(distance)
+
+            if next_waypoints:
+                target_waypoint = next_waypoints[0]
+
+                # 3. FIX ORIENTATION: Match the ego car's rotation, not the lane's
+                front_car_transform = target_waypoint.transform
+                front_car_transform.location.z += 0.5  # Slightly higher to be safe
+
+                # --- Begin Actor Reuse Strategy ---
+                if self.front_vehicle is not None and self.front_vehicle.is_alive:
+                    # Vehicle exists, teleport it to the new starting position
+                    self.front_vehicle.set_transform(front_car_transform)
+                    # self.front_vehicle.set_velocity(carla.Vector3D(0,0,0)) # Reset velocity
+                else:
+                    # Vehicle doesn't exist (first run), spawn it
+                    front_car_bp = self.world.get_blueprint_library().filter("vehicle.*")[1]
+                    self.front_vehicle = self.world.try_spawn_actor(front_car_bp, front_car_transform)
+
+                if self.front_vehicle and self.front_vehicle not in self.actor_list:
+                    self.actor_list.append(self.front_vehicle)
+                # --- End Actor Reuse Strategy ---
+
+                    # 1. Get the Traffic Manager instance (ensure port 8000 is used by default)
+                    tm = self.client.get_trafficmanager(self.config["manager_port"])
+
+                    # 2. Set the vehicle to Autopilot
+                    self.front_vehicle.set_autopilot(True, tm.get_port())
+
+                    # 3. Use version-safe commands
+                    tm.ignore_lights_percentage(self.front_vehicle, 100.0)
+                    tm.ignore_signs_percentage(self.front_vehicle, 100.0)
+
+                    # 4. Stay in lane logic
+                    # In older versions, if you don't allow lane changes,
+                    # the car stays perfectly centered by default.
+                    tm.random_left_lanechange_percentage(self.front_vehicle, 0.0)
+                    tm.random_right_lanechange_percentage(self.front_vehicle, 0.0)
+                    tm.auto_lane_change(self.front_vehicle, False)
+
+                    # 5. Control the speed: Set a random speed for each episode
+                    # Convert km/h to m/s for consistency (approx. 10km/h to 70km/h)
+                    random_speed_ms = random.uniform(2.7, 19.4)
+                    
+                    # Get the current speed limit for the vehicle's location
+                    current_speed_limit = self.front_vehicle.get_speed_limit() # in m/s
+
+                    if current_speed_limit > 0:
+                        # Calculate the desired speed as a percentage difference from the speed limit
+                        speed_difference = ((random_speed_ms / current_speed_limit) - 1.0) * 100
+                        tm.vehicle_percentage_speed_difference(self.front_vehicle, speed_difference)
+                    else:
+                        # Fallback for areas with no speed limit (e.g., set to a fixed low speed)
+                        tm.vehicle_percentage_speed_difference(self.front_vehicle, -50) # 50% slower than default
+
+                else:
+                    logger.info("Failed to spawn - location might be occupied")
+                    return self.doReset()
 
         self.start_location_tag = get_car_location_tag(init_pose)
 
@@ -818,7 +921,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         raw_image = self.front_camera_1_5.front_camera
         segmentated_image = self.front_camera_1_5_segmentated.front_camera
         segmentated_raw_data = self.front_camera_1_5_segmentated.raw_data
-
 
         (ll_segment,
          misalignment,
@@ -1089,7 +1191,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             while vehicle is None:
                 vehicle = self.world.spawn_actor(car_bp, location)
         else:
-            # print(f"random")
             location = random.choice(self.world.get_map().get_spawn_points())
             vehicle = self.world.try_spawn_actor(car_bp, location)
             while vehicle is None:
@@ -1097,6 +1198,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.actor_list.append(vehicle)
         vehicle.reward = 0
         vehicle.error = 0
+
+        # spectator = self.world.get_spectator()
+        # spectator_location = carla.Transform(
+        #     location.location + carla.Location(z=100),
+        #     carla.Rotation(-90, location.rotation.yaw, 0))
+        # spectator.set_transform(spectator_location)
+
         return vehicle, location
 
     # Method to add the obstacle detector sensor to the vehicle
@@ -1165,8 +1273,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         # Spawn the Lidar sensor and attach it to the vehicle
         self.lidar_sensor = world.spawn_actor(lidar_bp, lidar_transform, attach_to=vehicle)
-        self.actor_list.append(self.lidar_sensor)
-
         self.lidar_sensor.listen(lambda data: self.process_lidar_data(data))
 
     def lidar_point_to_world(self, lidar_detection):
@@ -1258,26 +1364,35 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.colsensor = self.world.spawn_actor(
             colsensor, transform, attach_to=vehicle
         )
-        self.actor_list.append(self.colsensor)
         self.colsensor.listen(lambda event: self.collision_data(event))
+
 
     def collision_data(self, event):
         self.collision_hist.append(event)
+        if self.front_vehicle is not None and hasattr(event.other_actor, 'id') and event.other_actor.id == self.front_vehicle.id:
+            self.front_car_collisions += 1
+            logger.info("Collision with front car detected!")
 
     def destroy_all_actors(self):
-        if len(self.actor_list) <= 0:
+        # Use a single, atomic batch command to destroy all actors.
+        # This is the recommended and most robust way to clean up the world.
+        if not self.actor_list:
             return
-        for actor in self.actor_list[::-1]:
-            # for actor in self.actor_list:
-            if hasattr(actor, 'is_listening') and actor.is_listening:
-                actor.stop()
-            actor.destroy()
-        # print(f"\nin self.destroy_all_actors(), actor : {actor}\n")
 
+        for _ in range(3):  # 3 ticks is the 'magic' number for TM stability
+            self.world.tick()
+
+        # Check for is_alive to prevent trying to destroy actors that the server already lost track of
+        self.colsensor.destroy()
+        self.lidar_sensor.destroy()
+
+        destroy_commands = [carla.command.DestroyActor(x) for x in self.actor_list if x is not None and hasattr(x, 'is_alive') and x.is_alive]
+        if destroy_commands:
+            self.client.apply_batch(destroy_commands)
         self.actor_list.clear()
-        # .client.apply_batch(
-        #    [carla.command.DestroyActor(x) for x in self.actor_list[::-1]]
-        # )
+
+        for _ in range(3):  # 3 ticks is the 'magic' number for TM stability
+            self.world.tick()
 
     def show_debug_points(self, centers):
         if not self.debug_waypoints:
@@ -1502,6 +1617,14 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # time.sleep(0.1)
         self.step_count += 1
 
+        # --- Heartbeat Mechanism ---
+        if self.step_count % 100 == 0:
+            try:
+                with open("/tmp/rl_studio_heartbeat.txt", "w") as f:
+                    f.write(str(time.time()))
+            except Exception as e:
+                logger.warning(f"Could not write heartbeat file: {e}")
+
         # test code to verify the initial position
         # for _ in range(100):
         #     time.sleep(0.2)
@@ -1524,6 +1647,21 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         return states, reward, done, done, params
 
+    def step_front_car(self):
+        if not self.front_vehicle or not self.front_car_agent:
+            return
+
+        # If the agent reaches the 100m goal, give it a new one further away
+        if self.front_car_agent.done():
+            # Get a point 50m further down the road
+            cur_wp = self.world.get_map().get_waypoint(self.front_vehicle.get_location())
+            # Continue in the direction the car is currently facing
+            next_wp = cur_wp.next(50.0)[0]
+            self.front_car_agent.set_destination(next_wp.transform.location)
+
+        control = self.front_car_agent.run_step()
+        self.front_vehicle.apply_control(control)
+
     def control(self, action):
         if float(action[0]) < 0:
             brake = -float(action[0])
@@ -1532,27 +1670,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             brake = 0
             throttle = float(action[0])
 
-        if self.stage in ("r", "v"):
-            self.car.apply_control(carla.VehicleControl(throttle=throttle, brake=brake,
-                                                        steer=float(action[1])))
-        else:
-            action[0] = self.fixed_random_throttle
-            self.car.apply_control(carla.VehicleControl(
-                throttle=float(action[0]),
-                steer=float(action[1])))
-
-            if self.step_count == 10 or self.step_count == 20:
-                transform = self.car.get_transform()
-                forward_vector = transform.get_forward_vector()
-
-                # Scale the forward vector by the desired speed
-                target_velocity = carla.Vector3D(
-                    x=forward_vector.x * self.speed,
-                    y=forward_vector.y * self.speed,
-                    z=forward_vector.z * self.speed  # Typically 0 unless you want vertical motion
-                )
-                self.car.set_target_velocity(target_velocity)
-
+        self.car.apply_control(carla.VehicleControl(throttle=throttle, brake=brake,
+                                                    steer=float(action[1])))
         params = {}
 
         v = self.car.get_velocity()
@@ -2123,10 +2242,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
             self.car, init_pose = self.setup_car_fix_pose(init_waypoint)
 
-        # set other car
-        if self.front_car not in (None, "none"):
-            front_vehicle = self.setup_car_random_pose(self.front_car_spawn_points, 1)
-            self.agent = BehaviorAgent(front_vehicle, behavior="normal")
 
         ## --- Sensor collision
         self.setup_col_sensor(self.car)
@@ -2148,6 +2263,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.car,
             {},
             display_pos=[1, 0],
+            actor_list=self.actor_list
         )
 
         self.front_camera_1_5 = SensorManager(
@@ -2161,6 +2277,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.car,
             {},
             display_pos=[0, 0],
+            actor_list=self.actor_list
         )
 
         self.front_camera_1_5_segmentated = SensorManager(
@@ -2174,6 +2291,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.car,
             {},
             display_pos=[0, 1],
+            actor_list=self.actor_list
         )
 
         self.ego_camera = SensorManager(
@@ -2184,6 +2302,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             self.car,
             {},
             display_pos=[1, 1],
+            actor_list=self.actor_list
         )
 
         # self.front_camera_1_5_red_mask = SensorManager(
@@ -2280,6 +2399,21 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             return True
         return False
 
+    def rotate_car(self):
+        transform = self.car.get_transform()
+        rotation = transform.rotation
+
+        yaw_offset = 180.0
+
+        # Create a new rotation with the modified yaw
+        new_rotation = carla.Rotation(pitch=rotation.pitch, yaw=rotation.yaw + yaw_offset, roll=rotation.roll)
+
+        # Create a new transform with the modified rotation
+        new_transform = carla.Transform(transform.location, new_rotation)
+
+        # Apply the new transform to the vehicle
+        self.car.set_transform(new_transform)
+
     def vary_car_orientation(self):
         """
         Slightly varies the orientation (yaw) of the vehicle.
@@ -2322,6 +2456,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         lane_f = normalize(lane_forward)
 
         dot = car_f.x * lane_f.x + car_f.y * lane_f.y + car_f.z * lane_f.z
+        dot = max(-1.0, min(1.0, dot))
 
         angle = math.degrees(math.acos(dot))
 
@@ -2367,12 +2502,15 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def load_any_world(self):
         town = random.choice(self.towns)
+        if self.town == town:
+            return
         self.world = self.client.load_world(town)
         logger.info(f"loading world {town}, {self.algorithm_trained}")
         time.sleep(2.0)  # Needed to the simulator to be ready. TODO May be decrease to 1?
         self.load_world_settings(self.world)
         # print(f"Current World Settings: {self.world.get_settings()}")
         self.map = self.world.get_map()
+        self.town = town
 
     def centers_switched(self, distances):
         """
@@ -2401,14 +2539,15 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def load_world_settings(self, world):
         settings = world.get_settings()
+        traffic_manager = self.client.get_trafficmanager(self.config["manager_port"])
         self.forced_freq = self.config.get("async_forced_delta_seconds")
         if self.sync_mode:
             settings.max_substep_delta_time = 0.02
             settings.fixed_delta_seconds = self.config.get("fixed_delta_seconds")
             settings.synchronous_mode = True
-            # traffic_manager.set_synchronous_mode(True)
-        # else:
-        # traffic_manager.set_synchronous_mode(False)
+            traffic_manager.set_synchronous_mode(True)
+        else:
+            traffic_manager.set_synchronous_mode(False)
         world.apply_settings(settings)
 
     def update_from_hot_config(self, config):
@@ -2432,7 +2571,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         tensorboard.update_stats(
             steps_episode=self.step_count,
             cum_rewards=self.cumulated_reward,
-            crashed=self.deviated,
+            failures=self.deviated,
+            front_car_collisions=self.front_car_collisions,
             d_reward=self.episode_d_reward,
             v_reward=self.episode_v_eff_reward,
             avg_speed=self.avg_speed,

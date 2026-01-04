@@ -2,6 +2,7 @@ from rl_studio.agents.tasks_type import TasksType
 from rl_studio.agents.frameworks_type import FrameworksType
 from rl_studio.algorithms.algorithms_type import AlgorithmsType
 from rl_studio.envs.gazebo.f1.exceptions import NoValidEnvironmentType
+from rl_studio.agents.tasks_type import TasksType
 
 
 class Carla:
@@ -13,6 +14,15 @@ class Carla:
         framework = environment["framework"]
         weather = environment["weather"]
         traffic_pedestrians = environment["traffic_pedestrians"]
+
+        if (framework == "baselines"
+            and task == TasksType.ACC.value):
+        # if framework == FrameworksType.BASELINES:
+            from rl_studio.envs.carla.acc.acc_carla_sb_3 import (
+                FollowLaneStaticWeatherNoTraffic,
+            )
+
+            return FollowLaneStaticWeatherNoTraffic(**environment)
 
         if (framework == "baselines"
             and app_states >= 3):
