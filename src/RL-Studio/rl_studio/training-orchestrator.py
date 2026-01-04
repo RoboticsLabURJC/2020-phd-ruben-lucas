@@ -41,30 +41,96 @@ def patch_config(exp):
 
     return temp_config_path
 
+def find_latest_checkpoint(models_dir):
+    """Finds the latest model checkpoint file in a directory."""
+    import glob
+    import os
+    
+    # Look for .zip files, which are the saved models from stable-baselines3
+    checkpoints = glob.glob(os.path.join(models_dir, '**', '*.zip'), recursive=True)
+    if not checkpoints:
+        return None
+    
+    # Return the file with the most recent modification time
+    latest_checkpoint = max(checkpoints, key=os.path.getmtime)
+    return latest_checkpoint
+
 def launch_training(config_path):
-    print(f"[INFO] Launching training with config: {config_path}")
+    print(f"[SUPERVISOR] Launching training process with config: {config_path}")
+    # Popen is non-blocking, we will use wait() to monitor it
     process = subprocess.Popen(["python3", SCRIPT_PATH, "-f", config_path])
     return process
 
 def orchestrate(experiments):
     for exp in experiments:
-        print("=" * 60)
-        print(f"{datetime.now()} Starting experiment: {exp['settings']['algorithm'].upper()}")
-        print("="*60)
+        print("=" * 80)
+        print(f"[{datetime.now()}] SUPERVISOR: Starting experiment run for algorithm: {exp['settings']['algorithm'].upper()}")
+        print("=" * 80)
 
-        patched_config_path = patch_config(exp)
-        process = launch_training(patched_config_path)
+        recovery_needed = False
+        while True:  # This is the supervisor loop
+            if not recovery_needed:
+                # Initial cleanup of heartbeat file before starting
+                if os.path.exists("/tmp/rl_studio_heartbeat.txt"):
+                    os.remove("/tmp/rl_studio_heartbeat.txt")
 
-        reward_file = f"/tmp/rlstudio_reward_monitor_{process.pid}.json"
-        reward_history = []
-        start_time = time.time()
+            patched_config_path = patch_config(exp)
+            process = launch_training(patched_config_path)
+            
+            # --- Robust Heartbeat Monitoring Loop ---
+            crashed = False
+            while process.poll() is None:
+                time.sleep(30) # Check every 30 seconds
+                heartbeat_path = "/tmp/rl_studio_heartbeat.txt"
+                if os.path.exists(heartbeat_path):
+                    last_heartbeat = os.path.getmtime(heartbeat_path)
+                    if (time.time() - last_heartbeat) > 60: # 60-second timeout
+                        print(f"[{datetime.now()}] SUPERVISOR: 🛑 Heartbeat is stale. Worker process has frozen.")
+                        process.kill() # Terminate the frozen worker
+                        crashed = True
+                        break
+                else:
+                    # If the file doesn't exist yet, just wait for it to be created
+                    pass
 
-        while process.poll() is None:
-            if should_stop_early(start_time, reward_file, reward_history):
-                process.kill()
-                print(f"✅ Training {process.pid} stopped early.")
-                break
-            time.sleep(10)
+            # --- Post-mortem Analysis ---
+            return_code = process.returncode
+            heartbeat_exists = os.path.exists("/tmp/rl_studio_heartbeat.txt")
+
+            # A successful exit is a 0 return code AND the heartbeat file being cleaned up.
+            if return_code == 0 and not heartbeat_exists:
+                print(f"[{datetime.now()}] SUPERVISOR: ✅ Training process completed successfully.")
+                break # Exit the supervisor loop for this experiment
+            else:
+                # Any other condition is a crash (non-zero code, or unexpected exit where cleanup didn't run)
+                crashed = True
+            
+            if crashed:
+                print(f"[{datetime.now()}] SUPERVISOR: 🛑 Training process crashed or was terminated. Initiating recovery.")
+                recovery_needed = True
+                
+                # Give the external CARLA server supervisor time to restart the server
+                print("[SUPERVISOR] Waiting 20 seconds for CARLA server to restart...")
+                time.sleep(20)
+
+                # Determine the models directory from the config
+                models_dir = exp.get("settings", {}).get("models_dir", "./checkpoints")
+                latest_model = find_latest_checkpoint(models_dir)
+
+                if latest_model:
+                    print(f"[SUPERVISOR] Found latest model for recovery: {latest_model}")
+                    exp['settings']['mode'] = 'retraining'
+                    if 'retraining' not in exp: exp['retraining'] = {}
+                    if exp['settings']['algorithm'] not in exp['retraining']: exp['retraining'][exp['settings']['algorithm']] = {}
+                    exp['retraining'][exp['settings']['algorithm']]['retrain_sac_tf_model_name'] = latest_model
+                else:
+                    print("[SUPERVISOR] Could not find a model checkpoint to resume from. Restarting from scratch.")
+                    exp['settings']['mode'] = 'training'
+                
+                print("[SUPERVISOR] Relaunching training process...")
+                # The 'while True' loop will now restart the training
+
+
 
 def get_avg_reward_from_file(path):
     try:

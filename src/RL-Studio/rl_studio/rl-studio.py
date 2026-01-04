@@ -19,12 +19,22 @@ def main():
     config_loader.set_config_path(args.file.name)
     config_file = config_loader.load_config()
 
-    if config_file["settings"]["mode"] == "inference":
-        inferencer = InferencerFactory(config_file)
-        inferencer.main()
-    else:
-        trainer = TrainerFactory(config_file)
-        trainer.main()
+    try:
+        if config_file["settings"]["mode"] == "inference":
+            inferencer = InferencerFactory(config_file)
+            inferencer.main()
+        else:
+            trainer = TrainerFactory(config_file)
+            trainer.main()
+    finally:
+        # --- Heartbeat Cleanup ---
+        # On a graceful exit (either success or normal error), remove the heartbeat file.
+        # If the process is killed abruptly, this code will not run, and the stale
+        # heartbeat file will signal a crash to the supervisor.
+        import os
+        heartbeat_file = "/tmp/rl_studio_heartbeat.txt"
+        if os.path.exists(heartbeat_file):
+            os.remove(heartbeat_file)
 
 
 if __name__ == "__main__":

@@ -63,7 +63,7 @@ class TrainerFactory:
             and algorithm == AlgorithmsType.QLEARN.value
             and simulator == EnvsType.CARLA.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_qlearn_carla import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_qlearn_carla import (
                 TrainerFollowLaneQlearnAutoCarla,
             )
 
@@ -143,7 +143,7 @@ class TrainerFactory:
             and simulator == EnvsType.CARLA.value
             and framework == FrameworksType.TF
         ):
-            from rl_studio.agents.auto_carla.train_followlane_ppo_carla import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_ppo_carla import (
                 TrainerFollowLanePPOCarla,
             )
 
@@ -156,7 +156,7 @@ class TrainerFactory:
             and simulator == EnvsType.CARLA.value
             and framework == FrameworksType.TF.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_sac_f1_carla import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_sac_f1_carla import (
                 TrainerFollowLaneSACF1CARLATF,
             )
 
@@ -174,7 +174,7 @@ class TrainerFactory:
                 and simulator == EnvsType.CARLA.value
                 and framework == FrameworksType.TF.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_sac_f1_carla_tf import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_sac_f1_carla_tf import (
                 TrainerFollowLaneSACCarla,
             )
 
@@ -191,7 +191,7 @@ class TrainerFactory:
                 and simulator == EnvsType.CARLA.value
                 and framework == FrameworksType.BASELINES.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_ddpg_f1_carla_tf import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_ddpg_f1_carla_tf import (
                 TrainerFollowLaneDDPGCarla,
             )
 
@@ -207,7 +207,7 @@ class TrainerFactory:
                 and simulator == EnvsType.CARLA.value
                 and framework == FrameworksType.BASELINES.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_td3_f1_carla_tf import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_td3_f1_carla_tf import (
                 TrainerFollowLaneTD3Carla,
             )
 
@@ -220,7 +220,7 @@ class TrainerFactory:
             and simulator == EnvsType.CARLA.value
             and framework == FrameworksType.BASELINES.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_a2c_f1_carla_tf import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_a2c_f1_carla_tf import (
                 TrainerFollowLaneA2CCarla,
             )
 
@@ -233,7 +233,7 @@ class TrainerFactory:
                 and simulator == EnvsType.CARLA.value
                 and framework == FrameworksType.BASELINES_2.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_ddpg_2_networks_f1_carla_tf import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_ddpg_2_networks_f1_carla_tf import (
                 TrainerFollowLaneDDPGCarla,
             )
 
@@ -247,7 +247,7 @@ class TrainerFactory:
                 and simulator == EnvsType.CARLA.value
                 and framework == FrameworksType.BASELINES_2_SIMPLE.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_sac_2_networks_f1_carla import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_sac_2_networks_f1_carla import (
                 TrainerFollowLaneSACCarla,
             )
 
@@ -260,7 +260,7 @@ class TrainerFactory:
                 and simulator == EnvsType.CARLA.value
                 and framework == FrameworksType.BASELINES.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_ppo_f1_carla_tf import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_ppo_f1_carla_tf import (
                 TrainerFollowLanePPOCarla,
             )
 
@@ -272,7 +272,7 @@ class TrainerFactory:
                 and simulator == EnvsType.CARLA.value
                 and framework == FrameworksType.PARALLEL_BASELINES.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_parallel_ppo_f1_carla_tf import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_parallel_ppo_f1_carla_tf import (
                 TrainerFollowLanePPOCarla,
             )
 
@@ -284,7 +284,7 @@ class TrainerFactory:
                 and simulator == EnvsType.CARLA.value
                 and framework == FrameworksType.TF.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_ppo_carla import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_ppo_carla import (
                 TrainerFollowLanePPOCarla,
             )
 
@@ -296,7 +296,7 @@ class TrainerFactory:
             and algorithm == AlgorithmsType.MANUAL.value
             and simulator == EnvsType.CARLA.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_manual_carla import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_manual_carla import (
                 TrainerFollowLaneManualCarla,
             )
 
@@ -307,7 +307,7 @@ class TrainerFactory:
             and algorithm == AlgorithmsType.AUTO.value
             and simulator == EnvsType.CARLA.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_auto_carla import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_auto_carla import (
                 TrainerFollowLaneAutoCarla,
             )
 
@@ -321,7 +321,7 @@ class TrainerFactory:
             and algorithm == AlgorithmsType.DDPG.value
             and simulator == EnvsType.CARLA.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_ddpg_carla import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_ddpg_carla import (
                 TrainerFollowLaneDDPGCarla,
             )
 
@@ -397,12 +397,23 @@ class TrainerFactory:
             and simulator == EnvsType.CARLA.value
             and framework == FrameworksType.BASELINES.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_sac_f1_carla import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_sac_f1_carla import (
                 TrainerFollowLaneSACCarla,
             )
 
             return TrainerFollowLaneSACCarla(config)
+        elif (
+            task == TasksType.ACC.value
+            and agent == AgentsType.AUTOCARLA.value
+            and algorithm == AlgorithmsType.SAC.value
+            and simulator == EnvsType.CARLA.value
+            and framework == FrameworksType.BASELINES.value
+        ):
+            from rl_studio.agents.auto_carla.acc.train_acc_bs_sac_f1_carla import (
+                TrainerFollowLaneSACCarla,
+            )
 
+            return TrainerFollowLaneSACCarla(config)
         # =============================
         # Robot Mesh - Qlearn - Gazebo
         # =============================
@@ -723,7 +734,7 @@ class InferencerFactory:
             and simulator == EnvsType.CARLA.value
             and framework == FrameworksType.TF.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_ddpg_carla import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_ddpg_carla import (
                 TrainerFollowLaneDDPGCarla,
             )
 
@@ -735,7 +746,7 @@ class InferencerFactory:
             and simulator == EnvsType.CARLA.value
             and framework == FrameworksType.BASELINES.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_ddpg_f1_carla_tf import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_ddpg_f1_carla_tf import (
                 TrainerFollowLaneDDPGCarla,
             )
 
@@ -747,7 +758,7 @@ class InferencerFactory:
             and simulator == EnvsType.CARLA.value
             and framework == FrameworksType.BASELINES.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_td3_f1_carla_tf import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_td3_f1_carla_tf import (
                 TrainerFollowLaneTD3Carla,
             )
 
@@ -761,7 +772,7 @@ class InferencerFactory:
             and simulator == EnvsType.CARLA.value
             and framework == FrameworksType.BASELINES.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_a2c_f1_carla_tf import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_a2c_f1_carla_tf import (
                 TrainerFollowLaneA2CCarla,
             )
 
@@ -775,7 +786,7 @@ class InferencerFactory:
                 and simulator == EnvsType.CARLA.value
                 and framework == FrameworksType.BASELINES_2.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_ddpg_2_networks_f1_carla_tf import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_ddpg_2_networks_f1_carla_tf import (
                 TrainerFollowLaneDDPGCarla,
             )
 
@@ -789,7 +800,7 @@ class InferencerFactory:
                 and simulator == EnvsType.CARLA.value
                 and framework == FrameworksType.BASELINES_2_SIMPLE.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_sac_2_networks_f1_carla import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_sac_2_networks_f1_carla import (
                 TrainerFollowLaneSACCarla,
             )
 
@@ -802,7 +813,7 @@ class InferencerFactory:
             and simulator == EnvsType.CARLA.value
             and FrameworksType == FrameworksType.TF.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_ppo_carla import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_ppo_carla import (
                 TrainerFollowLanePPOCarla,
             )
 
@@ -815,7 +826,7 @@ class InferencerFactory:
             and simulator == EnvsType.CARLA.value
             and framework == FrameworksType.PARALLEL_BASELINES.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_parallel_ppo_f1_carla_tf import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_parallel_ppo_f1_carla_tf import (
                 TrainerFollowLanePPOCarla,
             )
 
@@ -827,7 +838,7 @@ class InferencerFactory:
                 and simulator == EnvsType.CARLA.value
                 and framework == FrameworksType.BASELINES.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_ppo_f1_carla_tf import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_ppo_f1_carla_tf import (
                 TrainerFollowLanePPOCarla,
             )
 
@@ -840,12 +851,23 @@ class InferencerFactory:
             and simulator == EnvsType.CARLA.value
             and framework == FrameworksType.BASELINES.value
         ):
-            from rl_studio.agents.auto_carla.train_followlane_bs_sac_f1_carla import (
+            from rl_studio.agents.auto_carla.followlane.train_followlane_bs_sac_f1_carla import (
                 TrainerFollowLaneSACCarla,
             )
 
             return TrainerFollowLaneSACCarla(config)
+        elif (
+            task == TasksType.ACC.value
+            and agent == AgentsType.AUTOCARLA.value
+            and algorithm == AlgorithmsType.SAC.value
+            and simulator == EnvsType.CARLA.value
+            and framework == FrameworksType.BASELINES.value
+        ):
+            from rl_studio.agents.auto_carla.acc.train_acc_bs_sac_f1_carla import (
+                TrainerFollowLaneSACCarla,
+            )
 
+            return TrainerFollowLaneSACCarla(config)
         # =============================
         # CartPole
         # =============================
