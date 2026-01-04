@@ -1,0 +1,168 @@
+Thank you for choosing to submit your paper to us. These instructions will ensure we have everything required so your paper can move through peer review, production and publication smoothly. Please take the time to read and follow them as closely as possible, as doing so will ensure your paper matches the journal's requirements.
+
+We offer a range of editing, manuscript preparation and post publication services to assist you in preparing your manuscript for submission, increase your chance of acceptance, or broaden the readership of your article. General guidance on every stage of the publication process is available at our  Author Services website.
+
+Contents
+About the Journal
+Open Access
+Peer Review and Ethics
+Preparing Your Paper
+Article Types
+Style Guidelines
+Formatting and Templates
+References
+Taylor & Francis Editing Services
+Checklist: What to Include
+Using Third-Party Material
+Disclosure Statement
+Clinical Trials Registry
+Complying with Ethics of Experimentation
+Consent
+Health and Safety
+Submitting Your Paper
+Data Sharing Policy
+Publication Charges
+Copyright Options
+My Authored Works
+About the Journal
+Journal of Intelligent Transportation Systems is an international, peer-reviewed journal publishing high-quality, original research. Please see the journal's Aims & Scope for information about its focus and peer-review policy.
+
+Please note that this journal only publishes manuscripts in English.
+
+Journal of Intelligent Transportation Systems accepts the following types of article:
+
+Research Article
+Data Note
+Method
+Open Access
+You have the option to publish open access in this journal via our Open Select publishing program. Publishing open access means that your article will be free to access online immediately on publication, increasing the visibility, readership and impact of your research. Articles published Open Select with Taylor & Francis typically receive 35% more citations* and over 5 times as many downloads** compared to those that are not published Open Select.
+
+Your research funder or your institution may require you to publish your article open access. Visit our Author Services website to find out more about open access policies and how you can comply with these.
+
+You will be asked to pay an article publishing charge (APC) to make your article open access and this cost can often be covered by your institution or funder. Use our APC finder to view the APC for this journal. Please note that only the corresponding author is eligible to request funding from their institution, and it is not possible to change the corresponding author to achieve eligibility after submission. For further information, please see details here.
+
+Please visit our Author Services website if you would like more information about our Open Select Program.
+
+*Citations received up to 7th August 2024 for articles published in 2019-2023. Data obtained on 7th August 2024, from Digital Science's Dimensions platform, available at https://app.dimensions.ai
+
+**Usage in 2021-2023 for articles published in 2019-2023.
+
+Peer Review and Ethics
+Taylor & Francis is committed to peer-review integrity and upholding the highest standards of review. Once your paper has been assessed for suitability by the editor, it will then be single anonymous peer reviewed by one independent, anonymous expert. If you have shared an earlier version of your Author’s Original Manuscript on a preprint server, please be aware that anonymity cannot be guaranteed. Further information on our preprints policy and citation requirements can be found on our Preprints Author Services page. Find out more about what to expect during peer review and read our guidance on publishing ethics.
+
+Preparing Your Paper
+All authors submitting to medicine, biomedicine, health sciences, allied and public health journals should conform to the Uniform Requirements for Manuscripts Submitted to Biomedical Journals, prepared by the International Committee of Medical Journal Editors (ICMJE).
+
+Article Types
+Research Article
+Should be written with the following elements in the following order: title page; abstract; keywords; main text introduction, materials and methods, Data description, discussion; acknowledgements; declaration of interest statement; author contributions statement and ethics; data availability statement; references; appendices (as appropriate); table(s) with caption(s) (on individual pages); figures; figure captions (as a list)
+Should be no more than 7000 words, inclusive of:
+Abstract
+Tables
+References
+Figure or table captions
+Should contain an unstructured abstract of 250 words.
+Should contain between 3 and 5 keywords. Read making your article more discoverable, including information on choosing a title and search engine optimization.
+Data Note
+Data Notes are a short, peer-reviewed article type that concisely describes research data (dataset) stored in a repository, prior to submission. Data Notes do not include any interpretation or conclusion of the data (see preparing your paper). Data Notes should only describe the data. The dataset of Data Notes can be either original (not previously published) or be issued from a published research article as long as the datasets have not already been published.
+
+
+
+Should be written with the following elements in the following order: title page; abstract; keywords; main text introduction, materials and methods, Data description, discussion; acknowledgements; declaration of interest statement; author contributions statement and ethics; data availability statement; references; appendices (as appropriate); table(s) with caption(s) (on individual pages); figures; figure captions (as a list)
+Should be no more than 3000 words.
+Should contain a structured abstract of 250 words.
+The abstract structure should be as follows: Introduction, Methods, Results, Discussion.
+Should contain between 3 and 6 keywords. Read making your article more discoverable, including information on choosing a title and search engine optimization.
+Further to the data sharing policy for the journal, Data Note submissions must include a  data availability statement and describe data available via a  repository.
+Method
+Methods articles are a medium-length, peer-reviewed article type that describes an advancement or development of current methods and research procedures. These should include adequate and appropriate validation to be considered. Any datasets associated with the paper must publish all experimental controls and make full datasets available where possible. If there are concerns about identifying factors in datasets, these should be discussed with the Editor-in-Chief prior to submission.
+
+
+
+Should be written with the following elements in the following order: title page; abstract; keywords; main text introduction, materials and methods, results, discussion; acknowledgements; declaration of interest statement; author contributions statement; references; appendices (as appropriate); table(s) with caption(s) (on individual pages); figures; figure captions (as a list).
+Should be between 2500 and 4000 words.
+Should contain a structured abstract of 200 words.
+The abstract structure should be as follows: Introduction, Methods, Results, Discussion.
+Should contain between 3 and 6 keywords. Read making your article more discoverable, including information on choosing a title and search engine optimization.
+Author Contributions Statement: Please provide an author contributions statement at the end of your article, before the references, that outlines which author(s) were involved in the conception and design, or analysis and interpretation of the data; the drafting of the paper, revising it critically for intellectual content; and the final approval of the version to be published; and that all authors agree to be accountable for all aspects of the work.
+Please note, that authors submitting protocol and methodology articles have the option to share their methods on  protocols.io. Please note, this is not required for submission but is encouraged.
+Style Guidelines
+Please refer to these quick style guidelines when preparing your paper, rather than any published articles or a sample copy.
+
+Please use American spelling style consistently throughout your manuscript.
+
+Please use double quotation marks, except where “a quotation is ‘within’ a quotation”.
+
+Please note that long quotations should be indented without quotation marks.
+
+Formatting and Templates
+Papers may be submitted in Word or LaTeX formats. Please do not submit your paper as a PDF. Figures should be saved separately from the text. To assist you in preparing your paper, we provide formatting template(s).
+
+Word templates are available for this journal. Please save the template to your hard drive, ready for use.
+
+A LaTeX template is available for this journal. Please save the LaTeX template to your hard drive and open it, ready for use, by clicking on the icon in Windows Explorer.
+
+If you are not able to use the template via the links (or if you have any other template queries) please contact us here.
+
+References
+Please use this T&F standard APA reference style when preparing your paper. An EndNote output style is also available to assist you.
+
+Taylor & Francis Editing Services
+To help you improve your manuscript and prepare it for submission, Taylor & Francis provides a range of editing services. Choose from options such as English Language Editing, which will ensure that your article is free of spelling and grammar errors, Translation, and Artwork Preparation. Taylor & Francis Editing Services can also help you create research promotion materials, including infographics, video abstracts, lay summaries and graphical abstracts, to support your article’s impact. For more information, including pricing, visit this website.
+
+Checklist: What to Include
+Author details. Please ensure everyone meeting the International Committee of Medical Journal Editors (ICMJE) requirements for authorship is included as an author of your paper. Please ensure all listed authors meet the Taylor & Francis authorship criteria. All authors of a manuscript should include their full name and affiliation on the cover page of the manuscript. Where available, please also include ORCiDs and social media handles (Facebook, Twitter or LinkedIn). One author will need to be identified as the corresponding author, with their email address normally displayed in the article PDF (depending on the journal) and the online article. Authors’ affiliations are the affiliations where the research was conducted. If any of the named co-authors moves affiliation during the peer-review process, the new affiliation can be given as a footnote. Please note that no changes to affiliation can be made after your paper is accepted. Read more on authorship.
+Graphical abstract (optional). This is an image to give readers a clear idea of the content of your article. It should be a maximum width of 525 pixels. If your image is narrower than 525 pixels, please place it on a white background 525 pixels wide to ensure the dimensions are maintained. Save the graphical abstract as a .jpg, .png, or .tiff. Please do not embed it in the manuscript file but save it as a separate file, labelled GraphicalAbstract1. Taylor & Francis Editing Services provides a graphical abstract creation service for a fee.
+You can opt to include a video abstract with your article. Find out how these can help your work reach a wider audience, and what to think about when filming. Taylor & Francis Editing Services provides a video abstract creation service for a fee.
+Funding details. Please supply all details required by your funding and grant-awarding bodies as follows:
+For single agency grants
+This work was supported by the [Funding Agency] under Grant [number xxxx].
+For multiple agency grants
+This work was supported by the [Funding Agency #1] under Grant [number xxxx]; [Funding Agency #2] under Grant [number xxxx]; and [Funding Agency #3] under Grant [number xxxx].
+Disclosure statement. This is to acknowledge any financial or non-financial interest that has arisen from the direct applications of your research. If there are no relevant competing interests to declare please state this within the article, for example: The authors report there are no competing interests to declare. Further guidance on what is a conflict of interest and how to disclose it.
+Data availability statement. If there is a data set associated with the paper, please provide information about where the data supporting the results or analyses presented in the paper can be found. Where applicable, this should include the hyperlink, DOI or other persistent identifier associated with the data set(s). Templates are also available to support authors.
+Data deposition. If you choose to share or make the data underlying the study open, please deposit your data in a recognized data repository prior to or at the time of submission. You will be asked to provide the DOI, pre-reserved DOI, or other persistent identifier for the data set.
+Supplemental online material. Supplemental material can be a video, fileset, audio file or anything which supports (and is pertinent to) your paper. Articles with extenders, such as infographics or video summaries, are up to 108% more likely to be downloaded (based on data in May 2024 from Plain Language Summary of Publication and Clinical Trial Protocol articles published in Future Oncology in 2023). We publish supplemental material online via Figshare. Find out more about supplemental material and how to submit it with your article. Taylor & Francis Editing Services can help you create research promotion materials, including infographics, video abstracts, lay summaries and graphical abstracts, to support your article’s impact. For more information, including pricing, visit this website.
+Figures. Figures should be high quality (1200 dpi for line art, 600 dpi for grayscale and 300 dpi for colour, at the correct size). Figures should be supplied in one of our preferred file formats: PS, JPEG, TIFF, or Microsoft Word (DOC or DOCX) files are acceptable for figures that have been drawn in Word. For information relating to other file types, please consult our Submission of electronic artwork document.
+Tables. Tables should present new information rather than duplicating what is in the text. Readers should be able to interpret the table without reference to the text. Please supply editable files.
+Equations. If you are submitting your manuscript as a Word document, please ensure that equations are editable. More information about mathematical symbols and equations.
+Units. Please use SI units (non-italicized).
+Using Third-Party Material
+You must obtain the necessary permission to reuse third-party material in your article. The use of short extracts of text and some other types of material is usually permitted, on a limited basis, for the purposes of criticism and review without securing formal permission. If you wish to include any material in your paper for which you do not hold copyright, and which is not covered by this informal agreement, you will need to obtain written permission from the copyright owner prior to submission. More information on requesting permission to reproduce work(s) under copyright.
+
+Disclosure Statement
+Please include a disclosure statement, using the subheading “Disclosure of interest.” If you have no interests to declare, please state this (suggested wording: The authors report there are no competing interests to declare). For all NIH/Welcome-funded papers, the grant number(s) must be included in the declaration of interest statement. Read more on declaring conflicts of interest.
+
+Clinical Trials Registry
+In order to be published in a Taylor & Francis journal, all clinical trials must have been registered in a public repository, ideally at the beginning of the research process (prior to participant recruitment). Trial registration numbers should be included in the abstract, with full details in the methods section. Clinical trials should be registered prospectively – i.e. before participant recruitment. However, for clinical trials that have not been registered prospectively, Taylor & Francis journals requires retrospective registration to ensure the transparent and complete dissemination of all clinical trial results which ultimately impact human health. Authors of retrospectively registered trials must be prepared to provide further information to the journal editorial office if requested. The clinical trial registry should be publicly accessible (at no charge), open to all prospective registrants, and managed by a not-for-profit organization. For a list of registries that meet these requirements, please visit the WHO International Clinical Trials Registry Platform (ICTRP). The registration of all clinical trials facilitates the sharing of information among clinicians, researchers, and patients, enhances public confidence in research, and is in accordance with the ICMJE guidelines.
+
+Complying with Ethics of Experimentation
+Please ensure that all research reported in submitted papers has been conducted in an ethical and responsible manner, and is in full compliance with all relevant codes of experimentation and legislation. All original research papers involving humans, animals, plants, biological material, protected or non-public datasets, collections or sites, must include a written statement in the Methods section, confirming ethical approval has been obtained from the appropriate local ethics committee or Institutional Review Board and that where relevant, informed consent has been obtained. For animal studies, approval must have been obtained from the local or institutional animal use and care committee. All research studies on humans (individuals, samples, or data) must have been performed in accordance with the principles stated in the Declaration of Helsinki. In settings where ethics approval for non-interventional studies (e.g. surveys) is not required, authors must include a statement to explain this. In settings where there are no ethics committees in place to provide ethical approval, authors are advised to contact the Editor to discuss further. Detailed guidance on ethics considerations and mandatory declarations can be found in our Editorial Policies section on Research Ethics.
+
+Consent
+All authors are required to follow the ICMJE requirements and Taylor & Francis Editorial Policies on privacy and informed consent from patients and study participants. Authors must include a statement to confirm that any patient, service user, or participant (or that person’s parent or legal guardian) in any type of qualitative or quantitative research, has given informed consent to participate in the research. For submissions where patients or participants can be potentially identified (e.g. a clinical case report detailing their medical history, identifiable images or media content, etc), authors must include a statement to confirm that they have obtained written informed consent to publish the details from the affected individual (or their parents/guardians if the participant in not an adult or unable to give informed consent; or next of kin if the participant is deceased). The process of obtaining consent to publish should include sharing the article with the individual (or whoever is consenting on their behalf), so that they are fully aware of the content of the article before it is published. Authors should familiarize themselves with our policy on participant/patient privacy and informed consent. They may also use the Consent to Publish Form, which can be downloaded from the same Author Services page.
+
+Health and Safety
+Please confirm that all mandatory laboratory health and safety procedures have been complied within the course of conducting any experimental work reported in your paper. Please ensure your paper contains all appropriate warnings on any hazards that may be involved in carrying out the experiments or procedures you have described, or that may be involved in instructions, materials, or formulae.
+
+Please include all relevant safety precautions; and cite any accepted standard or code of practice. Authors working in animal science may find it useful to consult the International Association of Veterinary Editors’ Consensus Author Guidelines on Animal Ethics and Welfare and Guidelines for the Treatment of Animals in Behavioural Research and Teaching. When a product has not yet been approved by an appropriate regulatory body for the use described in your paper, please specify this, or that the product is still investigational.
+
+Submitting Your Paper
+This journal uses Taylor & Francis' Submission Portal to manage the submission process. The Submission Portal allows you to see your submissions across Taylor & Francis' journal portfolio in one place. To submit your manuscript please click here.
+
+If you are submitting in LaTeX, please convert the files to PDF beforehand. The PDF should be uploaded as the “Manuscript - with author details”/“Manuscript - anonymous” file. You will also need to upload your LaTeX source files, which should be uploaded as a single zip file alongside your submission and marked as “LaTeX Source Files”.
+
+Please note that Journal of Intelligent Transportation Systems uses Crossref™ to screen papers for unoriginal material. By submitting your paper to Journal of Intelligent Transportation Systems you are agreeing to originality checks during the peer-review and production processes.
+
+On acceptance, we recommend that you keep a copy of your Accepted Manuscript. Find out more about sharing your work.
+
+Data Sharing Policy
+This journal applies the Taylor & Francis Basic Data Sharing Policy. Authors are encouraged to share or make open the data supporting the results or analyses presented in their paper where this does not violate the protection of human subjects or other valid privacy or security concerns.
+
+Authors are encouraged to deposit the dataset(s) in a recognized data repository that can mint a persistent digital identifier, preferably a digital object identifier (DOI) and recognizes a long-term preservation plan. If you are uncertain about where to deposit your data, please see this information regarding repositories.
+
+Authors are further encouraged to cite any data sets referenced in the article and provide a Data Availability Statement.
+
+At the point of submission, you will be asked if there is a data set associated with the paper. If you reply yes, you will be asked to provide the DOI, pre-registered DOI, hyperlink, or other persistent identifier associated with the data set(s). If you have selected to provide a pre-registered DOI, please be prepared to share the reviewer URL associated with your data deposit, upon request by reviewers.
+
+Where one or multiple data sets are associated with a manuscript, these are not formally peer-reviewed as a part of the journal submission process. It is the author’s responsibility to ensure the soundness of data. Any errors in the data rest solely with the producers of the data set(s).

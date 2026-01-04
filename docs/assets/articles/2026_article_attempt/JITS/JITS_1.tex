@@ -1,0 +1,475 @@
+\documentclass[]{interact}
+
+\usepackage{epstopdf}% To incorporate .eps illustrations using PDFLaTeX, etc.
+
+\usepackage[longnamesfirst,sort]{natbib}% Citation support using natbib.sty
+\bibpunct[, ]{(}{)}{;}{a}{,}{,}% Citation support using natbib.sty
+
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{siunitx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{ragged2e}
+\graphicspath{ {figures/} }
+
+\begin{document}
+
+\articletype{Research Article}
+
+\title{Lane Following in Autonomous Driving: A Comparative Study of Deep Reinforcement Learning Algorithms in CARLA}
+
+\author{
+\name{Rubén Lucas Zaragoza\textsuperscript{a}\thanks{CONTACT Rubén Lucas Zaragoza. Email: ruben.lucas.zaragoza@gmail.com} and José María Cañas Plaza\textsuperscript{b}}
+\affil{\textsuperscript{a}URJC (of Aff.), Madrid, Spain; \textsuperscript{b}URJC (of Aff.), Madrid, Spain}
+}
+
+\maketitle
+
+\begin{abstract} 
+Autonomous vehicles (AVs) are rapidly advancing toward redefining urban mobility, demanding robust and scalable decision-making systems focused on safety and efficiency. This paper centers on the decision-making layer of autonomous driving (AD) systems. As vehicles transition from basic automation to complex behavioral autonomy, we explore and benchmark Deep Reinforcement Learning algorithms within a lane-following context, specifically Proximal Policy Optimization (PPO), Deep Deterministic Policy Gradient (DDPG), Twin Delayed DDPG (TD3), and Soft Actor-Critic (SAC). Leveraging RL-Studio and BehaviorMetrics over CARLA simulator, we evaluate the agents training behavior and generalization, aiming to uncover not only their performance but also their stability. This paper highlights the importance of rigorous benchmarking, including training variability through seed fixing and repeated trials. The findings, supported by an ablation study explaining the factors that lead to superior agent performance, establish an empirical foundation for future algorithm selection in this continuous control domain. They confirm the superior sample efficiency and performance stability of TD3 and SAC, offering principled guidance for choosing between dominant on-policy and off-policy DRL paradigms.
+\end{abstract}
+
+\begin{keywords}
+Autonomous Driving,
+Deep Reinforcement Learning,
+Lane Following,
+Benchmarking
+\end{keywords}
+
+\section{Introduction} 
+
+Autonomous Driving is advancing at an unprecedented pace, with increasingly complex tasks being tackled. From high-speed convoy coordination and energy-efficient routing to predictive modeling of human behavior and cooperative multi-agent communication, these developments are pushing the boundaries of artificial intelligence and control systems, making the design of robust decision-making modules more critical than ever.
+
+Over the past decade, numerous companies have heavily invested in autonomous vehicle technologies, including Tesla, Waymo, Cruise, NVIDIA, Mobileye (Intel), Baidu, Uber, and traditional automakers like Ford, GM, and Toyota. These efforts range from sensor innovation and simulation tools to full-stack self-driving platforms. Currently, most real-world deployments remain at SAE Levels 2–3 of autonomy, where human supervision is still required. Level 4 autonomy (full self-driving under constrained conditions) has seen limited deployment in cities like Phoenix and San Francisco, but widespread adoption remains constrained by challenges in perception, planning, safety guarantees, and legal frameworks.
+
+Establishing truly autonomous vehicles is expected to profoundly reshape transportation. Instead of individual vehicle ownership, we may see fleets of shared autonomous taxis offering safer, more efficient, and more accessible mobility. This shift has the potential to reduce traffic congestion, improve road safety, lower emissions, and expand mobility to people with disabilities or the elderly. However, for this transformation to fully take hold, it is essential to solve key technological hurdles, including decision-making under uncertainty.
+
+In the SOTA, a recurring pattern emerges in the design of lane-following strategies for autonomous driving systems. These are typically structured around three main stages:
+
+\begin{itemize}
+ \item \textbf{Feature Extraction:} This stage is responsible for capturing relevant information from the vehicle’s environment, often using a combination of visual and other sensor data.
+ \item \textbf{Path Planning:} Based on extracted features, this phase involves computing a safe and efficient trajectory for the vehicle.
+ \item \textbf{Decision Making:} Finally, the system determines the most appropriate control actions (steering, throttling, braking) to follow the planned path and adapt to dynamic conditions.
+\end{itemize}
+
+In this work, we focus solely on the decision-making stage of autonomous driving. We use ground-truth perception data from the CARLA simulator to emulate a front-facing, vision-based perception system. By assuming the vehicle's goal is to remain in a single lane, we intentionally skip explicit path planning. This approach allows us to isolate and clearly analyze decision-making behavior under realistic visual constraints, providing better insight into different control strategies.
+
+To enable safe, reproducible testing and accelerate development cycles, the validation of modern autonomous vehicle algorithms increasingly relies on high-fidelity simulation. Among platforms like AirSim, TORCH, GAZEBO and LGSVL, this study employs CARLA \cite{dosovitskiy2017carla}. We selected it specifically because its realistic vehicle dynamics, support for stochastic environmental agents, and diverse weather modeling, coupled with full access to simulation ground truth, offer the most robust framework for developing and evaluating complex DRL-based decision-making policies.
+
+While classical methods such as Model Predictive Control and imitation learning remain relevant for vehicle control, Deep Reinforcement Learning has emerged as a dominant paradigm for training adaptive decision-making policies in autonomous driving.
+DRL extends standard Reinforcement Learning by using deep neural networks to approximate complex policies and value functions, enabling its application in high-dimensional, nonlinear driving tasks. Compared to classical controllers (e.g., PID, Pure Pursuit), DRL adapts autonomously without explicit modeling assumptions; compared to Imitation Learning, DRL can exceed expert performance and handle rare, safety-critical scenarios; and compared to Model Predictive Control, DRL operates without dependence on accurate vehicle models. These advantages make DRL uniquely well-suited for continuous, context-dependent decision-making, such as the lane-following task addressed in this work.
+
+However, the rapid adoption of DRL has outpaced its systematic evaluation. The literature is replete with applications of DRL algorithms, yet the rationale for selecting one over another is often ad-hoc or weakly justified. Furthermore, the impact of critical training methodologies and the diversity of training scenarios on final policy performance and generalization is seldom rigorously benchmarked, creating a critical knowledge gap for researchers and practitioners.
+
+This work addresses this gap by conducting a rigorous benchmark-based analysis of prominent model-free DRL algorithms (PPO, SAC, DDPG and TD3) due to their prevalence in end-to-end learning pipelines that map sensory inputs directly to control actions. 
+
+To ensure a controlled and reproducible comparison, we deliberately excluded dynamic obstacles, this experimental setup isolates the agent's core decision-making and continuous control capabilities from the confounding variables of complex perception and multi-agent interaction. 
+Using a standardized evaluation framework leveraging RL-Studio and BehaviorMetrics \cite{paniego2024behaviormetrics}, we systematically quantify each algorithm's performance, stability, and sample efficiency, providing empirical evidence to guide future algorithm selection in autonomous systems research. 
+
+Crucially, the analysis is supported by an ablation study which systematically investigates the main factors contributing to superior agent performance. 
+
+In summary, this paper addresses the critical need for systematic, evidence-based evaluation of DRL algorithms in autonomous driving. By isolating the decision-making task in a high-fidelity simulation environment, we conduct a rigorous comparative analysis of four prominent model-free DRL algorithms: PPO, SAC, DDPG, and TD3. Our standardized benchmarking, supported by a novel ablation study on training variety, provides concrete empirical guidance. Specifically, this work is structured to answer the following research questions: 
+\begin{itemize}
+    \item [RQ1] Which prominent DRL algorithm provides the best trade-off between performance, stability, and sample efficiency for continuous, vision-based lane tracking?
+    \item [RQ2] How do different sources of training scenario variety contribute to policy generalization and robustness?
+    \item [RQ3] What are the optimal hyperparameter configurations for these agents within this safety-critical continuous control setup? 
+\end{itemize}
+The results offer a principled framework for selecting and implementing DRL methods, helping to bridge the gap between theoretical algorithm design and practical, safe deployment in autonomous systems.
+
+\section{Related Work}
+As autonomous driving evolves, Reinforcement Learning (RL) has been applied to a wide variety of driving tasks, as comprehensively reviewed in recent surveys by Zhao et al.~\cite{zhao2024survey} and Wu et al.~\cite{wu2024survey} on Deep Reinforcement Learning (DRL) applications and behavior planning, respectively. These surveys highlight the rapid adoption of RL-based methods across autonomous driving decision-making problems, while also identifying persistent challenges related to training stability, generalization, and evaluation consistency.
+A significant portion of the literature focuses on foundational driving tasks such as lane following, which provides a controlled yet meaningful setting for studying continuous control. Prior work has explored different DRL algorithms in this context, including improved stability for DDPG-based controllers~\cite{hua2022exploration}, comparisons between value-based and policy-gradient methods~\cite{sabbir2025comparative}, and entropy-regularized approaches for high-speed lane tracking~\cite{liu2024highspeed}. While these studies demonstrate the feasibility of DRL for lane-following control, they typically evaluate a limited number of algorithms, rely on narrow scenario distributions, or lack rigorous control of training stochasticity, making it difficult to draw principled conclusions about algorithm selection and robustness.
+Beyond lane following, RL and DRL have been applied to increasingly complex autonomous driving tasks, including intersection navigation~\cite{benelallid2023intersection,shankar2025deep, liu2021rlbenchmark, jayawardana2023,cederle2024distributed,Spatharis02012024}, lane changing~\cite{wang2024benchmarking}, car following~\cite{liu2024comparative,chen2023follownet,Marin04122025}, driving under diverse weather conditions~\cite{tang2020,almalioglu2022,lee2024robust,BenElallid02112025}, ramp merging~\cite{chen2023rampmerging}, and overtaking~\cite{cui2023multiinput, li2020deepRL}. Although these studies confirm the versatility of RL-based approaches, their diversity in tasks, environments, and evaluation protocols further reinforces the need for standardized, task-focused benchmarks that isolate core decision-making and control capabilities.
+Vision-based perception, particularly using a single front-facing camera, is a common and cost-effective setup in autonomous driving research. Recent work on camera-only Bird’s-Eye-View perception~\cite{geiger2012kitti,busch2023improved,unger2023multicamera} and lightweight detection architectures~\cite{wu2022yolop,howard2017mobilenets,liu2016ssd} demonstrates that vision-only systems can achieve competitive performance while remaining scalable. However, most perception-focused studies emphasize representation learning rather than downstream control stability, and they are often evaluated independently of systematic decision-making benchmarks. In this work, perception is therefore treated as a fixed input modality, allowing the analysis to focus exclusively on control and decision-making behavior.
+Autonomous driving decision-making has historically relied on a broad range of paradigms, including rule-based systems~\cite{bouchard2015rulebased}, finite state machines~\cite{bae2020fsm}, machine learning, imitation learning~\cite{codevilla2018il,cheng2023pluto,moncalvillo2024ackermann}, and reinforcement learning. Rule-based and finite state machine approaches offer interpretability and verifiability but scale poorly as environmental complexity increases. Machine learning and imitation learning methods enable data-driven control and can achieve strong performance in nominal conditions, yet they often struggle with generalization beyond the distribution of expert demonstrations or training data. These limitations motivate the use of reinforcement learning, which explicitly optimizes long-term behavior under uncertainty and interaction.
+Reinforcement Learning has become a central paradigm for continuous decision-making in autonomous driving, with several benchmark environments proposed to evaluate agent performance~\cite{liu2021rlbenchmark,lavington2024torchdriveenv}. However, classical RL methods face challenges related to sample efficiency and training instability, particularly in high-dimensional, continuous-action settings. Deep Reinforcement Learning addresses these challenges by leveraging deep neural networks to approximate policies and value functions, enabling effective learning from rich sensory inputs. As documented in recent surveys~\cite{kiran2021rl,prasuna2024deep,singh2025improvised}, DRL now underpins many end-to-end and modular autonomous driving systems.
+In complex continuous-control problems, DRL is often integrated within hierarchical or decoupled architectures, where high-level planners generate reference trajectories or target velocities and low-level DRL agents execute smooth control commands~\cite{wang2024benchmarking,qiao2020hierarchical}. This design aligns with established practices for improving stability and interpretability. Nevertheless, performance in such systems remains highly sensitive to algorithm choice, training methodology, and scenario diversity.
+Despite the widespread use of DRL, systematic comparisons between dominant DRL algorithms—such as Proximal Policy Optimization (PPO)~\cite{schulman2017proximal}, Deep Deterministic Policy Gradient (DDPG)~\cite{lillicrap2015continuous}, Twin Delayed DDPG (TD3)~\cite{fujimoto2018addressing}, and Soft Actor-Critic (SAC)~\cite{haarnoja2019sac}—remain limited. Existing studies often evaluate these methods under restricted conditions, with few repetitions, limited control of randomness, or narrow environment diversity~\cite{evans2024racing,li2025sharpturns}. As a result, reported performance differences may reflect experimental artifacts rather than intrinsic algorithmic properties. Recent analyses suggest that stability-enhanced and entropy-regularized actor-critic methods often outperform earlier approaches~\cite{liu2024evaluation,xu2024lanechanging,park2025comparative}, but these findings require validation under controlled and reproducible benchmarks.
+To address these limitations, this work conducts a rigorous comparative evaluation of PPO, DDPG, TD3, and SAC in a focused lane-following task. By isolating the decision-making layer in a high-fidelity simulation environment, controlling for training stochasticity, and systematically varying scenario diversity, we provide an evidence-based assessment of algorithm performance, stability, and generalization. Furthermore, an ablation study explicitly analyzes how different sources of training variety contribute to safety and robustness. This positioning differentiates the present study from prior work and directly addresses the need for principled algorithm selection in autonomous driving control.
+
+\section{Materials and Methods}
+\label{sec:materialsmethods}
+
+\subsection{Ethics Statement}
+This research was conducted using the publicly available CARLA simulator and its associated assets. No human or animal subjects were involved in this study; therefore, no formal ethics approval was required.
+
+\subsection{Frameworks}
+
+The experimental setup leverages a robust training and evaluation pipeline, centered on the RL-Studio framework. RL-Studio manages the training process, utilizing algorithm implementations from the Stable-Baselines3 library and connecting to the CARLA simulator via the Python API in synchronous mode to guarantee a fixed simulation frequency of 20 frames per second. 
+During training, TensorBoard facilitates real-time monitoring of metrics, while MLFlow systematically catalogs all model checkpoints and associated statistics. For policy evaluation and analysis, BehaviorMetrics is employed, communicating data via ROS for standardized data communication and logging.
+
+\subsection{Problem Formulation and Setup}
+\label{sec:problem_formulation}
+
+\subsubsection{Action Space}
+The vehicle's actions are continuous controls applied to the vehicle dynamics model:
+
+\begin{itemize}
+\item \textbf{Throttle/Brake Action:} A continuous value ranging from -1 (full brake) to 1 (full throttle).
+
+\item \textbf{Steering Action:} A continuous value ranging from -0.5 (left) to 0.5 (right). While the maximum physical steering range in CARLA is [-1,1], we constrained the agent's output range for two primary reasons: first, to enforce smoother, less aggressive steering behavior typical of high-speed maneuvers; and second, to accelerate initial policy acquisition by forcing the agent to focus on fine-grained lateral control. This choice is supported by initial hyperparameter sweeps which confirmed that the narrower range led to faster and more stable convergence.
+\end{itemize}
+
+\subsubsection{State Space}
+The state vector is composed of continuous, normalized inputs, a technique validated during preliminary experimentation to improve training stability and network performance. Normalization ensures all features contribute equally to the policy and value functions. The state, $\mathbf{s}_t$, includes the following features:
+
+\begin{itemize}
+    
+    \item \textbf{Future Waypoints ($\mathbf{w}_{1..10}$):} A sequence of the next ten waypoints, relative to the vehicle, indicating the desired center of the lane. Each point is normalized to the range $[-1, 1]$, where values represent lateral deviation from the vehicle's forward axis. We selected a reduced set of ten points as initial tests with twenty points did not yield significant performance gains but increased dimensionality.
+    
+    \item \textbf{Normalized Linear Velocity ($v_{\text{lin}}$):} The vehicle's current linear speed (in m/s) normalized by the maximum allowed speed ($v_{\text{max}}=25\text{ m/s}$). Since high speeds are penalized in the reward function, this normalization ensures the majority of values range between $[0, 1]$.
+    
+    \item \textbf{Steering Angle ($	heta_{\text{steer}}$):} The vehicle's current steering angle in radians, normalized to the range $[-1, 1]$ by the maximum steering angle supported by the vehicle dynamics model.
+    
+    \item \textbf{Normalized Objective Velocity ($v_{\text{target}}$):} The instantaneous target speed for the current road segment, calculated based on the lane curvature. This value is normalized by the maximum allowed speed ($v_{\text{max}}=25\text{ m/s}$).
+    
+    \item \textbf{Last Performed Actions ($\mathbf{a}_{t-1}$):} The values of the immediately preceding throttle/brake and steer actions. Including these past actions encourages the agent to implicitly learn to penalize sudden or erratic changes in control inputs, promoting smoother driving behavior. This is done to preserve potential-based reward shaping good practices \cite{muller2025improving}, which typically caution against explicit action penalties in the reward function.
+\end{itemize}
+
+\subsubsection{Camera Configuration and Feature Projection}
+The agent processes perception data derived from a single front-facing camera, which is positioned \SI{1}{meter} above the vehicle's roof and features a \SI{90}{\degree} Field of View (FOV)
+To emulate a robust vision-based system while isolating the decision-making performance, we bypass the image processing overhead by projecting the ground-truth CARLA waypoints directly onto the camera's 2D image plane.
+This ensures the agent operates on visual-domain features (perspective-projected coordinates) rather than raw world-state coordinates, maintaining the geometric constraints of a vision-based setup without the noise of a CNN perception backbone.
+
+\subsubsection{Reward Function}
+The agent's reward function, $R_t$, is engineered to prioritize safety (lane centering), efficiency (optimal speed), and stability (smooth control) simultaneously.
+Although the reward components operate in different physical units (e.g., speed in km/h, angular velocity in rad/s), all terms were empirically scaled during preliminary tuning to ensure comparable magnitudes and prevent the dominance of any single component.
+
+$$ 
+\label{eq:reward}
+ R_t = \begin{cases} 
+-10 & \text{if done due to lane departure} 
+\\v_{\mathrm{eff}} - 0.5 \cdot |\omega|
+& \text{otherwise}
+\end{cases}
+$$
+
+The components of the reward function are defined as:
+
+\begin{itemize}
+    
+    \item \textbf{Lane Departure Penalty:} An immediate, large negative reward ($R_t = -10$) and episode termination is applied if the vehicle invades a contiguous lane boundary, ensuring a strong penalty for unsafe states.
+
+    \item \textbf{Stability Penalty ($0.5 \cdot |\omega|$):} This term penalizes rapid turning and erratic behavior. The penalty is proportional to the absolute value of the vehicle's angular velocity ($|\omega|$), directly encouraging stable and smooth policy outputs.
+
+    \item \textbf{Effective Velocity Reward ($v_{\mathrm{eff}}$):} This critical component combines the agent's speed performance with its lateral precision. It is calculated as $v_{\mathrm{eff}} = v_{\text{component}} \cdot d_{\text{reward}}$, where:
+    \begin{itemize}
+        \item \textbf{Lateral Centering Reward ($d_{\text{reward}}$):} A quadratic function of the lateral distance from the lane center:
+            $$d_{\text{reward}} = (1 - |\text{center\_distance}|)^2$$
+            This mechanism ensures speed rewards are significantly attenuated if the vehicle deviates from the lane center.
+        \item \textbf{Speed Reward ($v_{\text{component}}$):} This Gaussian term rewards achieving the target speed ($v_{\text{goal}}$) while penalizing both undershooting and overshooting it:
+            $$v_{\text{component}} = 4 \cdot \exp\left(-\frac{(v_{\mathrm{km}} - v_{\text{goal\_km}})^2}{2 \sigma^2}\right)$$
+            Here, $v_{\mathrm{km}}$ is the vehicle's current speed and $v_{\text{goal\_km}}$ is the target speed, both converted to $\text{km/h}$ for consistency with the tolerance parameter $\sigma = \SI{25}{km/h}$.
+    \end{itemize}
+\end{itemize}
+
+Additionally, the following constraints and bonuses are implemented to aid training:
+
+\begin{itemize}
+    
+    \item \textbf{Initial Movement Bonus:} A small reward of $0.1$ is given when the linear velocity ($v$) is less than $\SI{1}{m/s}$ to accelerate the learning of initial movement and prevent the agent from exploiting low-velocity states.
+    \item \textbf{Stagnation Penalty:} The episode is forcibly reset if the vehicle is effectively \textbf{"stopped"} (velocity below a threshold) for an extended period of $\SI{5}{s}$, discouraging policy stagnation.
+\end{itemize}
+
+\subsection{Training}
+
+\subsubsection{Environments and Generalization}
+The experiments were conducted within the CARLA simulator, utilizing a selection of its pre-built urban and highway environments. Training took place in Town01, Town03, and Town04, which were chosen to provide a diverse range of driving scenarios, including simple T-junctions, complex roundabouts, and high-speed highways. For evaluation, a separate set of environments (Town02, Town06, and Town10) was used to assess the generalization capabilities of the trained agents across unseen road layouts and textures. The scenarios for training and validation involved navigating predefined routes within these towns, with the agent's performance recorded for subsequent analysis.
+
+Training takes place in predefined locations across CARLA's Town01 (a small, simple town with T-junctions, see Figure \ref{fig:town01}), Town03 (a larger, urban map with complex junctions and a roundabout, see Figure \ref{fig:town03}), and Town04 (a high-speed, highway loop embedded in a mountainous area, see Figure \ref{fig:town04}). We selected multiple cities to evaluate the agent's capacity for \textbf{generalization} across diverse urban layouts and road textures. This careful selection provides a similar, yet not identical, representation of the cities used for inference, which are Town02 (Figure \ref{fig:town02}), Town06 (Figure \ref{fig:town06}), and Town10 (Figure \ref{fig:town10}).
+
+\begin{figure}[htbp] 
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/town01.png}
+    \caption{CARLA Town01 layout (Training).}
+    \label{fig:town01}
+\end{figure}
+
+\begin{figure}[htbp] 
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/town03.png}
+    \caption{CARLA Town03 layout (Training).}
+    \label{fig:town03}
+\end{figure}
+
+\begin{figure}[htbp] 
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/town04.png}
+    \caption{CARLA Town04 layout (Training).}
+    \label{fig:town04}
+\end{figure}
+
+\begin{figure}[htbp] 
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/town02.png}
+    \caption{CARLA Town02 layout (Inference).}
+    \label{fig:town02}
+\end{figure}
+
+\begin{figure}[htbp] 
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/town06.png}
+    \caption{CARLA Town06 layout (Inference).}
+    \label{fig:town06}
+\end{figure}
+
+\begin{figure}[htbp] 
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/town10.png}
+    \caption{CARLA Town10 layout (Inference).}
+    \label{fig:town10}
+\end{figure}
+
+\subsubsection{Variability and Agent Selection}
+
+To address the inherent stochasticity of DRL training (which can lead to agents with different performances due to random initializations and environmental interaction), we employed a rigorous robustness methodology.
+
+
+\begin{itemize}
+    
+    \item \textbf{Seed Fixing:} All algorithms were trained with a fixed set of seeds (1, 42, 888 and 1234) to ensure statistical rigor in the study.
+    \item \textbf{Multiple Runs:} We executed 3 independent training runs for each of the four DRL algorithms and each of the 4 seeds for each one, giving a total of 48 training executions.
+    \item \textbf{Best Agent Selection:} Every 1,000 training steps, a candidate model was evaluated on a fixed set of 6 validation scenarios (two distinct locations in each of the three inference cities: Town02, Town06, and Town10). The mean cumulative reward across these 6 episodes was the primary metric for selection, mitigating the effect of stochasticity in a single run. The model checkpoint achieving the highest mean cumulative reward was designated the "\textbf{best agent}.
+    \item \textbf{Training performance Analysis:} The cumulative rewards evolution over training steps were averaged for all algorithms executions. See \ref{fig:averagedcum}.
+\end{itemize}
+
+\subsection{Experimental DRL Configuration}
+
+The following configuration was shared by all algorithms:
+
+\begin{itemize}
+    \item \textbf{Discount factor:} $\gamma = 0.9$. This relatively low discount factor was selected to emphasize near-term safety and control stability over long-horizon reward accumulation, which empirically improved convergence in high-speed scenarios.
+    \item \textbf{Learning rate:} $\mathbf{3 \times 10^{-4}}$ for both the Actor (policy) and Critic (value) networks.
+    \item \textbf{Network architecture:} Both networks utilize a Multi-Layer Perceptron (MLP) with five hidden layers of 128 units each, optimized via the Adam optimizer. This configuration strikes an optimal balance between representational capacity and computational efficiency; empirical testing indicated that smaller architectures failed to generalize across diverse road geometries, while larger models yielded diminishing performance returns at the cost of increased training latency.
+    \item \textbf{Activation function:} The ReLU activation function was used in all intermediate layers, as preliminary experiments showed that it converged faster and more reliably than Tanh.
+\end{itemize}
+
+\subsubsection{Proximal Policy Optimization}
+
+\begin{itemize}
+    
+    \item \textbf{Key hyperparameters:} GAE parameter $\lambda = 0.95$, clipping ratio $\epsilon = 0.2$, batch size of 1024, 10 epochs per update, and an entropy coefficient of 0.03.
+    \item \textbf{Exploration strategy:} PPO inherently explores through its stochastic policy. We tested a decaying standard deviation for the policy’s action distribution but found that keeping it constant and relying on entropy maximization led to more stable learning.
+\end{itemize}
+
+\subsubsection{Deep Deterministic Policy Gradient}
+
+\begin{itemize}
+    
+    \item \textbf{Key hyperparameters:} target network update rate $\tau = 0.005$.
+    \item \textbf{Exploration strategy:} DDPG relies on additive noise for exploration. Standard Ornstein--Uhlenbeck noise with exponential decay was used to encourage temporally correlated exploration.
+\end{itemize}
+
+\subsubsection{Twin Delayed DDPG}
+
+\begin{itemize}
+    
+    \item \textbf{Key hyperparameters:} target update rate $\tau = 0.005$ and a policy update delay of 2.
+    \item \textbf{Exploration strategy:} TD3 employs target policy smoothing, where clipped noise is added to target actions during critic updates. We used a target policy noise of 0.1 and a noise clip of 0.5. For exploration noise during environment interaction, the same Ornstein--Uhlenbeck strategy as in DDPG was applied.
+\end{itemize}
+
+\subsubsection{Soft Actor--Critic}
+
+\begin{itemize}
+    
+    \item \textbf{Key hyperparameters:} target update rate $\tau = 0.002$ and an automatically tuned entropy temperature $\alpha$.
+    \item \textbf{Exploration strategy:} SAC’s entropy-maximizing objective provides inherent exploration. We relied entirely on the automatic temperature tuning mechanism, which consistently produced stable learning without requiring additional noise injection.
+\end{itemize}
+
+\begin{figure}[htbp] 
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/averaged_cum.png}
+    \caption{Averaged cumulative rewards evolution over training steps.}
+    \label{fig:averagedcum}
+\end{figure}
+
+\begin{figure}[htbp] 
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/lane_invasions.png}
+    \caption{Lane invasions metric.}
+    \label{fig:laneinvasionsmetric}
+\end{figure}
+
+\section{Results and Discussion}
+
+\subsection{Algorithms Benchmark}
+
+Two separate executions with each of the twelve versions of each algorithm were run on each evaluation circuit. This included half clockwise and half anti-clockwise routes, starting from different predefined positions within the same city layout. This procedure ensures a comprehensive assessment of the policies' robustness and generalization. After all executions, the following key metrics are provided by CARLA to objectively conclude the most suitable agent for our use case:
+
+\begin{itemize}
+\item lane invasions (Figure \ref{fig:laneinvasionsmetric})
+\item collisions (Figure \ref{fig:collisionsboxplot})
+\item deviation mean boxplot (Figure \ref{fig:positiondeviationmeanboxplot})
+\item average speed boxplot (Figure \ref{fig:averagespeedboxplot})
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/lane_invasions_boxplot.png}
+    \caption{Lane invasions boxplot.}
+    \label{fig:laneinvasionsboxplot}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/collisions_boxplot.png}
+    \caption{Collisions boxplot.}
+    \label{fig:collisionsboxplot}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/position_deviation_mean_boxplot.png}
+    \caption{Deviation mean boxplot.}
+    \label{fig:positiondeviationmeanboxplot}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/average_speed_boxplot.png}
+    \caption{Average speed boxplot.}
+    \label{fig:averagespeedboxplot}
+\end{figure}
+
+The evaluation reveals clear performance differences among the four RL algorithms, particularly in terms of safety and robustness. SAC remains the only agent that completes all circuits without any collisions or lane invasions, consistently demonstrating the most conservative and risk-averse behavior. Its collision-free operation across all environments underlines its strong emphasis on stability and safe control. As observed in the speed metrics, this safety comes at the cost of efficiency: SAC systematically reduces its speed when approaching sharp turns, leading to a lower average speed compared to the other agents.
+
+In contrast, the remaining policies experience a non-negligible number of failures, especially in the more complex circuits. These results highlight a significant robustness gap between SAC and its competitors.
+
+Regarding the deviation metrics, all agents show generally low mean deviation from the lane center in the scenarios they complete. However, it is important to note that the deviation boxplots only include episodes in which the agents either finished the circuit successfully without collisions. As a result, the deviation plots may overrepresent the stability of algorithms such as TD3 and DDPG, since their most unstable trajectories are not reflected in the deviation distribution.
+
+Nevertheless, PPO, DDPG, and TD3 occasionally exhibit slightly lower deviation than SAC in simpler environments such as Town10, where the layout consists mostly of straights and gentle curves. This suggests that these algorithms can maintain tighter lane-center alignment when the environment poses minimal challenges.
+
+To gain deeper insight into the driving behavior of the agents, we analyze the distribution of three critical metrics across all evaluation runs. These metrics provide evidence of the policy's fine-grained control strategy:
+
+\begin{itemize}
+
+    \item \textbf{Velocity Histograms (Figure \ref{fig:speedhistograms}):} These histograms visualize the policy's longitudinal control behavior. They confirm if an agent is successfully tracking the high target speed while minimizing periods of unnecessary braking or aggressive acceleration, which would be detrimental to comfort and efficiency. Town02 was used for this evaluation, since it contains both long straights and sharp curves.
+    It shows that both SAC and PPO policies frequently slows down close to 20kmh when facing a curve, while the other algorithms takes them around 30kmh. At the same time, SAC reach speeds of 85kmh while TD3 and DDPG often surpasses 90kmh, which suggests a more aggressive driving than SAC and PPO.
+
+    \item \textbf{Lateral Deviation Histograms (Figure \ref{fig:lateraldeviationhistograms}):} These figures quantify the quality of the policy's lateral control, showing the frequency distribution of the distance from the lane center. A superior policy will exhibit a distribution tightly centered around zero, indicating high precision.
+    In this case, PPO shows sharper peak centered at zero meters deviation, indicating higher precision in lane-centering, followed by SAC. However, all agents keep a good pace with no more than 50cm of deviation from the center in the whole circuit and below 20cm 95\% of the time.
+    \item \textbf{Speed Profile Analysis (Figure \ref{fig:Town10HDcwspeedsbywaypointlineplot}):} This plot provides a waypoint-by-waypoint analysis of the agents' average velocity profiles along the circuit. Crucially, the plot shows the \textbf{average speed per waypoint} across all executions for each algorithm, with the \textbf{standard deviation} indicated by a shadow area, allowing evaluation of both consistency and average performance. Town10 was chosen to clearly show their behavior due to it being the simplest and easier to interpret.
+    The plot demonstrate that SAC keep slightly slower speeds both in straights and curves and maintains a smoother speed profile than the other algorithms, showing a smoother deceleration and acceleration. This confirms its ability to balance the reward components for speed and safety more effectively in challenging driving scenarios.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/combined_Town02_Opt_speeds.png}
+    \caption{Distribution of vehicle speed across all evaluation runs. \textbf{File name: speed\_histograms.png}}
+    \label{fig:speedhistograms}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/combined_Town02_Opt_position_deviations_with_sign.png}
+    \caption{Distribution of lateral deviation from the lane center across all evaluation runs. \textbf{File name: lateral\_deviation\_histograms.png}}
+    \label{fig:lateraldeviationhistograms}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/Town10HD_cw_speeds_by_waypoint_lineplot.png}
+    \caption{Speed over distance lineplot for Town 10HD clockwise.}
+    \label{fig:Town10HDcwspeedsbywaypointlineplot}
+\end{figure}
+
+\subsection{Ablation Study and Variety Contribution}
+\label{sec:ablation_study}
+
+Following the identification of the better-performing agent, prioritizing safety as the primary evaluation criterion, we selected the Soft Actor-Critic algorithm due to its superior performance in this regard. We then conducted an ablation study to systematically determine the most significant factors contributing to SAC's high safety performance.
+
+The training process was repeated by sequentially removing or modifying each of the five key features, one at a time, relative to the established SAC algorithm and training setup. The impact on the agent's safety metric was observed for each feature ablation, with this metric serving as the indicator of how impactful the removal or modification of that feature is. These features are detailed in Table \ref{tab:ablationfeatures}.
+
+\begin{table}
+\tbl{Features Targeted in the Ablation Study}
+{\begin{tabular}{|c|p{0.6\textwidth}|} 
+        \hline
+        \textbf{ID} & \textbf{Feature Description} \\
+        \hline
+        A & Initial spawn points (straight, slight, sharp curves). \\
+        \hline
+        B & Equal distribution of left and right turns in the training curriculum. \\
+        \hline
+        C & Cities with sharp curves (Towns 03 and 04). \\
+        \hline
+        D & Cities (complex and simple scenarios, Town 01). \\
+        \hline
+        E & Randomized initial vehicle speeds (0\text{ km/h} to 90\text{ km/h}). \\
+        \hline
+    \end{tabular}}
+\label{tab:ablationfeatures}
+\end{table}
+
+As illustrated by the lane invasion metrics in Figures \ref{fig:ablationlaneinvasions} and \ref{fig:ablationlaneinvasionsboxplot}, all features contribute positively to the final policy quality. The relevance of their performance impact is clearly ordered from A (most impactful) to E (least impactful).
+
+\subsubsection{Initial Position Variety (A)}
+The removal of Initial Position Variety resulted in the most significant performance degradation. Since training was limited to a fixed number of steps, the agent's experience was heavily skewed by the pre-selected 30 starting points, which exhibited an uneven distribution of road geometries: 23 straight sections, 5 slight curves, and 2 abrupt curves. Consequently, the agent specialized in aggressively speeding up on straight roads, leading to a tendency to invade the lane when subsequently encountering curved segments. This demonstrated that a sufficient diversity of geometric features during initialization is paramount for learning a balanced, robust policy.
+
+\subsubsection{Turn Distribution (B)}
+In the ablation study for Equal Turn Distribution, the policy was trained with fewer right curves (5 right turns vs. 15 left turns), despite having the same complexity of straights and curves as the full setup. This imbalance led to difficulties in generalizing steering control to right-hand turns, highlighting the importance of balanced training data for lateral control consistency.
+
+\subsubsection{Town Variety (C)}
+ Ablating the inclusion of simpler cities with a more variety of scenarios (long straights in town04 and round-about in Town03) resulted in the agent failing to properly navigate the small roundabout in Town06. This performance drop indicates that the complex urban geometry found in Town03 was essential for developing a policy capable of handling similar intricate junctions during inference.
+
+\subsubsection{sharp turns (D)}
+Removing the inclusion of the town with sharped curves (Town01) from training, significantly hampered the agent's ability to cope with abrupt curves found in Town02. Furthermore, this ablation led to failures in facing a small zigzag curve encountered in some executions within Town06,
+
+\subsubsection{Initial Speed Randomization (E)}
+The removal of Initial Speed Randomization had the least effect on performance. When the agent consistently began training at a speed of $0\text{ km/h}$ (instead of a random speed between $0$ and $90\text{ km/h}$), it still converged to a high-quality policy. However, due to the reduced variety of initial speed states encountered during training, this ablated agent slightly underperformed relative to the benchmark. This suggests that while speed randomization aids generalization across the speed domain, the policy learned to manage speed effectively even when starting from rest.
+
+\begin{figure}[htbp] 
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/ablation_lane_invasions.png}
+    \caption{Ablation study results: Lane invasions across different feature ablations.}
+    \label{fig:ablationlaneinvasions}
+\end{figure}
+
+\begin{figure}[htbp] 
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/ablation_lane_invasions_boxplot.png}
+    \caption{Boxplots of lane invasions for the ablation study experiments.}
+    \label{fig:ablationlaneinvasionsboxplot}
+\end{figure}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This work presented a rigorous comparative benchmark of four prominent Deep Reinforcement Learning (DRL) algorithms; PPO, DDPG, TD3, and SAC. Applied to the challenging task of high-speed lane following in the CARLA simulation environment. The results empirically validate the contemporary consensus on DRL performance in continuous control:
+
+\begin{itemize}
+    \item \textbf{Algorithmic Superiority and Stability (RQ1):} The Soft Actor-Critic  and Twin Delayed DDPG algorithms consistently demonstrated superior performance, achieving the lowest rates of lane invasion and collisions while maintaining high average speeds compared to PPO and DDPG. The use of stability-enhanced and maximum-entropy off-policy methods proves better suited for robust continuous control tasks in this safety-critical domain. Analysis of the velocity and lateral deviation histograms confirmed that the best-performing agent (SAC) successfully balanced aggressive speed tracking with precise lateral control. The policy distribution was tightly centered around the lane center while maintaining a velocity distribution close to the high target speed.
+    \item \textbf{Generalization Necessity (RQ2):} The ablation study unequivocally demonstrated that Initial Position Variety (A) is the single most critical feature for achieving a generalized policy. Agents trained without sufficient road geometry diversity specialized, leading to catastrophic failures (e.g., lane invasion and subsequent collision) when encountering complex or underrepresented curves.
+    \item \textbf{Hyperparameter Optimization (RQ3):} The study identified that a common learning rate of $3 \times 10^{-4}$ and a five-layer MLP architecture of 128 units per layer provided a solid baseline for all agents. However, optimal performance was highly dependent on algorithm-specific hyperparameters. For instance, SAC’s performance benefited significantly from automatic entropy tuning, while TD3’s stability was enhanced by a policy update delay of 2 and target policy smoothing. PPO’s performance was sensitive to the clipping ratio and entropy coefficient. This highlights that while some generalization in architecture is possible, fine-tuning of algorithm-specific hyperparameters is critical for achieving optimal and safe performance in continuous control tasks.
+\end{itemize}
+
+In summary, our methodology provides empirical guidance for algorithm selection, confirming the crucial role of training data diversity and algorithmic stability in deploying robust DRL agents for autonomous vehicle control.
+
+Building upon the established benchmark, several avenues for future research are promising, focusing on enhancing the robustness, efficiency, and real-world applicability of the DRL policies:
+
+\begin{itemize}
+    \item \textbf{Expanded Algorithm Comparison and Architecture:} We plan to broaden the comparative study to include other high-performing model-free algorithms, such as A2C (Advantage Actor-Critic), to cover a wider spectrum of policy gradient methods. Furthermore, investigating hierarchical DRL (HRL) architectures could improve modularity and interpretability by decomposing the complex driving task into high-level planning and low-level control.
+    \item \textbf{Integration of Large Language Models (LLMs):} Exploring the integration of Large Language Models (LLMs) into the DRL hierarchy could enhance high-level reasoning, decision-making explanation, and complex instruction following, moving towards more interpretable and adaptable autonomous systems.
+    \item \textbf{Action Space Analysis:} Incorporating models with discrete action spaces to compare their performance, sample efficiency, and safety characteristics against the continuous action models benchmarked here. This would help determine the trade-offs between fine-grained control and policy simplicity for hardware implementation.
+    \item \textbf{Adaptive Control Integration (Car Following):} Extending the best-performing SAC agent to handle dynamic interaction with a lead vehicle (car following). This would involve adapting the current low-level control framework with an adaptive cruise control component, requiring an evaluation of how the SAC policy interacts with dynamically changing speed targets and traffic dynamics.
+    \item \textbf{Sim-to-Real Transferability Study:} Conducting a Sim-to-Real study to validate the robustness of the trained policies on a physical platform (e.g., a scaled RC car or a full-scale vehicle). This process would involve analyzing the performance drop associated with noisy sensor data and real-world latency, utilizing techniques such as domain randomization or state representation learning to bridge the simulation-reality gap.
+\end{itemize}
+
+\section*{Author contributions}
+
+All authors contributed to the study conception and design. Material preparation, data collection and analysis were performed by all authors. The first draft of the manuscript was written by R.L.Z. and all authors commented on previous versions of the manuscript. All authors read and approved the final manuscript.
+
+\section*{Disclosure statement}
+The authors report there are no competing interests to declare.
+
+\section*{Data availability statement}
+No external data was used in this study. All experiments were conducted within the CARLA simulator. The code, configurations, and trained models are available from the corresponding author, R.L.Z., upon reasonable request.
+
+\bibliographystyle{apalike}
+\bibliography{references}
+
+\end{document}
