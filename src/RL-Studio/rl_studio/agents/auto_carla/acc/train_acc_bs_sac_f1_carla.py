@@ -3,6 +3,9 @@ from datetime import datetime, timedelta
 import glob
 import time
 import random
+import os
+import sys
+import json
 
 import numpy as np
 import pynvml
@@ -146,6 +149,18 @@ class PeriodicSaveCallback(BaseCallback):
 
             if self.verbose > 0:
                 print(f"Saved periodic model at step {self.step_count} to {model_save_path}")
+
+            if hasattr(self.model, 'action_noise') and isinstance(self.model.action_noise, NormalActionNoise):
+                exploration_rates = {
+                    'std_v': self.model.action_noise._sigma[0],
+                    'std_w': self.model.action_noise._sigma[1]
+                }
+                rates_save_path = os.path.join(self.save_path, "exploration_rates.json")
+                with open(rates_save_path, 'w') as f:
+                    json.dump(exploration_rates, f)
+                if self.verbose > 0:
+                    print(f"Saved exploration rates to {rates_save_path}")
+
         return True
 
 class ExplorationRateCallback(BaseCallback):
@@ -407,7 +422,7 @@ class TrainerFollowLaneSACCarla:
         if self.environment.environment["mode"] in ["inference", "retraining"]:
             actor_retrained_model = self.environment.environment['retrain_sac_tf_model_name']
             logger.info(f"reloading agent {self.environment.environment['retrain_sac_tf_model_name']}")
-            self.sac_agent = SAC.load(actor_retrained_model)
+            self.sac_agent = SAC.load(actor_retrained_model, env=self.env)
             # Set the environment on the loaded model
             self.sac_agent.set_env(env)
         else:
@@ -432,7 +447,7 @@ class TrainerFollowLaneSACCarla:
                 gamma=self.params["gamma"],
                 train_freq=2,
                 verbose=0,
-                seed=self.global_params.seed
+                seed=self.global_params.seed,
             )
             
         logger.info(self.sac_agent.policy)

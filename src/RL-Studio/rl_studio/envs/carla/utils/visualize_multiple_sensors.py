@@ -93,11 +93,11 @@ class DisplayManager:
         pygame.display.flip()
 
     def destroy(self):
-        # The underlying carla.Sensor actors are now destroyed by the main environment's
-        # batched cleanup. This method just cleans up the Python-side list.
+        # print(f"entro en destroy()")
         for s in self.sensor_list:
-            if hasattr(s, 'is_listening') and s.is_listening:
+            if hasattr(s, 'is_listening'):
                 s.stop()
+            s.destroy()
         self.sensor_list = []
 
     def render_enabled(self):
@@ -171,7 +171,6 @@ class SensorManager:
         attached,
         sensor_options,
         display_pos,
-        actor_list, # Add actor_list parameter
         save_on_disk=False,
         client=None,
     ):
@@ -184,11 +183,6 @@ class SensorManager:
         self.save_images = save_on_disk
         self.sensor_type = sensor_type
         self.sensor = self.init_sensor(sensor_type, transform, attached, sensor_options)
-        
-        # Add the spawned sensor to the centralized actor list
-        if self.sensor:
-            actor_list.append(self.sensor)
-
         self.sensor_options = sensor_options
         self.timer = CustomTimer()
         self.time_processing = 0.0
@@ -267,6 +261,10 @@ class SensorManager:
         t_start = self.timer.time()
         self.step+=1
 
+        self.width = image.width
+        self.height = image.height
+        self.fov = image.fov
+
         image.convert(carla.ColorConverter.Raw)
         array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
         array = np.reshape(array, (image.height, image.width, 4))
@@ -308,6 +306,11 @@ class SensorManager:
         t_start = self.timer.time()
         self.step+=1
         raw_copy = bytes(image.raw_data)  # Safe copy of original buffer
+
+        self.width = image.width
+        self.height = image.height
+        self.fov = image.fov
+
         self.raw_data = {
             'frame': image.frame,
             'timestamp': image.timestamp,
@@ -441,6 +444,5 @@ class SensorManager:
             self.display_man.display.blit(self.surface, offset)
 
     def destroy(self):
-        # This is now a no-op. The underlying carla.Sensor actor is managed
-        # and destroyed by the main environment class.
-        pass
+        # print(f"in DisplayManeger.destroy - self.sensor = {self.sensor}")
+        self.sensor.destroy()

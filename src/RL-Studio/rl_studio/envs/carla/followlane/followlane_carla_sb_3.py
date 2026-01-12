@@ -736,8 +736,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return vehicle, location
 
     def close(self):
-        self.destroy_all_actors()
         self.display_manager.destroy()
+        self.destroy_all_actors()
 
     def doReset(self):
         ep_time = time.time() - self.start
@@ -1407,7 +1407,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # close_points_dev = abs(x_centers_normalized[0] - x_centers_normalized[half_image])
         # is_centered = close_points_dev <= 0.15
 
-        reward, done, has_crashed = self.rewards_easy(center_distance, action, params, x_centers_normalized, deviated_points, v_goal=v_goal)
+        reward, done, has_crashed = self.rewards_easy(center_distance, action, params, x_centers_normalized, deviated_points, misalignment, v_goal=v_goal)
         self.previous_action = action
 
         self.car.v_goal = v_goal
@@ -1588,7 +1588,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # Logarithmic scaling formula
         return math.log(1 + velocity) / math.log(1 + v_max)
 
-    def rewards_easy(self, center_distance, action, params, x_centers_normalized, deviated_points, v_goal=None):
+    def rewards_easy(self, center_distance, action, params, x_centers_normalized, deviated_points, misalignment, v_goal=None):
         # distance_error = error[3:]  # We are just rewarding the 3 lowest points!
         # distance_error = [abs(x) for x in centers_distances]
 
@@ -1617,6 +1617,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             return punish_deviation, True, self.has_crashed()
 
         d_reward = (1 - abs(center_distance)) ** self.punish_braking
+        d_reward -= 0.2 * misalignment # OJO: Remove later
 
         v = params["velocity"]
 
