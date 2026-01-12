@@ -176,4 +176,4 @@ carla:
   carla_server: localhost
   carla_client: 2000
 #  carla_client: [4013, 4015]
-  manager_port: 8029
+  manager_port: 8031

@@ -41,18 +41,27 @@ def patch_config(exp):
 
     return temp_config_path
 
-def find_latest_checkpoint(models_dir):
-    """Finds the latest model checkpoint file in a directory."""
+def find_latest_checkpoint(models_dir, algorithm, task):
+    """Finds the latest model checkpoint file in a directory, filtered by algorithm and task."""
     import glob
     import os
-    
+
     # Look for .zip files, which are the saved models from stable-baselines3
-    checkpoints = glob.glob(os.path.join(models_dir, '**', '*.zip'), recursive=True)
-    if not checkpoints:
+    all_checkpoints = glob.glob(os.path.join(models_dir, '**', '*.zip'), recursive=True)
+    if not all_checkpoints:
         return None
-    
-    # Return the file with the most recent modification time
-    latest_checkpoint = max(checkpoints, key=os.path.getmtime)
+
+    # Filter by algorithm and task
+    filtered_checkpoints = [
+        cp for cp in all_checkpoints
+        if algorithm in cp and task in cp
+    ]
+
+    if not filtered_checkpoints:
+        return None
+
+    # Return the file with the most recent modification time from the filtered list
+    latest_checkpoint = max(filtered_checkpoints, key=os.path.getmtime)
     return latest_checkpoint
 
 def launch_training(config_path):
@@ -78,20 +87,29 @@ def orchestrate(experiments):
             process = launch_training(patched_config_path)
             
             # --- Robust Heartbeat Monitoring Loop ---
+            use_heartbeat = exp.get("settings", {}).get("use_heartbeat", True)
+            algorithm = exp.get("settings", {}).get("algorithm", None)
+            task = exp.get("settings", {}).get("task", None)
+
             crashed = False
-            while process.poll() is None:
-                time.sleep(30) # Check every 30 seconds
-                heartbeat_path = "/tmp/rl_studio_heartbeat.txt"
-                if os.path.exists(heartbeat_path):
-                    last_heartbeat = os.path.getmtime(heartbeat_path)
-                    if (time.time() - last_heartbeat) > 60: # 60-second timeout
-                        print(f"[{datetime.now()}] SUPERVISOR: 🛑 Heartbeat is stale. Worker process has frozen.")
-                        process.kill() # Terminate the frozen worker
-                        crashed = True
-                        break
-                else:
-                    # If the file doesn't exist yet, just wait for it to be created
-                    pass
+
+            if use_heartbeat:
+                while process.poll() is None:
+                    time.sleep(30)  # Check every 30 seconds
+                    heartbeat_path = "/tmp/rl_studio_heartbeat.txt"
+                    if os.path.exists(heartbeat_path):
+                        last_heartbeat = os.path.getmtime(heartbeat_path)
+                        if (time.time() - last_heartbeat) > 60:  # 60-second timeout
+                            print(f"[{datetime.now()}] SUPERVISOR: 🛑 Heartbeat is stale. Worker process has frozen.")
+                            process.kill()  # Terminate the frozen worker
+                            crashed = True
+                            break
+                    else:
+                        # If the file doesn't exist yet, just wait for it to be created
+                        pass
+            else:
+                print("[SUPERVISOR] Heartbeat monitoring is disabled. Waiting for process to complete.")
+                process.wait()
 
             # --- Post-mortem Analysis ---
             return_code = process.returncode
@@ -115,18 +133,48 @@ def orchestrate(experiments):
 
                 # Determine the models directory from the config
                 models_dir = exp.get("settings", {}).get("models_dir", "./checkpoints")
-                latest_model = find_latest_checkpoint(models_dir)
+                latest_model = find_latest_checkpoint(models_dir, algorithm, task)
 
+                model_is_from_today = False
+                model_date = None
                 if latest_model:
-                    print(f"[SUPERVISOR] Found latest model for recovery: {latest_model}")
+                    model_dir = os.path.dirname(latest_model)
+                    model_dir_mtime = os.path.getmtime(model_dir)
+                    model_date = datetime.fromtimestamp(model_dir_mtime).date()
+                    today_date = datetime.now().date()
+
+                    if model_date == today_date:
+                        model_is_from_today = True
+
+                if latest_model and model_is_from_today:
+                    print(f"[SUPERVISOR] Found latest model from today for recovery: {latest_model}")
                     exp['settings']['mode'] = 'retraining'
                     if 'retraining' not in exp: exp['retraining'] = {}
                     if exp['settings']['algorithm'] not in exp['retraining']: exp['retraining'][exp['settings']['algorithm']] = {}
                     exp['retraining'][exp['settings']['algorithm']]['retrain_sac_tf_model_name'] = latest_model
+
+                    # Check for exploration rates file
+                    model_dir = os.path.dirname(latest_model)
+                    rates_path = os.path.join(model_dir, "exploration_rates.json")
+                    if os.path.exists(rates_path):
+                        with open(rates_path, 'r') as f:
+                            rates = json.load(f)
+                        exp['settings']['initial_std_v'] = rates.get('std_v', exp['settings']['initial_std_v'])
+                        exp['settings']['initial_std_w'] = rates.get('std_w', exp['settings']['initial_std_w'])
+                        print(
+                            f"[SUPERVISOR] Found and applied exploration rates: std_v={rates.get('std_v')}, std_w={rates.get('std_w')}")
+                        os.remove(rates_path)
+                        print(f"[SUPERVISOR] Removed exploration rates file: {rates_path}")
+                    else:
+                        print("[SUPERVISOR] No exploration_rates.json found. Using initial values from config.")
                 else:
-                    print("[SUPERVISOR] Could not find a model checkpoint to resume from. Restarting from scratch.")
+                    if latest_model:
+                        print(
+                            f"[SUPERVISOR] Found a model checkpoint, but it's not from today ({model_date}). Restarting from scratch.")
+                    else:
+                        print("[SUPERVISOR] Could not find a model checkpoint to resume from. Restarting from scratch.")
                     exp['settings']['mode'] = 'training'
-                
+
                 print("[SUPERVISOR] Relaunching training process...")
                 # The 'while True' loop will now restart the training
 

@@ -1,0 +1,41 @@
+# config_acc_auto_carla.yaml
+
+settings:
+  mode: training
+  task: "acc"
+  algorithm: "auto"
+  simulator: "carla"
+  agent: "auto_carla"
+  models_dir: "./checkpoints"
+  logs_dir: "./logs"
+  metrics_dir: "./metrics"
+  debug_stats: true
+  show_monitoring: false
+
+env_params:
+  id: "FollowLaneStaticWeatherNoTraffic-v0"
+  carla_server: "localhost"
+  carla_client: [2000, 2002]
+  town: Town04
+  dashboard: false
+  sync: true
+  front_car: true
+  detection_mode: 'carla_perfect'
+  appended_states: 20
+  reset_threshold: 0.8
+  fixed_delta_seconds: 0.05
+  estimated_steps: 5000
+  actions:
+    v: [0.0, 1.0]
+    w: [-0.5, 0.5]
+
+agent_params:
+  # This section is for an actual RL agent, but for 'auto' pilot, it's not used.
+  # We keep it for structural consistency.
+  learning_rate: 0.0003
+  buffer_size: 10000
+  batch_size: 128
+
+train_params:
+  total_timesteps: 5000000
+  log_interval: 1

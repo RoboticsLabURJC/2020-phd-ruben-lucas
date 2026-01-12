@@ -3,10 +3,16 @@ experiments:
   - config: config/config_training_acc_bs_sac_f1_carla.yaml
     carla:
       carla_client: 5013
+      manager_port: 8031
     carla_environments:
       follow_lane:
         town: [Town01, Town03, Town04]
+        acc:
+          front_car: fixed
     settings:
+      use_heartbeat: true
+      mode: training
+      task: acc_carla
       algorithm: sac
       normalize: true
       net_arch: [ 128, 128, 128, 128, 128]
@@ -24,6 +30,6 @@ experiments:
     algorithm:
       sac:
         gamma: 0.9
-    carla_environments:
-      acc:
-        front_car: fixed
+    retraining:
+      sac:
+        retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/best_checkpoints/10points/optimal/sac_bs/seed888/1201/model_1380000_steps_20251202-043918.zip

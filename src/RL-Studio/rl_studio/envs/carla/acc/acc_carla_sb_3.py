@@ -1,58 +1,35 @@
-import os
-import pickle
-import weakref
-from collections import Counter, defaultdict
-import math
-import time
-import carla
-import random
-import cv2
-import torch
-import psutil
-import numpy as np
+import gc
 import json
+import math
+import os
+import random
+import time
 import traceback
+from collections import Counter
 from collections import deque
-from statistics import mean
-from rl_studio.envs.carla.utils.navigation.behavior_agent import BehaviorAgent
-from rl_studio.envs.carla.utils.navigation.behavior_agent import BasicAgent
 
-from pyglet.libs.x11.xlib import None_
-from sympy.solvers.ode import infinitesimals
-import threading
-import rl_studio.config_loader as config_loader
-from rl_studio.envs.carla.utils.modified_tensorboard import ModifiedTensorBoard
+import carla
+import cv2
+import numpy as np
+import torch
+from PIL import Image
+from gymnasium import spaces
+from scipy.interpolate import interp1d
 
 from rl_studio.envs.carla.followlane.followlane_env import FollowLaneEnv
 from rl_studio.envs.carla.followlane.settings import FollowLaneCarlaConfig
-from rl_studio.envs.carla.followlane.utils import AutoCarlaUtils
-from PIL import Image
-from scipy.interpolate import interp1d
-from sklearn.linear_model import LinearRegression
-from gymnasium import spaces
-import gc
-
-from rl_studio.envs.carla.utils.bounding_boxes import BasicSynchronousClient
-from rl_studio.envs.carla.utils.manual_control import CameraManager
+from rl_studio.envs.carla.utils.ground_truth.camera_geometry import (
+    get_intrinsic_matrix,
+    project_polyline,
+    create_lane_lines,
+    get_matrix_global,
+)
+from rl_studio.envs.carla.utils.logger import logger
 from rl_studio.envs.carla.utils.visualize_multiple_sensors import (
     DisplayManager,
     SensorManager,
     CustomTimer,
 )
-import pygame
-
-from rl_studio.envs.carla.utils.ground_truth.camera_geometry import (
-    get_intrinsic_matrix,
-    project_polyline,
-    check_inside_image,
-    create_lane_lines,
-    get_matrix_global,
-    CameraGeometry,
-)
-
-from PIL import Image, ImageTk, ImageDraw
-
-from rl_studio.envs.carla.utils.logger import logger
 
 NO_DETECTED = 0
 
@@ -492,8 +469,75 @@ def normalize_centers(centers):
     states = x_centers_normalized
     y_centers = centers[:, 1]
     y_centers_normalized = (y_centers / 512).tolist()
-    states = states + y_centers_normalized # Returns a list
+    states = states + y_centers_normalized  # Returns a list
     return states, x_centers_normalized, y_centers_normalized
+
+
+def point_to_segment_distance(point, start, end):
+    """
+    Calculates the minimum distance from a point to a line segment.
+
+    Args:
+        point (np.ndarray): The point, shape (2,).
+        start (np.ndarray): The start point of the segment, shape (2,).
+        end (np.ndarray): The end point of the segment, shape (2,).
+
+    Returns:
+        float: The minimum distance from the point to the line segment.
+    """
+    if np.array_equal(start, end):
+        return np.linalg.norm(point - start)
+
+    # Vector from start to end
+    line_vec = end - start
+    # Vector from start to the point
+    point_vec = point - start
+
+    # Project the point_vec onto the line_vec
+    line_len_sq = np.dot(line_vec, line_vec)
+    t = np.dot(point_vec, line_vec) / line_len_sq
+
+    if t < 0.0:
+        # Projection is outside the segment, closest point is 'start'
+        return np.linalg.norm(point - start)
+    elif t > 1.0:
+        # Projection is outside the segment, closest point is 'end'
+        return np.linalg.norm(point - end)
+    else:
+        # Projection is on the segment
+        projection = start + t * line_vec
+        return np.linalg.norm(point - projection)
+
+
+def is_vehicle_on_path(vehicle_point, waypoints, threshold):
+    """
+    Checks if a vehicle is on the path defined by a series of waypoints.
+
+    Args:
+        vehicle_point (tuple or np.ndarray): The (x, y) coordinate of the leading vehicle.
+        waypoints (np.ndarray): A list of waypoints, shape (N, 2).
+        threshold (float): The maximum allowed distance from the path.
+
+    Returns:
+        bool: True if the vehicle is within the threshold distance of the path.
+    """
+    vehicle_point = np.array(vehicle_point)
+    if len(waypoints) < 2:
+        return False
+
+    min_distance = float('inf')
+
+    # Iterate through each segment of the path
+    for i in range(len(waypoints) - 1):
+        start_point = waypoints[i]
+        end_point = waypoints[i + 1]
+        distance = point_to_segment_distance(vehicle_point, start_point, end_point)
+        if distance < min_distance:
+            min_distance = distance
+
+    return min_distance <= threshold
+
+
 
 
 class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
@@ -513,6 +557,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.front_vehicle = None
         self.front_car_collisions = 0
         self.town = None
+        self.v_lead = 0.0
+        self.v_ego = 0.0
+        self.tm = None
+        self.min_lidar_point = None
+
+        self.target_speed = 0.0
 
         self.algorithm_trained =  config.get("algorithm_trained", "unknown")
 
@@ -744,8 +794,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         logger.info(f"[Episode {self.episode}] CLOSE - Actors before cleanup: {len(self.world.get_actors())}")
 
         if self.front_vehicle is not None and self.front_vehicle.is_alive:
-            tm = self.client.get_trafficmanager(self.config["manager_port"])
-            self.front_vehicle.set_autopilot(False, tm.get_port())
+            self.front_vehicle.set_autopilot(False, self.tm.get_port())
             self.world.tick() 
 
         # The new destroy_all_actors is now the primary and only cleanup mechanism
@@ -871,39 +920,28 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
                 if self.front_vehicle and self.front_vehicle not in self.actor_list:
                     self.actor_list.append(self.front_vehicle)
-                # --- End Actor Reuse Strategy ---
+                    self.tm.set_synchronous_mode(True)
 
-                    # 1. Get the Traffic Manager instance (ensure port 8000 is used by default)
-                    tm = self.client.get_trafficmanager(self.config["manager_port"])
+                    self.front_vehicle.set_autopilot(True, self.tm.get_port())
+                    limit_kmh = self.front_vehicle.get_speed_limit()
 
-                    # 2. Set the vehicle to Autopilot
-                    self.front_vehicle.set_autopilot(True, tm.get_port())
+                    random_speed = random.uniform(6, 20)
+                    target_kmh = random_speed * 3.6
 
-                    # 3. Use version-safe commands
-                    tm.ignore_lights_percentage(self.front_vehicle, 100.0)
-                    tm.ignore_signs_percentage(self.front_vehicle, 100.0)
+                    if limit_kmh <= 0:
+                        limit_kmh = 50.0
 
-                    # 4. Stay in lane logic
-                    # In older versions, if you don't allow lane changes,
-                    # the car stays perfectly centered by default.
-                    tm.random_left_lanechange_percentage(self.front_vehicle, 0.0)
-                    tm.random_right_lanechange_percentage(self.front_vehicle, 0.0)
-                    tm.auto_lane_change(self.front_vehicle, False)
+                    percentage = (1.0 - (target_kmh / limit_kmh)) * 100
 
-                    # 5. Control the speed: Set a random speed for each episode
-                    # Convert km/h to m/s for consistency (approx. 10km/h to 70km/h)
-                    random_speed_ms = random.uniform(2.7, 19.4)
-                    
-                    # Get the current speed limit for the vehicle's location
-                    current_speed_limit = self.front_vehicle.get_speed_limit() # in m/s
+                    # Apply to Traffic Manager
+                    self.tm.vehicle_percentage_speed_difference(self.front_vehicle, percentage)
 
-                    if current_speed_limit > 0:
-                        # Calculate the desired speed as a percentage difference from the speed limit
-                        speed_difference = ((random_speed_ms / current_speed_limit) - 1.0) * 100
-                        tm.vehicle_percentage_speed_difference(self.front_vehicle, speed_difference)
-                    else:
-                        # Fallback for areas with no speed limit (e.g., set to a fixed low speed)
-                        tm.vehicle_percentage_speed_difference(self.front_vehicle, -50) # 50% slower than default
+                    # NEW: Ensure the TM follows this speed strictly (1.0 = 100% confidence)
+                    # self.tm.confidence_so_speed_limit(self.front_ehicle, 1.0)
+
+                    # Safety overrides
+                    self.tm.auto_lane_change(self.front_vehicle, False)
+                    # Force the TM into the same sync mode as the world
 
                 else:
                     logger.info("Failed to spawn - location might be occupied")
@@ -925,7 +963,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         (ll_segment,
          misalignment,
          center_distance,
-         center_points) = self.detect_center_line_perfect(raw_image, num_points=self.num_points)
+         center_points,
+         _) = self.detect_center_line_perfect(raw_image, n_points=self.num_points)
 
         final_curvature = calculate_max_curveture_from_centers(center_points)
         mean_curvature = average_curvature_from_centers(center_points)
@@ -990,6 +1029,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             logger.info(f"Waiting for CARLA to become available to reset... after {e}")
             traceback.print_exc()
             self.reconnect_to_carla()
+            time.sleep(1.0)
             return self.reset(seed=seed, options=options)
 
     def calculate_and_report_episode_stats(self):
@@ -1199,11 +1239,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         vehicle.reward = 0
         vehicle.error = 0
 
-        # spectator = self.world.get_spectator()
-        # spectator_location = carla.Transform(
-        #     location.location + carla.Location(z=100),
-        #     carla.Rotation(-90, location.rotation.yaw, 0))
-        # spectator.set_transform(spectator_location)
+        spectator = self.world.get_spectator()
+        spectator_location = carla.Transform(
+            location.location + carla.Location(z=2),
+            carla.Rotation(0, location.rotation.yaw, 0))
+        spectator.set_transform(spectator_location)
 
         return vehicle, location
 
@@ -1246,34 +1286,39 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         logger.info(obstacle_data.other_actor)
         logger.info(f"Obstacle detected at: ")
 
-    def add_lidar_to_vehicle(self, world, vehicle, lidar_range=50.0, channels=32, rotation_frequency=10.0,
-                             points_per_second=56000):
-        # Get the Lidar blueprint
+    def add_lidar_to_vehicle(
+            self,
+            world,
+            vehicle,
+            lidar_range=100.0,
+            channels=32,
+            rotation_frequency=10.0,
+            points_per_second=200000,
+    ):
         blueprint_library = world.get_blueprint_library()
         lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
 
-        # Configure the Lidar settings
-        lidar_bp.set_attribute('range', '100')  # Maximum range in meters
-        # lidar_bp.set_attribute('channels', str(channels))  # Number of vertical channels
-        # lidar_bp.set_attribute('rotation_frequency', str(rotation_frequency))  # Rotations per second
-        # lidar_bp.set_attribute('points_per_second', str(points_per_second))  # Points per second
-        lidar_bp.set_attribute('upper_fov', '5')  # Top angle of vertical FOV (fixed direction)
-        lidar_bp.set_attribute('lower_fov', '1')  # Bottom angle of vertical FOV (fixed direction)
-        lidar_bp.set_attribute('horizontal_fov', '0')  # Single horizontal line
-        lidar_bp.set_attribute('channels', '30')  # Single vertical line
-        lidar_bp.set_attribute('channels', '20')  # Single vertical line
-        lidar_bp.set_attribute('rotation_frequency', '20')  # Keep as is for 10 Hz
-        lidar_bp.set_attribute('points_per_second', '5000')  # Fewer points for a narrow horizontal sweep
+        lidar_bp.set_attribute('range', '80')
+        lidar_bp.set_attribute('channels', '16')
+        lidar_bp.set_attribute('rotation_frequency', '10')
+        lidar_bp.set_attribute('points_per_second', '100000')
 
-        # Set the Lidar sensor's position relative to the vehicle
+        lidar_bp.set_attribute('upper_fov', '1.5')
+        lidar_bp.set_attribute('lower_fov', '-9.0')
+        lidar_bp.set_attribute('horizontal_fov', '40.0')
+
         lidar_transform = carla.Transform(
-            carla.Location(x=1.5, z=0),  # x is forward, z is height
-            carla.Rotation(pitch=0, yaw=5, roll=0)
+            carla.Location(x=1.5, z=1.2),
+            carla.Rotation(pitch=-1, yaw=0, roll=0)
         )
 
-        # Spawn the Lidar sensor and attach it to the vehicle
-        self.lidar_sensor = world.spawn_actor(lidar_bp, lidar_transform, attach_to=vehicle)
-        self.lidar_sensor.listen(lambda data: self.process_lidar_data(data))
+        self.lidar_sensor = world.spawn_actor(
+            lidar_bp,
+            lidar_transform,
+            attach_to=vehicle
+        )
+
+        self.lidar_sensor.listen(self.process_lidar_data)
 
     def lidar_point_to_world(self, lidar_detection):
         # Get the sensor's transformation
@@ -1320,31 +1365,136 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return carla.Location(x=world_x, y=world_y, z=world_z)
 
     def process_lidar_data(self, data):
-        car_location = self.car.get_location()
         min_distance = float('inf')
+        min_point = None
 
-        # Define the range of lateral (Y) distance for "front" filtering (optional)
-        lateral_limit = 2.0  # 2 meters to the left and right of the vehicle's center
+        for d in data:
+            p = d.point
 
-        # Define the angle range for the "cone" of front-facing points
-        front_angle_limit = 30.0  # 30 degrees (left and right) from the center of the vehicle
+            # Distance
+            r = math.sqrt(p.x ** 2 + p.y ** 2 + p.z ** 2)
+            if r < 2.0:
+                continue
 
-        for detection in data:
-            # Transform LiDAR point to world coordinates
-            world_point = self.lidar_point_to_world(detection)
+            # Front only
+            if p.x < 3.0:
+                continue
 
-            # Only consider points ahead of the vehicle and within the cone
-            # if world_point.x > car_location.x and abs(angle) <= front_angle_limit and abs(world_point.y) < lateral_limit:
-            if True:
-                # Compute distance to the car
-                distance = car_location.distance(world_point)
-                if distance < min_distance:
-                    min_distance = distance
+            # Angular cone (≈ 12° total)
+            azimuth = math.degrees(math.atan2(p.y, p.x))
+            if abs(azimuth) > 6.0:
+                continue
 
-                # Visualize the LiDAR point in front of the vehicle
-                # self.world.debug.draw_point(world_point, size=0.1, color=carla.Color(255, 0, 0), life_time=0.1)
-        self.lidar_front_distance = min_distance if not math.isinf(min_distance) else 100
-        # print(f"Closest object in front of the vehicle is {min_distance} meters away.")
+            # Vertical filtering
+            if p.z < -0.3:
+                continue  # ground
+            if p.z > 0.8:
+                continue  # trees / hood
+
+            if r < min_distance:
+                min_distance = r
+                min_point = p
+
+        self.lidar_front_distance = min_distance if min_point else 100.0
+        if min_point:
+            self.min_lidar_point = (min_point.x, min_point.y)
+        else:
+            self.min_lidar_point = None
+
+        dt = 0.05
+        v_lead = self.estimate_v_lead(min_distance, self.v_ego, dt)
+        self.target_speed = self.calculate_rss_speed(min_distance, self.v_ego, v_lead)
+
+        # ---- DEBUG DRAW ----
+        world = self.lidar_sensor.get_world()
+        sensor_tf = self.lidar_sensor.get_transform()
+
+        for d in data:
+            p = d.point
+
+            # Same filters for visualization
+            if p.x < 3.0:
+                continue
+            azimuth = math.degrees(math.atan2(p.y, p.x))
+            if abs(azimuth) > 6.0:
+                continue
+            if p.z < -0.3 or p.z > 0.8:
+                continue
+
+            r = math.sqrt(p.x ** 2 + p.y ** 2 + p.z ** 2)
+            wp = sensor_tf.transform(carla.Location(p.x, p.y, p.z))
+
+            color = carla.Color(0, 255, 0) if abs(r - min_distance) < 0.1 else carla.Color(255, 0, 0)
+
+            world.debug.draw_point(wp, size=0.08, color=color, life_time=0.15)
+
+    def calculate_rss_speed(self, d_measured, v_ego, v_lead):
+        # RSS Parameters
+        rho = 0.5
+        a_max_accel = 2.0
+        a_min_brake = 3.0
+        a_max_brake = 5.0
+        speed_limit = 25.0
+
+        # 1. Calculate minimum safe distance (RSS)
+        term1 = v_ego * rho
+        term2 = 0.5 * a_max_accel * (rho ** 2)
+        term3 = (v_ego + rho * a_max_accel) ** 2 / (2 * a_min_brake)
+        term4 = (v_lead ** 2) / (2 * a_max_brake)
+
+        d_min = term1 + term2 + term3 - term4
+        d_min = max(4.0, d_min)  # hard safety floor
+
+        # 2. Comfort distance
+        d_comfort = d_min + 15.0
+
+        if self.step_count % 10 == 1:
+            print(
+                f"DEBUG | Dist: {d_measured:.2f} | d_min: {d_min:.2f} | "
+                f"EgoV: {v_ego:.2f} | LeadV: {v_lead:.2f}"
+            )
+
+        # 3. Decision Logic
+        # dt = 0.05
+        if d_measured > d_comfort:
+            # Zone 1: Clear road
+            return speed_limit
+            # return min(speed_limit, v_ego + a_max_accel * dt)
+
+        elif d_measured > d_min:
+            # Zone 2: Smooth deceleration toward lead vehicle speed
+            ratio = (d_measured - d_min) / (d_comfort - d_min)
+
+            # 🔧 FIX: interpolate toward CURRENT speed, not speed limit
+            target_speed = v_lead + ratio * (v_ego - v_lead)
+
+            # Never accelerate in this zone
+            return min(v_ego, target_speed)
+
+        else:
+            # Zone 3: Emergency stop
+            return 0.0
+
+    def estimate_v_lead(self, current_dist, v_ego, dt):
+        # Guard against invalid distance or zero time
+        if current_dist >= 100 or dt <= 0:
+            return v_ego  # Assume same speed if no car detected
+
+        if not hasattr(self, 'prev_dist') or self.prev_dist is None:
+            self.prev_dist = current_dist
+            self.v_lead = v_ego
+            return v_ego
+
+        v_rel = (current_dist - self.prev_dist) / dt
+        measured_v_lead = v_ego + v_rel
+
+        # NaN Guard: If measured_v_lead is nan, keep previous
+        if math.isnan(measured_v_lead):
+            return self.v_lead
+
+        self.v_lead = (0.7 * self.v_lead) + (0.3 * measured_v_lead)
+        self.prev_dist = current_dist
+        return max(0, self.v_lead)
 
     def setup_lane_sensor(self, vehicle):
         lane_invasion = self.world.get_blueprint_library().find("sensor.other.lane_invasion")
@@ -1374,24 +1524,53 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             logger.info("Collision with front car detected!")
 
     def destroy_all_actors(self):
-        # Use a single, atomic batch command to destroy all actors.
-        # This is the recommended and most robust way to clean up the world.
-        if not self.actor_list:
+        if not self.actor_list and not hasattr(self, 'colsensor'):
             return
 
-        for _ in range(3):  # 3 ticks is the 'magic' number for TM stability
-            self.world.tick()
+        # 1. Stop the Traffic Manager's interest in the vehicles first
+        for actor in self.actor_list:
+            if actor is not None and actor.is_alive and "vehicle" in actor.type_id:
+                try:
+                    actor.set_autopilot(False)
+                except:
+                    pass
 
-        # Check for is_alive to prevent trying to destroy actors that the server already lost track of
-        self.colsensor.destroy()
-        self.lidar_sensor.destroy()
+        # 2. SEPARATE SENSORS FROM VEHICLES
+        # We identify specific sensors and anything in the actor_list that is a sensor
+        sensors = []
+        if hasattr(self, 'colsensor') and self.colsensor: sensors.append(self.colsensor)
+        if hasattr(self, 'lidar_sensor') and self.lidar_sensor: sensors.append(self.lidar_sensor)
 
-        destroy_commands = [carla.command.DestroyActor(x) for x in self.actor_list if x is not None and hasattr(x, 'is_alive') and x.is_alive]
-        if destroy_commands:
-            self.client.apply_batch(destroy_commands)
+        # Add any sensors that might be in the general actor_list
+        sensors.extend([x for x in self.actor_list if 'sensor' in x.type_id])
+
+        # 3. STOP AND DESTROY SENSORS FIRST
+        for s in sensors:
+            if s is not None and s.is_alive:
+                try:
+                    s.stop()  # Tells the C++ back-end to stop the data stream
+                    s.destroy()
+                except Exception as e:
+                    print(f"Error destroying sensor: {e}")
+
+        # 4. BATCH DESTROY VEHICLES AND OTHER ACTORS
+        # We filter out sensors because they are already handled
+        remaining_actors = [x for x in self.actor_list if x.is_alive and 'sensor' not in x.type_id]
+
+        if remaining_actors:
+            destroy_commands = [carla.command.DestroyActor(x) for x in remaining_actors]
+            self.client.apply_batch_sync(destroy_commands, True)  # Use sync to wait for server confirmation
+
+        # 5. CLEANUP REFERENCES
         self.actor_list.clear()
+        self.colsensor = None
+        self.lidar_sensor = None
+        self.front_vehicle = None
 
-        for _ in range(3):  # 3 ticks is the 'magic' number for TM stability
+        # 6. FINAL SETTLING TICKS
+        # This clears the buffer and ensures the "invalid session" errors are flushed
+        time.sleep(0.1)
+        for _ in range(5):
             self.world.tick()
 
     def show_debug_points(self, centers):
@@ -1450,7 +1629,20 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         return all_x_points, all_x_normalized
 
+    def maintain_lead_car_speed(self, target_ms=5.0):
+        # 1. Get the current orientation of the lead car
+        target_transform = self.front_vehicle.get_transform()
+        forward_vector = target_transform.get_forward_vector()
+
+        # 2. Set the velocity vector directly (Magnitude * Direction)
+        # This forces the car to 5m/s exactly in its forward direction
+        self.front_vehicle.set_target_velocity(forward_vector * target_ms)
+
+        # 3. Optional: Kill angular velocity to keep it perfectly straight
+        self.front_vehicle.set_target_angular_velocity(carla.Vector3D(0, 0, 0))
+
     def apply_step(self, action):
+
         # if self.all_steps % 10:
         #     print(self.car.get_transform())
         self.all_steps += 1
@@ -1465,6 +1657,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.car.v_goal = 0
 
         params = self.control(action)
+        self.v_ego = params["velocity"]
 
         now = time.time()
         elapsed_time = now - self.previous_time
@@ -1487,7 +1680,24 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         (ll_segment,
          misalignment,
          center_distance,
-         centers) = self.detect_center_line_perfect(raw_image, num_points=self.num_points)
+         centers,
+         local_metric_waypoints) = self.detect_center_line_perfect(raw_image, n_points=self.num_points)
+
+        is_on_path = False
+        if self.min_lidar_point and local_metric_waypoints.size > 0:
+            # Adjust lidar point for sensor offset (x=1.5m forward)
+            lidar_point_local = (self.min_lidar_point[0] + 1.5, self.min_lidar_point[1])
+
+            is_on_path = is_vehicle_on_path(
+                vehicle_point=lidar_point_local,
+                waypoints=local_metric_waypoints,
+                threshold=1.5  # Threshold in meters
+            )
+            if self.step_count % 20 == 0:
+                if is_on_path:
+                    print("DEBUG: LIDAR point IS ON the path.")
+                else:
+                    print("DEBUG: LIDAR point is NOT on the path.")
 
         final_curvature = calculate_max_curveture_from_centers(centers)
         mean_curvature = average_curvature_from_centers(centers)
@@ -1517,6 +1727,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.v_goal_buffer.append(v_goal)
         v_goal = sum(self.v_goal_buffer) / len(self.v_goal_buffer)
+        # Adding the min between the curvature smooth calculation and the ACC safety layer
+        if self.min_lidar_point and is_on_path:
+            v_goal = min(v_goal, self.target_speed)
+        if self.step_count % 10 == 1:
+            print(f"target_speed = {self.target_speed}")
+            print(f"v_goal = {v_goal}")
 
         params["final_curvature"] = final_curvature
         # half_image = len(x_centers_normalized)//2
@@ -1530,8 +1746,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.car.reward = reward
         self.cumulated_reward = self.cumulated_reward + reward
         self.episodes_speed.append(params["velocity"])
-
-        # states = right_lane_normalized_distances
 
         if self.normalize:
             states.append(params["velocity"] / 25)
@@ -1548,13 +1762,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             states.append(v_goal / 25)
         else:
             states.append(v_goal)
-        # states.append(last_points[0])
-       # states.append(last_points[1])
         states.append(self.lidar_front_distance/100)
-        # states.append(curvature * 10)
         # states.append(params["angular_velocity"]/100)
-        # if self.use_curves_state:
-        #     states.append(curve)
 
         self.prev_action = action
         if self.visualize:
@@ -1614,7 +1823,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     ################################################################################
     def step(self, action):
-        # time.sleep(0.1)
+       # time.sleep(0.2)
         self.step_count += 1
 
         # --- Heartbeat Mechanism ---
@@ -1736,7 +1945,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         if self.is_out(center_distance):
             return punish_deviation, True, self.has_crashed()
 
-        d_reward = (1 - abs(center_distance)) ** self.punish_braking
+        d_reward = (1 - abs(center_distance)) ** 2
 
         v = params["velocity"]
 
@@ -1759,7 +1968,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # aligned_component = abs(0.5 - np.mean(x_centers_normalized)) * ~ 5 DID NOT IMPROVE!
 
         function_reward = d_reward_component + v_reward_component
-        if v < self.punish_ineffective_vel:
+        if v <= self.punish_ineffective_vel and v_goal > self.punish_ineffective_vel :
             self.steps_stopped += 1
             if self.steps_stopped > 100:
                 logger.info("too much time stopped")
@@ -2003,7 +2212,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         return np.array(adjusted_polyline)
 
-    def detect_center_line_perfect(self, ll_segment, num_points=20):
+    def detect_center_line_perfect(self, ll_segment, n_points=20):
         ll_segment = cv2.cvtColor(ll_segment, cv2.COLOR_BGR2GRAY)
 
         height = ll_segment.shape[0]
@@ -2018,11 +2227,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         opposite = alignment < 0.5
         misalignment = (1 - abs(alignment)) * 10
 
-        center_list, current_wp = (
-            self.get_stable_lane_lines(opposite=opposite))
+        center_list, current_wp = self.get_stable_lane_lines(opposite=opposite)
 
+        local_metric_waypoints = np.array([])
         if center_list is None or len(center_list) < 2:
-            interpolated_center = np.full((num_points, 2), self.NON_DETECTED)
+            interpolated_center = np.full((n_points, 2), self.NON_DETECTED)
+            self.lane_points = None
         else:
             projected_center = project_polyline(
                 center_list, trafo_matrix_global_to_camera, self.k, image_shape=ll_segment.shape
@@ -2036,24 +2246,43 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             ])
 
             if np.sum(mask) < 2:
-                interpolated_center = np.full((num_points, 2), self.NON_DETECTED)
+                interpolated_center = np.full((n_points, 2), self.NON_DETECTED)
+                local_metric_waypoints = np.array([])
             else:
                 # Apply the same mask to both 2D and 3D data
-                visible_center = projected_center[mask]
+                visible_center_pixels = projected_center[mask]
+                visible_center_world = center_list[mask]
+
                 # In lane_points just remove the points that are not visible because they are behind the car
                 for i, keep in enumerate(mask):
                     if keep:
                         first_true_index = i
                         break
+                else:
+                    # If mask is all False, remove all points
+                    first_true_index = len(mask)
                 self.lane_points["center"] = self.lane_points["center"][first_true_index:]
 
-                interpolated_center = interpolate_lane_points(visible_center, num_points)
+                # Get local metric coordinates for the visible waypoints
+                vehicle_transform = self.car.get_transform()
+                inverse_matrix = vehicle_transform.get_inverse_matrix()
+                # Convert carla.Matrix to a numpy array
+                inverse_transform_np = np.array(inverse_matrix)
 
-            if len(self.lane_points["center"]) < 30:
-                self.lane_points = None
+                local_points_2d = []
+                for world_point_np in visible_center_world:
+                    # Create a homogeneous coordinate for the world point
+                    point_homogeneous = np.array([world_point_np[0], world_point_np[1], world_point_np[2], 1.0])
+                    # Transform to local coordinates by matrix multiplication
+                    local_point_homogeneous = np.dot(inverse_transform_np, point_homogeneous)
+                    # The result is a homogeneous coordinate, we only need x and y
+                    local_points_2d.append((local_point_homogeneous[0], local_point_homogeneous[1]))
+                local_metric_waypoints = np.array(local_points_2d)
 
-        # If interpolation failed, return dummy points
-        return ll_segment, misalignment, center_distance, interpolated_center
+
+                interpolated_center = interpolate_lane_points(visible_center_pixels, n_points)
+                self.last_valid_centers = interpolated_center
+        return ll_segment, misalignment, center_distance, interpolated_center, local_metric_waypoints
 
     def get_stable_lane_lines(self, segment_length: int = 80,
                               opposite: bool = False,
@@ -2262,8 +2491,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             carla.Transform(carla.Location(x=0, y=0, z=100), carla.Rotation(pitch=-90)),
             self.car,
             {},
-            display_pos=[1, 0],
-            actor_list=self.actor_list
+            display_pos=[1, 0]
         )
 
         self.front_camera_1_5 = SensorManager(
@@ -2276,8 +2504,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             ),
             self.car,
             {},
-            display_pos=[0, 0],
-            actor_list=self.actor_list
+            display_pos=[0, 0]
         )
 
         self.front_camera_1_5_segmentated = SensorManager(
@@ -2290,8 +2517,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             ),
             self.car,
             {},
-            display_pos=[0, 1],
-            actor_list=self.actor_list
+            display_pos=[0, 1]
         )
 
         self.ego_camera = SensorManager(
@@ -2301,8 +2527,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             carla.Transform(carla.Location(x=-2, y=0, z=4), carla.Rotation(pitch=-10)),
             self.car,
             {},
-            display_pos=[1, 1],
-            actor_list=self.actor_list
+            display_pos=[1, 1]
         )
 
         # self.front_camera_1_5_red_mask = SensorManager(
@@ -2492,7 +2717,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def load_world(self, client, town):
         # print(f"\n maps in carla 0.9.13: {client.get_available_maps()}\n")
-        # traffic_manager = client.get_trafficmanager(self.config["manager_port"])
         world = client.load_world(town)
         logger.info(f"loading world {town}, {self.algorithm_trained}")
         time.sleep(2.0)  # Needed to the simulator to be ready. TODO May be decrease to 1?
@@ -2539,15 +2763,16 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def load_world_settings(self, world):
         settings = world.get_settings()
-        traffic_manager = self.client.get_trafficmanager(self.config["manager_port"])
         self.forced_freq = self.config.get("async_forced_delta_seconds")
+        self.tm = self.client.get_trafficmanager(self.config["manager_port"])
+
         if self.sync_mode:
             settings.max_substep_delta_time = 0.02
             settings.fixed_delta_seconds = self.config.get("fixed_delta_seconds")
             settings.synchronous_mode = True
-            traffic_manager.set_synchronous_mode(True)
+            self.tm.set_synchronous_mode(True)
         else:
-            traffic_manager.set_synchronous_mode(False)
+            self.tm.set_synchronous_mode(False)
         world.apply_settings(settings)
 
     def update_from_hot_config(self, config):

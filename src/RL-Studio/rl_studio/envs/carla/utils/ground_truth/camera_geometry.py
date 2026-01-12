@@ -29,7 +29,8 @@ def project_polyline(points_3d, trafo, K, image_shape=None):
 
     # Step 4: Project to image plane
     points_2d = (K @ points_cam[:, :3].T).T
-    points_2d = points_2d[:, :2] / points_cam[:, 2:3]  # Normalize x/z and y/z
+    points_2d = points_2d / points_2d[:, 2:3]  # Normalize x, y, and z by z
+    points_2d = points_2d[:, :2]  # Keep only x and y
 
     # Step 5 (NEW): Remove out-of-bounds pixels
     # if image_shape is not None:
