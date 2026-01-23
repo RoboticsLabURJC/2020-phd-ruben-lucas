@@ -51,7 +51,7 @@ class Carla:
             return FollowLaneStaticWeatherNoTraffic(**environment)
 
         elif framework == "baselines":
-            from rl_studio.envs.carla.followlane.followlane_carla_sb import (
+            from rl_studio.envs.carla.followlane.followlane_carla import (
                 FollowLaneStaticWeatherNoTraffic,
             )
 

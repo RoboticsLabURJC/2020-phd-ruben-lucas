@@ -91,8 +91,6 @@ def orchestrate(experiments):
             algorithm = exp.get("settings", {}).get("algorithm", None)
             task = exp.get("settings", {}).get("task", None)
 
-            crashed = False
-
             if use_heartbeat:
                 while process.poll() is None:
                     time.sleep(30)  # Check every 30 seconds
@@ -102,7 +100,6 @@ def orchestrate(experiments):
                         if (time.time() - last_heartbeat) > 60:  # 60-second timeout
                             print(f"[{datetime.now()}] SUPERVISOR: 🛑 Heartbeat is stale. Worker process has frozen.")
                             process.kill()  # Terminate the frozen worker
-                            crashed = True
                             break
                     else:
                         # If the file doesn't exist yet, just wait for it to be created

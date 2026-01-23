@@ -92,17 +92,7 @@ checkpoint = torch.load("envs/carla/utils/yolop/weights/End-to-end.pth",
 yolop_model.load_state_dict(checkpoint['state_dict'])
 yolop_model = yolop_model.to(device)
 
-# Ensure you have the YOLOPv2 source files in your utils folder
-# 1. Standard Transforms (Keep these, they are the same for v2)
-import torchvision.transforms as transforms
 
-yolop_v2_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-])
-
-# 2. INIT YOLOPv2
-# Load the model directly using torch.jit or the model class
 yolop_v2_model = torch.jit.load(
     "envs/carla/utils/yolop/weights/yolopv2.pt",
     map_location=device
@@ -110,8 +100,13 @@ yolop_v2_model = torch.jit.load(
 yolop_v2_model.to(device)
 yolop_v2_model.eval()  # CRITICAL for inference quality
 
+
+lane_model = torch.load('envs/carla/utils/lane_det/fastai_torch_lane_detector_model.pth')
+lane_model.eval()
+
 lane_model_v3 = torch.load('envs/carla/utils/lane_det/best_model_torch.pth')
-lane_model = None
+lane_model_v3.eval()
+
 
 def post_process(ll_segment):
     ''''
@@ -421,268 +416,26 @@ def detect_yolop(raw_image):
     return ll_seg_mask
 
 
-# global variable for temporal smoothing
-prev_fit = None
-
-def handle_detection_failure(ll_seg_mask):
-    """
-    Handles cases where lane detection fails.
-    For the benchmark, we return empty lists, indicating no detection.
-    """
-    # Create an empty debug viz of the same size as the mask
-    debug_image = np.zeros((ll_seg_mask.shape[0], ll_seg_mask.shape[1], 3), dtype=np.uint8)
-    return np.zeros_like(ll_seg_mask), [], [], debug_image
-
 def detect_yolop_v2(raw_image):
-    # Standard resize to the native resolution YOLOPv2 expects
-    # Ensure this matches the 640x384 or 640x640 your model was trained on
-    raw_image = cv2.resize(raw_image, (640, 384))
+    # Get names and colors
+    names = yolop_model.module.names if hasattr(yolop_model, 'module') else yolop_model.names
 
-    img = yolop_v2_transform(raw_image).to(device)
+    # Run inference
+    img = transform(raw_image).to(device)
+    img = img.float()  # uint8 to fp16/32
     if img.ndimension() == 3:
         img = img.unsqueeze(0)
 
     # Inference
-    outputs = yolop_v2_model(img)
+    det_out, da_seg_out, ll_seg_out = yolop_v2_model(img)
+    ll_seg_mask = torch.argmax(da_seg_out, dim=1).squeeze(0).cpu().numpy().astype(np.uint8)
 
-    # DEBUG: Uncomment this once to see the shapes in your console
-    # for i, out in enumerate(outputs): print(f"Index {i} shape: {out.shape}")
-
-    # For YOLOPv2 JIT, the lane line is usually at index 2 or 1
-    # We select the lane head and apply softmax for better quality
-    ll_seg_out = outputs[2]
-
-    # QUALITY UPGRADE: Interpolate back to original resolution first
-    # This prevents the "blocky" look in the raw window
-    ll_seg_mask = torch.nn.functional.interpolate(
-        ll_seg_out,
-        size=(raw_image.shape[0], raw_image.shape[1]),
-        mode='bilinear',
-        align_corners=False
-    )
-
-    # Apply sigmoid to convert logits to probabilities
-    probs = torch.sigmoid(ll_seg_mask)
-
-    # Squeeze and convert to numpy for OpenCV operations
-    probs_np = probs.squeeze().cpu().numpy()
-
-    # --- Advanced Post-Processing ---
-    # 1. Bilateral Filter: Smooth while preserving edges
-    # blurred = cv2.bilateralFilter((probs_np * 255).astype(np.uint8), 9, 75, 75)
-
-    # 2. Otsu's Thresholding: Find the optimal threshold to create a binary mask
-    _, binary_mask = cv2.threshold(
-        (probs_np * 255).astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
-    )
-
-    # 3. Morphological Closing: Fill gaps in the detected lines
-    kernel = np.ones((5, 5), np.uint8)
-    cleaned_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel)
-
-    return cleaned_mask
-
-def _find_and_draw_lane_boundaries(binary_mask):
-    height, width = binary_mask.shape
-    debug_viz = np.zeros((height, width, 3), dtype=np.uint8)
-    output_mask = np.zeros_like(binary_mask)
-    center_x = width // 2
-
-    # 1. Connected Components
-    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
-
-    left_label_counts = np.zeros(num_labels)
-    right_label_counts = np.zeros(num_labels)
-
-    # PASS 1: Find the most consistent objects for ego-lane
-    for y in range(0, height, 4):
-        # Scan Left half
-        l_pixels = np.where(binary_mask[y, :center_x] > 0)[0]
-        if len(l_pixels) > 0:
-            label_id = labels[y, l_pixels[-1]]
-            if label_id > 0: left_label_counts[label_id] += 1
-
-        # Scan Right half
-        r_pixels = np.where(binary_mask[y, center_x:] > 0)[0]
-        if len(r_pixels) > 0:
-            label_id = labels[y, r_pixels[0] + center_x]
-            if label_id > 0: right_label_counts[label_id] += 1
-
-    best_left_label = np.argmax(left_label_counts) if np.any(left_label_counts > 0) else -1
-    best_right_label = np.argmax(right_label_counts) if np.any(right_label_counts > 0) else -1
-
-    # PASS 2: Morphological Cleanup for the Winners
-    # This fills 'holes' inside the lines so the boundary search doesn't get stuck inside the line
-    kernel = np.ones((3, 3), np.uint8)
-
-    def get_clean_mask(label_id):
-        if label_id == -1: return None
-        mask = (labels == label_id).astype(np.uint8) * 255
-        # Closing fills small holes; Dilation ensures we catch the outermost pixel
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-        return mask
-
-    clean_left_mask = get_clean_mask(best_left_label)
-    clean_right_mask = get_clean_mask(best_right_label)
-
-    # Color the cleaned winners
-    if clean_left_mask is not None: debug_viz[clean_left_mask > 0] = [60, 0, 0]
-    if clean_right_mask is not None: debug_viz[clean_right_mask > 0] = [0, 0, 60]
-
-    # PASS 3: Final Boundary Extraction
-    center_points = []
-    for y in range(0, height, 4):
-        y_edge, o_edge = -1, -1
-
-        # STRICTEST LEFT BOUNDARY: The absolute furthest RIGHT pixel of the winner
-        if clean_left_mask is not None:
-            l_pixels = np.where(clean_left_mask[y, :] > 0)[0]
-            if len(l_pixels) > 0:
-                y_edge = np.max(l_pixels)  # Maximum X on the left side
-                cv2.circle(debug_viz, (y_edge, y), 2, (0, 255, 255), -1)  # YELLOW
-
-        # STRICTEST RIGHT BOUNDARY: The absolute furthest LEFT pixel of the winner
-        if clean_right_mask is not None:
-            r_pixels = np.where(clean_right_mask[y, :] > 0)[0]
-            if len(r_pixels) > 0:
-                o_edge = np.min(r_pixels)  # Minimum X on the right side
-                cv2.circle(debug_viz, (o_edge, y), 2, (0, 165, 255), -1)  # ORANGE
-
-        if y_edge != -1 and o_edge != -1:
-            mid_x = (y_edge + o_edge) // 2
-            center_points.append([mid_x, y])
-            cv2.circle(debug_viz, (mid_x, y), 2, (0, 255, 0), -1)  # GREEN
-
-    # PASS 4: Polyfit with RANSAC Filtering
-    poly_points = []
-    if len(center_points) > 10:  # Increased minimum slightly for RANSAC stability
-        try:
-            c_pts = np.array(center_points)
-
-            # --- RANSAC FILTERING START ---
-            from sklearn.linear_model import RANSACRegressor
-
-            X = c_pts[:, 1].reshape(-1, 1)  # Y is our independent variable (driving vertically)
-            y = c_pts[:, 0]  # X is what we want to predict
-
-            # residual_threshold is the max pixel distance allowed from the model
-            # set it to 15-20 for lane detection in 640x480 resolution
-            ransac = RANSACRegressor(residual_threshold=15.0)
-            ransac.fit(X, y)
-
-            # Keep only the inliers
-            inlier_mask = ransac.inlier_mask_
-            c_pts = c_pts[inlier_mask]
-            # --- RANSAC FILTERING END ---
-
-            # Now fit the curve using ONLY the cleaned points
-            fit = np.polyfit(c_pts[:, 1], c_pts[:, 0], 2)
-            y_min, y_max = c_pts[:, 1].min(), height - 1
-            plot_y = np.linspace(y_min, y_max, 25).astype(int)
-            fit_x = np.poly1d(fit)(plot_y).astype(int)
-
-            pts = np.array([np.transpose(np.vstack([fit_x, plot_y]))], np.int32)
-            cv2.polylines(output_mask, pts, False, 255, 2)
-            cv2.polylines(debug_viz, pts, False, (255, 255, 255), 1)
-            poly_points = pts.squeeze()
-        except Exception as e:
-            print(f"RANSAC/Fit Error: {e}")
-            pass
-
-    return output_mask, poly_points, center_points, debug_viz
-
-def detect_lanes_yolop_v2_agent(image, save_path_intermediate_dir=None, img_path=None):
-    with torch.no_grad():
-        ll_segment = detect_yolop_v2(image)
-    if save_path_intermediate_dir and img_path:
-        base_name = Path(img_path).name
-        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"raw_{base_name}"), ll_segment)
-
-    # Store the raw detection for visualization before processing
-    masked_ll_segment = ll_segment.copy()
-
-    # Find, fit, and draw full lane boundaries using polynomials
-    extended_lanes_mask, poly_points, filtered_points, debug_viz = _find_and_draw_lane_boundaries(ll_segment)
-    # 7. RENDER
-    if save_path_intermediate_dir and img_path:
-        base_name = Path(img_path).name
-        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"Edge-Optimized_Consensus_Debug_{base_name}"), debug_viz)
-
-    # 2. CALCULATION: Derive 10 evenly spaced points
-    width = image.shape[1]
-    center_image_x = width // 2
-    num_agent_points = 10
-    center_lanes = []
-    if len(poly_points) > 0:
-        # Get vertical bounds and sample 10 points
-        y_min = np.min(poly_points[:, 1])
-        y_max = np.max(poly_points[:, 1])
-        target_y_coords = np.linspace(y_min, y_max, num_agent_points).astype(int)
-
-        # Fit polynomial for precise sampling
-        fit = np.polyfit(poly_points[:, 1], poly_points[:, 0], 2)
-        curve_fn = np.poly1d(fit)
-
-        for y_coord in target_y_coords:
-            x_val = np.clip(curve_fn(y_coord), 0, width - 1)
-            center_lanes.append([int(x_val), int(y_coord)])
-
-        center_lanes = np.array(center_lanes)
-        valid_points_x = center_lanes[:, 0]
-
-        # --- IMPROVED: SIGNED WEIGHTED DISTANCE CALCULATION ---
-        # Calculate raw error: positive means car is too far left, negative too far right
-        # (Assuming x increases to the right)
-        raw_errors = (valid_points_x - center_image_x)
-
-        # Weights: points are sorted from top (horizon) to bottom (bumper).
-        # We want the bumper points (index -1) to have the most influence.
-        weights = np.linspace(0.2, 1.0, num_agent_points)
-        weighted_error = np.sum(raw_errors * weights) / np.sum(weights)
-
-        # Normalization: Map to [-1, 1].
-        # width // 4 represents a reasonable 'off-lane' threshold for sensitivity
-        MAX_DEV = width // 4
-        distance_to_center = np.clip(weighted_error / MAX_DEV, -1.0, 1.0)
-    else:
-        # Fallback if perception fails
-        center_lanes = np.array([[0, 0] for _ in range(num_agent_points)])
-        distance_to_center = 1.0  # Max error
-
-    centers_image = np.zeros_like(image)
-    if len(poly_points) > 0:
-        cv2.polylines(centers_image, [poly_points], False, (0, 255, 255), 2)
-        for point in center_lanes:
-            cv2.circle(centers_image, (point[0], point[1]), 5, (255, 0, 255), -1)
-
-    gray_overlay = cv2.cvtColor(centers_image, cv2.COLOR_BGR2GRAY)
-    mask_3ch = np.stack([gray_overlay > 0] * 3, axis=-1)
-    stacked_image = np.where(mask_3ch, centers_image, image)
-    # 7. RENDER
-    if save_path_intermediate_dir and img_path:
-        base_name = Path(img_path).name
-        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"overlayed_image_{base_name}"), stacked_image)
-    det_img = cv2.cvtColor(masked_ll_segment, cv2.COLOR_GRAY2BGR)
-    for pt in center_lanes:
-            cv2.circle(det_img, (pt[0], pt[1]), 4, (255, 0, 255), -1)
-    if save_path_intermediate_dir and img_path:
-        base_name = Path(img_path).name
-        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"Detections_with_Centers_{base_name}"), det_img)
-    # cv2.waitKey(0)
-
-    # Normalize for the rest of the pipeline
-    return (extended_lanes_mask / 255).astype(np.uint8), distance_to_center, center_lanes, center_lanes
+    return ll_seg_mask
 
 
-def normalize_centers(centers):
-    x_centers = centers[:, 0]
-    x_centers_normalized = (x_centers / 640).tolist()
-    states = x_centers_normalized
-    y_centers = centers[:, 1]
-    y_centers_normalized = (y_centers / 384).tolist() # Adjusted for 384 height
-    states = states + y_centers_normalized # Returns a list
-    return states, x_centers_normalized, y_centers_normalized
-        
+
+
+# TODO All "merged" part is not needed for lane_detector
 def merge_and_extend_lines(lines, ll_segment):
     # Merge parallel lines
     merged_lines = []
@@ -774,7 +527,7 @@ def extract_green_lines(image):
 
     return green_mask
 
-def detect_lines(raw_image, detection_mode, processing_mode, img_path, save_path_intermediate_dir=None):
+def detect_lines(raw_image, detection_mode, processing_mode):
     if detection_mode == 'carla_perfect':
 
         green_mask = extract_green_lines(raw_image)
@@ -799,9 +552,14 @@ def detect_lines(raw_image, detection_mode, processing_mode, img_path, save_path
         else:
             lines = post_process_hough_programmatic(processed if apply_mask else ll_segment)
     elif detection_mode == 'yolop_v2':
-        detected_lines, distance_to_center, distance_to_center_normalized, centers = detect_lanes_yolop_v2_agent(raw_image, save_path_intermediate_dir, img_path)
-        x_centers = [point[0] for point in centers]
-        return detected_lines, distance_to_center, distance_to_center_normalized, np.array(x_centers)
+        with torch.no_grad():
+            ll_segment = (detect_yolop_v2(raw_image) * 255).astype(np.uint8)
+        cv2.imshow("raw", ll_segment) if show_images else None
+        if processing_mode == 'none':
+            lines = ll_segment
+        else:
+            processed = post_process(ll_segment)
+            lines = post_process_hough_yolop(processed if apply_mask else ll_segment)
     elif detection_mode == 'yolop':
         with torch.no_grad():
             ll_segment = (detect_yolop(raw_image) * 255).astype(np.uint8)
@@ -811,6 +569,7 @@ def detect_lines(raw_image, detection_mode, processing_mode, img_path, save_path
         else:
             processed = post_process(ll_segment)
             lines = post_process_hough_yolop(processed if apply_mask else ll_segment)
+    # TODO refactor to not duplicate code in following branches
     elif detection_mode == "lane_det_v3":
         with torch.no_grad():
             ll_segment, left_mask, right_mask = detect_lane_detector_v3(raw_image)[0]
@@ -877,17 +636,7 @@ def detect_lines(raw_image, detection_mode, processing_mode, img_path, save_path
         detected_lines[:boundary_y, :] = 0
         detected_lines = (detected_lines // 255).astype(np.uint8)  # Keep the lower one-third of the image
 
-    (
-        center_lanes_old,
-        distance_to_center_normalized,
-    ) = calculate_center_v1(detected_lines)
-    right_lane_normalized_distances, right_center_lane = choose_lane_v1(distance_to_center_normalized,
-                                                                            center_lanes_old)
-    centers = np.array(right_lane_normalized_distances)
-    distance_to_center = np.mean(centers)
-
-    return detected_lines, distance_to_center, distance_to_center_normalized, centers
-
+    return detected_lines
 
 def choose_lane(distance_to_center_normalized, center_points):
     last_row = len(x_row) - 1
@@ -1170,9 +919,7 @@ def calculate_lines_counts_above(threshold, left_perc, right_perc):
         (np.sum((np.array(left_perc) < threshold) & (np.array(right_perc) < threshold)) / len(left_perc)) * 100,
     ]
 
-def perform_all_benchmarking(dataset, processing_mode, detection_modes=None):
-    if detection_modes is None:
-        detection_modes = []
+def perform_all_benchmarking(dataset, processing_mode):
     # Create the save directory if it doesn't exist
     save_results_benchmark_dir = str(opt.save_dir + "/benchmark/" + processing_mode + "/")
     save_results_benchmark_path = Path(save_results_benchmark_dir)
@@ -1187,72 +934,183 @@ def perform_all_benchmarking(dataset, processing_mode, detection_modes=None):
             except Exception as e:
                 print(f"Error deleting file {save_results_benchmark_dir}: {e}")
 
-    all_modes = {
-        "yolop": "YOLOP",
-        "yolop_v2": "YOLOP_V2",
-        "lane_det_v3": "Lane Detector_v3",
-        "lane_detector": "Lane Detector_v2",
-        "programmatic": "Programmatic",
-        "carla_perfect": "Perfect"
-    }
-    
-    modes_to_run = detection_modes if detection_modes else all_modes.keys()
+    # Benchmarking data (these would be populated by your benchmark_one function)
+    yolop_times, yolop_errors, yolop_left_perc, yolop_right_perc, percentage_yolop = benchmark_one(dataset, "yolop",
+                                                                                                   processing_mode)
+    yolop_v2_times, yolop_v2_errors, yolop_v2_left_perc, yolop_v2_right_perc, percentage_yolop_v2 = benchmark_one(dataset, "yolop_v2",
+                                                                                                   processing_mode)
+    lane_det_v3_times, lane_detector_v3_errors, lane_detector_v3_left_perc, lane_detector_v3_right_perc, percentage_v3_lane = benchmark_one(
+        dataset, "lane_det_v3", processing_mode)
+    lane_det_times, lane_detector_errors, lane_detector_left_perc, lane_detector_right_perc, percentage_lane = benchmark_one(
+        dataset, "lane_detector", processing_mode)
 
-    results = {}
+    programmatic_times, programmatic_errors, programmatic_left_perc, programmatic_right_perc, percentage_programmatic = benchmark_one(
+        dataset, "programmatic", processing_mode)
 
-    for mode in modes_to_run:
-        if mode in all_modes:
-            if processing_mode == 'none' and mode in ['yolop_v2']:
-                print(f"Skipping {mode} for processing_mode {processing_mode}.")
-                continue
-            print(f"Running benchmark on {mode} with processing_mode: {processing_mode}")
-            times, errors, left_perc, right_perc, percentage = benchmark_one(dataset, mode, processing_mode)
-            results[mode] = {
-                "times": times, "errors": errors, "left_perc": left_perc,
-                "right_perc": right_perc, "percentage": percentage, "label": all_modes[mode]
-            }
+    perfect_times, perfect_errors, perfect_left_perc, perfect_right_perc, percentage_perfect = benchmark_one(
+        dataset, "carla_perfect", processing_mode)
 
-    if not results:
-        print("No benchmarks were run. Exiting.")
-        return
-        
-    # Dynamically build lists for plotting
-    labels = [res["label"] for res in results.values()]
-    percentages = [res["percentage"] for res in results.values()]
-    times = [np.mean(res["times"]) for res in results.values()]
-    errors = [np.mean(res["errors"]) for res in results.values()]
-    
-    # Generate colors for the plots
-    base_colors = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'pink']
-    colors = [base_colors[i % len(base_colors)] for i in range(len(labels))]
+    # Plot 1: Average errors and calculation time
+    labels = ['YOLOP', 'YOLOP_V2', 'Lane Detector_v2', 'Lane Detector_v3', 'Perfect',  'Programmatic']
+    percentages = [percentage_yolop, percentage_yolop_v2, percentage_lane, percentage_v3_lane, percentage_perfect, percentage_programmatic]
+    colors = ['blue', 'orange', 'green', 'black', 'red', 'yellow']
 
-    # Plot 1: Percentage of Detected Images
+    if processing_mode == "none":
+        labels.pop(5)
+        percentages.pop(5)
+        colors.pop(5)
+
     plt.figure(figsize=(10, 10))
+    plt.subplot(1, 1, 1)
     plt.bar(labels, percentages, color=colors)
     plt.title('Percentage of Detected Images')
-    plt.ylabel('Percentage of images perfectly detected')
+    plt.ylabel('Percentage of images in which images are perfectly detected')
     plt.ylim(0, 100)
+
     plt.savefig(save_results_benchmark_path / 'plot0.png')
     plt.close()
 
-    # Plot 2: Average Times
+    times = [np.mean(yolop_times), np.mean(yolop_v2_times), np.mean(lane_det_times), np.mean(lane_det_v3_times), np.mean(programmatic_times), np.mean(perfect_times)]
+    colors = ['blue', 'orange', 'green', 'black', 'red', 'yellow']
+
+    if processing_mode == "none":
+        times.pop(5)
+        colors.pop(5)
+
     plt.figure(figsize=(10, 10))
+    plt.subplot(1, 1, 1)
     plt.bar(labels, times, color=colors)
     plt.title('Average Times')
     plt.ylabel('Time (s)')
+
     plt.savefig(save_results_benchmark_path / 'plottimes.png')
     plt.close()
-    
+
+    calculate_and_plot_lines_counts_above(save_results_benchmark_path, THRESHOLDS_PERC, yolop_left_perc, yolop_right_perc,
+                                                yolop_v2_left_perc, yolop_v2_right_perc,
+                                                lane_detector_left_perc, lane_detector_right_perc,
+                                                lane_detector_v3_left_perc, lane_detector_v3_right_perc,
+                                                programmatic_left_perc, programmatic_right_perc,
+                                                perfect_left_perc, perfect_right_perc, processing_mode)
+
     # Plot 3: Average errors
-    plt.figure(figsize=(10, 6))
-    pixel_errors = np.array(errors) * 320  # Assuming 320 is the scaling factor
-    plt.bar(labels, pixel_errors, color=colors)
-    plt.xlabel('Perception Mode')
-    plt.ylabel('Average Error (pixels)')
-    plt.title('Average error when both lines detected')
+    fig3, ax3 = plt.subplots(1, 1, figsize=(10, 6))
+    averages = np.array([np.mean(yolop_errors), np.mean(yolop_v2_errors), np.mean(lane_detector_errors), np.mean(lane_detector_v3_errors),
+               np.mean(perfect_errors),  np.mean(programmatic_errors)])
+    averages = averages * 320
+    colors = ['blue', 'orange', 'green', 'black', 'red', 'yellow']
+
+    if processing_mode == "none":
+        averages = averages[:-2]
+        colors.pop(5)
+
+    ax3.bar(labels, averages, color=colors)
+    ax3.set_xlabel('Perception Mode')
+    ax3.set_ylabel('Average Error')
+    ax3.set_title('Average error when both lines detected')
     plt.savefig(save_results_benchmark_path / 'ploterrolane.png')
     plt.close()
-    
+
+    # Plot 4: ECDF of errors
+    fig4, ax4 = plt.subplots(1, 1, figsize=(20, 10))
+
+    yolop_errors = np.array(yolop_errors)
+    pix_yolop_errors = yolop_errors * 320
+    yolop_v2_errors = np.array(yolop_v2_errors)
+    pix_yolop_v2_errors = yolop_v2_errors * 320
+    lane_detector_errors = np.array(lane_detector_errors)
+    pix_lane_detector_errors = lane_detector_errors * 320
+    lane_detector_v3_errors = np.array(lane_detector_v3_errors)
+    pix_lane_detector_v3_errors = lane_detector_v3_errors * 320
+    programmatic_errors = np.array(programmatic_errors)
+    pix_programmatic_errors = programmatic_errors * 320
+
+    # ecdf_yolop = ECDF(pix_yolop_errors)
+    # ecdf_yolop_v2 = ECDF(pix_yolop_v2_errors)
+    # ecdf_lane_detector = ECDF(pix_lane_detector_errors)
+    # ecdf_lane_detector_v3 = ECDF(pix_lane_detector_v3_errors)
+    # ecdf_programmatic = ECDF(pix_programmatic_errors)
+    # ax4.plot(ecdf_yolop.x, ecdf_yolop.y, label='YOLOP')
+    # ax4.plot(ecdf_yolop_v2.x, ecdf_yolop_v2.y, label='YOLOP_V2')
+    # ax4.plot(ecdf_lane_detector.x, ecdf_lane_detector.y, label='Lane Detector')
+    # ax4.plot(ecdf_lane_detector_v3.x, ecdf_lane_detector_v3.y, label='Lane Detector V3')
+
+    # if processing_mode != "none":
+    #     ax4.plot(ecdf_programmatic.x, ecdf_programmatic.y, label='Programmatic')
+
+    # ax4.set_xlabel('Error')
+    # ax4.set_ylabel('ECDF')
+    # ax4.set_title('ECDF Comparison of Errors')
+    # ax4.legend()
+    # ax4.grid(True)
+
+    # plt.savefig(save_results_benchmark_path / 'plotecdf.png')
+    # plt.close()
+
+    subplots = 6 if processing_mode != "none" else 5
+
+    # Plot 2: Number of images with left and right lanes detected
+    fig5, axs5 = plt.subplots(1, subplots, figsize=(18, 6))
+    yolop_avg_lines = [
+        (np.mean((np.array(yolop_left_perc))) * 100),
+        (np.mean((np.array(yolop_right_perc))) * 100)
+    ]
+    yolop_v2_avg_lines = [
+        (np.mean((np.array(yolop_v2_left_perc))) * 100),
+        (np.mean((np.array(yolop_v2_right_perc))) * 100)
+    ]
+    lane_det_avg_lines = [
+        (np.mean((np.array(lane_detector_left_perc))) * 100),
+        (np.mean((np.array(lane_detector_right_perc))) * 100)
+    ]
+    lane_detector_v3_avg_lines = [
+        (np.mean((np.array(lane_detector_v3_left_perc))) * 100),
+        (np.mean((np.array(lane_detector_v3_right_perc))) * 100)
+    ]
+    programmatic_avg_lines = [
+        (np.mean((np.array(programmatic_left_perc))) * 100),
+        (np.mean((np.array(programmatic_right_perc))) * 100)
+    ]
+    perfect_avg_lines = [
+        (np.mean((np.array(perfect_left_perc))) * 100),
+        (np.mean((np.array(perfect_right_perc))) * 100)
+    ]
+
+    axs5[0].bar(['left lane', 'right lane'], yolop_avg_lines, color=['blue', 'green'])
+    axs5[0].set_title('YOLOP')
+    axs5[0].set_ylabel('lane percentage detected')
+    axs5[0].set_ylim(0, 100)
+
+    axs5[1].bar(['left lane', 'right lane'], yolop_v2_avg_lines, color=['blue', 'green'])
+    axs5[1].set_title('YOLOP_V2')
+    axs5[1].set_ylabel('lane percentage detected')
+    axs5[1].set_ylim(0, 100)
+
+    axs5[2].bar(['left lane', 'right lane'], lane_det_avg_lines, color=['blue', 'green'])
+    axs5[2].set_title('Lane Detector')
+    axs5[2].set_ylabel('lane percentage detected')
+    axs5[2].set_ylim(0, 100)
+
+    axs5[3].bar(['left lane', 'right lane'], lane_detector_v3_avg_lines, color=['blue', 'green'])
+    axs5[3].set_title('Lane Detector V3')
+    axs5[3].set_ylabel('lane percentage detected')
+    axs5[3].set_ylim(0, 100)
+
+    axs5[4].bar(['left lane', 'right lane'], perfect_avg_lines, color=['blue', 'green'])
+    axs5[4].set_title('perfect')
+    axs5[4].set_ylabel('lane percentage detected')
+    axs5[4].set_ylim(0, 100)
+
+    if processing_mode != "none":
+        axs5[5].bar(['left lane', 'right lane'], programmatic_avg_lines, color=['blue', 'green'])
+        axs5[5].set_title('Programmatic')
+        axs5[5].set_ylabel('lane percentage detected')
+        axs5[5].set_ylim(0, 100)
+
+    plt.savefig(save_results_benchmark_path / 'plotlanepercentage.png')
+    plt.close()
+
+
     print(f"All plots saved to {save_results_benchmark_path}")
 
 
@@ -1264,13 +1122,10 @@ def detect(opt):
     else:
         dataset = LoadImages(opt.source, img_size=opt.img_size)
 
-    detection_modes = opt.detection_modes if opt.detection_modes else []
-    perform_all_benchmarking(dataset, "none", detection_modes)
-    perform_all_benchmarking(dataset, "postprocess", detection_modes)
+    perform_all_benchmarking(dataset, "none")
+    perform_all_benchmarking(dataset, "postprocess")
 
 def benchmark_one(dataset, detection_mode, processing_mode):
-    global prev_fit
-    prev_fit = None
     print("running benchmarking on " + detection_mode)
     # Run inference
     t0 = time.time()
@@ -1280,7 +1135,6 @@ def benchmark_one(dataset, detection_mode, processing_mode):
     save_path_bad_raw_dir = str(opt.save_dir + detection_mode + "/" + processing_mode +  "/bad_raw")
     save_path_out_raw_dir = str(opt.save_dir + detection_mode + "/" + processing_mode + "/good_raw")
     save_results_metrics_dir = str(opt.save_dir + detection_mode + "/" + processing_mode + "/metrics")
-    save_path_intermediate_dir = str(opt.save_dir + detection_mode + "/" + processing_mode + "/intermediate")
 
     # TODO avoid this duplicated code
     if not os.path.exists(save_path_bad_dir):
@@ -1297,12 +1151,9 @@ def benchmark_one(dataset, detection_mode, processing_mode):
 
     if not os.path.exists(save_results_metrics_dir):
         os.makedirs(save_results_metrics_dir)
-        
-    if not os.path.exists(save_path_intermediate_dir):
-        os.makedirs(save_path_intermediate_dir)
 
     directories = [save_path_bad_dir, save_path_good_dir, save_path_bad_raw_dir, save_path_out_raw_dir,
-                   save_results_metrics_dir, save_path_intermediate_dir]
+                   save_results_metrics_dir]
     for directory_path in directories:
         if os.path.exists(directory_path):
             for file_name in os.listdir(directory_path):
@@ -1330,51 +1181,24 @@ def benchmark_one(dataset, detection_mode, processing_mode):
         height = img.shape[0]
         width = img.shape[1]
 
-        # resized_img = Image.fromarray(img).resize((640, 384))
-        resized_img_np = cv2.resize(img, (640, 384), interpolation=cv2.INTER_LINEAR)
-        
+        # Calculate the new height to maintain the aspect ratio
+        new_height = int((640 / width) * height)
+
+        resized_img = Image.fromarray(img).resize((640, new_height))
+
         # Convert back to numpy array if needed
         # For example, if you want to return a numpy array:
-        # resized_img_np = np.array(resized_img)
+        resized_img_np = np.array(resized_img)
         start = time.time()
 
-        ll_seg_out_list, distance_to_center, center_lanes_normalized, x_centers = detect_lines(resized_img_np, detection_mode, processing_mode, path, save_path_intermediate_dir)
-
-        ll_seg_out = ll_seg_out_list
-
-        # Original 'good'/'bad' logic for other models
-        if processing_mode == "none":
-            left_percent, right_percent = calculate_lines_percent(ll_seg_out)
-            if left_percent > PERFECT_THRESHOLD and right_percent > PERFECT_THRESHOLD:
-                detected += 1
-                cv2.imwrite(save_path_good, ll_seg_out)
-                cv2.imwrite(save_path_out_raw, img)
-            else:
-                cv2.imwrite(save_path_bad, ll_seg_out)
-                cv2.imwrite(save_path_bad_raw, img)
-        else:
-            overlay = resized_img_np.copy()
-            # Create a color mask for the overlay
-            color_mask = np.zeros_like(resized_img_np)
-            # ll_seg_out is a single-channel mask of detected lines
-            color_mask[ll_seg_out > 0] = [0, 0, 255]  # Red for detected lines
-
-            # Blend the original image with the color mask
-            overlay = cv2.addWeighted(overlay, 1, color_mask, 0.5, 0)
-
-            if wasDetected(x_centers.tolist()):
-                detected += 1
-                cv2.imwrite(save_path_good, overlay)
-                cv2.imwrite(save_path_out_raw, img)
-            else:
-                cv2.imwrite(save_path_bad, overlay)
-                cv2.imwrite(save_path_bad_raw, img)
+        ll_seg_out = detect_lines(resized_img_np, detection_mode, processing_mode)
 
         processing_time = time.time() - start
         times.append(processing_time)
-        
-        # This part below is now redundant for yolop_v2 but needed for other models' metrics
+
         ll_seg_out_raw = ll_seg_out
+        # TODO (Ruben) use this raw output to measure percentage of line detected
+
         (
             center_lanes,
             distance_to_center_normalized,
@@ -1382,12 +1206,23 @@ def benchmark_one(dataset, detection_mode, processing_mode):
         right_lane_normalized_distances, right_center_lane = choose_lane_v1(distance_to_center_normalized, center_lanes)
 
         ll_segment_stacked = get_ll_seg_image(right_center_lane, ll_seg_out)
-        
+        centers = np.array(right_lane_normalized_distances)
+        # print(centers)
+
         left_percent, right_percent = calculate_lines_percent(ll_seg_out)
         all_left_perc.append(left_percent)
         all_right_perc.append(right_percent)
 
         if dataset.mode == 'images':
+            # Resize detected_lines to match the dimensions of image
+            if processing_mode != "none":
+                detected_lines_resized = cv2.resize(ll_segment_stacked, (img.shape[1], img.shape[0]))
+                # Define the transparency level (alpha) for the overlay
+                alpha = 0.5  # You can adjust this value to change the transparency
+                # Overlay the detected lines on top of the RGB image
+                overlay = cv2.addWeighted(img, 1 - alpha, detected_lines_resized, alpha, 0)
+                cv2.imshow("perception", overlay) if show_images else None
+
             total_error = 0
             detected_points = 0
             for x in right_lane_normalized_distances:
@@ -1398,6 +1233,23 @@ def benchmark_one(dataset, detection_mode, processing_mode):
             if detected_points > 0:
                 average_abs = total_error / detected_points
                 all_avg_errors_when_detected.append(average_abs)
+
+            if processing_mode == "none":
+                if left_percent > PERFECT_THRESHOLD and right_percent > PERFECT_THRESHOLD:
+                    detected += 1
+                    cv2.imwrite(save_path_good, ll_seg_out_raw)
+                    cv2.imwrite(save_path_out_raw, img)
+                else:
+                    cv2.imwrite(save_path_bad, ll_seg_out_raw)
+                    cv2.imwrite(save_path_bad_raw, img)
+            else:
+                if wasDetected(centers.tolist()):
+                    detected += 1
+                    cv2.imwrite(save_path_good, overlay)
+                    cv2.imwrite(save_path_out_raw, img)
+                else:
+                    cv2.imwrite(save_path_bad, overlay)
+                    cv2.imwrite(save_path_bad_raw, img)
 
         else:
             cv2.imshow('image', ll_seg_out)
@@ -1451,7 +1303,6 @@ if __name__ == '__main__':
     parser.add_argument('--save-dir', type=str, default='/home/ruben/Desktop/broken_p_output/', help='directory to save results')
     parser.add_argument('--augment', action='store_true', help='augmented inference')
     parser.add_argument('--update', action='store_true', help='update all models')
-    parser.add_argument('--detection-modes', nargs='+', type=str, help='List of detection modes to benchmark')
     opt = parser.parse_args()
     with torch.no_grad():
         detect(opt)

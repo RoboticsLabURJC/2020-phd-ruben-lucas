@@ -1,21 +1,23 @@
 experiments:
 
 
-  - config: config/config_training_followlane_bs_td3_f1_carla.yaml
+  - config: config/config_training_followlane_bs_sac_f1_carla.yaml
     carla:
       carla_client: 4013
     carla_environments:
       follow_lane:
-        town: [Town01, Town03, Town04]
+        town: [Town04]
+        detection_mode: yolop_v2
     settings:
       use_heartbeat: false
-      algorithm: td3
+      algorithm: sac
+      task: follow_lane_carla
       normalize: true
       compensated_inits: false
       initial_std_w: 0.8
-      initial_std_v: 0.5
+      initial_std_v: 0.8
       net_arch: [ 128, 128, 128, 128, 128]
-      steps_to_decrease: 5000
+      steps_to_decrease: 3000
       appended_states: 10
       seed: 888
       reward_params:
@@ -23,13 +25,9 @@ experiments:
         punish_zig_zag_value: 0.5
         punish_deviation: 10
         beta_1: 0
-    algorithm:
-      td3:
-        policy_noise: 0.2
-        policy_delay: 2
 
 #
-#  - config: config/config_training_acc_bs_sac_f1_carla.yaml
+#  - config: config/config_training_acc_bs_td3_f1_carla.yaml
 #    carla:
 #      carla_client: 4013
 #    carla_environments:
@@ -49,7 +47,11 @@ experiments:
 #        punish_zig_zag_value: 0.5
 #        punish_deviation: 10
 #        beta_1: 0
-#
+#    algorithm:
+#      td3:
+#        policy_noise: 0.2
+#        policy_delay: 2
+
 #  - config: config/config_training_acc_bs_sac_f1_carla.yaml
 #    carla:
 #      carla_client: 4013

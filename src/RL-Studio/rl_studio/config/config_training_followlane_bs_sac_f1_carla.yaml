@@ -18,19 +18,20 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 1000
+  steps_to_decrease: 3000
   entropy_factor: 0
+  net_arch: [ 128, 128, 128, 128, 128 ]
   normalize: true
   compensated_inits: true
-  random_direction: true
+  random_direction: false
   random_speeds: true
-  initial_std_w: 0.6
-  initial_std_v: 0.6
+  initial_std_w: 0.8
+  initial_std_v: 0.8
   decrease_substraction: 0.003
   decrease_min: 0.003
   reward_params:
     function: pow
-    punish_zig_zag_value: 5
+    punish_zig_zag_value: 0.5
     punish_deviation: 10
     punish_braking: 2
     punish_ineffective_vel: 1 # velocity below which reward is not calculated (0)
@@ -87,7 +88,7 @@ states:
   sp5:
     0: [ 270, 280, 320, 400, 460 ]
   sp10:
-    0: [275, 280, 290, 295, 320, 360, 390, 420, 450, 480]
+    0: [180, 190, 200, 220, 260, 290, 300, 320, 330, 340]
   spn:
     0: [10]
 
@@ -113,8 +114,8 @@ rewards:
 carla_environments:
   follow_lane:
     env_name: CarlaEnv-v0
-    town: [Town01, Town03, Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
-#    town: [Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
+#    town: [Town01, Town03, Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
+    town: [Town04] #Town01, Town02, Town03, Town04, Town05, Town10HD
     # Town01_Opt, Town02_Opt, Town03_Opt, Town04_Opt, Town05_Opt, Town10HD_Opt
     car: model1
     weather: ClearNoon #dynamic, argparse
@@ -131,7 +132,7 @@ carla_environments:
     rolename: "hero" #name
     gamma: 2.2 #for camera
     sync: True #syncronous mode or async
-    detection_mode: carla_perfect_center
+    detection_mode: yolop_v2
     fixed_delta_seconds: 0.1
     async_forced_delta_seconds: 0
     reset_threshold: 0.3
@@ -139,9 +140,9 @@ carla_environments:
     spawn_points:
       Town04:
         [
-          [-320.872070, 15.83397, 0.416225, 0.118217, 176.971695, 0.924344], # sharp to left
+#          [-320.872070, 15.83397, 0.416225, 0.118217, 176.971695, 0.924344], # sharp to left
           [278.050293, -368.798950, 0.807949, 0.095828, 16.101439, -2.257110], #slight to right
-          [ -475.506342, 352.208710, 0.807793, 0.051254, 55.662395, 0.072115 ], #sliht to left
+          [ -475.506342, 352.208710, 0.807793, 0.051254, 55.662395, 0.072115 ], #slight to left
           [12.93741, 157.040146, 0.09260, 0.051254, -90.375160, 0.1006703], # straight
           [384.381470, -116.060329, 0.607339, 0.031453, 90.310402, 0.008101], # sharp to right
           [199.221252, -367.893829, 0.809260, 0.248796, 0.152361, -0.002625], # straight
@@ -162,7 +163,7 @@ carla_environments:
           [ 107.057098, 55.511978, 0.3, 0.090930, -179.793869, -0.060181 ], # To right from right, intersection
           [ -2.114511, 28.115679, 0.3, 0.173569, -85.910088, 0.153735 ], # to right from left line, smooth
         ]
-    front_car: fixed # none, fixed, stopped, driving, incoming, outgoing
+    front_car: none # none, fixed, stopped, driving, incoming, outgoing
 #    front_car_spawn_points: [
 #      [ 382.315643, -263.973114, 0.805201, -0.211087, 76.833618, -0.360352 ]
 #    ]
@@ -174,6 +175,6 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: 2000
+  carla_client: 4013
 #  carla_client: [4013, 4015]
   manager_port: 8029

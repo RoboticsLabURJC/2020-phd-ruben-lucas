@@ -321,8 +321,6 @@ class TrainerFollowLaneDDPGCarla:
         file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
         logger.addHandler(file_handler)
 
-        pynvml.nvmlInit()
-
         self.actor_loss = 0
         self.critic_loss = 0
         self.algoritmhs_params = LoadAlgorithmParams(config)

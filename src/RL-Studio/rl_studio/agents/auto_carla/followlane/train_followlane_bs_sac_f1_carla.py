@@ -6,7 +6,6 @@ import random
 
 import numpy as np
 import pynvml
-import psutil
 from typing import Callable
 from stable_baselines3.common.vec_env import DummyVecEnv
 from rl_studio.envs.carla.utils.logger import logger
@@ -93,8 +92,8 @@ def update_scatter_plot(ax, x, y, z, xlabel, ylabel, zlabel):
     plt.pause(0.001)
 
 
-def collect_usage():
-    cpu_usage = psutil.cpu_percent(interval=None)  # Get CPU usage percentage
+# def collect_usage():
+    # cpu_usage = psutil.cpu_percent(interval=None)  # Get CPU usage percentage
     # handle = pynvml.nvmlDeviceGetHandleByIndex(0)
     # gpu_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
     # gpu_usage = gpu_info.gpu

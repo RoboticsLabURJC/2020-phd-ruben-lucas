@@ -3,7 +3,7 @@
 
 def load_common_env_params(environment, config):
     ###### Hot Reload
-    environment["debug_waypoints"] = config["hot_reload_settings"]["debug_waypoints"]
+    environment["debug_waypoints"] = config["hot_reload_settings"].get("debug_waypoints", False)
     environment["show_monitoring"] = config["hot_reload_settings"].get("show_monitoring")
     environment["visualize"] = config["hot_reload_settings"]["visualize"]
 
@@ -184,7 +184,7 @@ class LoadGlobalParams:
         self.random_direction = config["settings"].get("random_direction", True)
         self.decrease_substraction = config["settings"]["decrease_substraction"]
         self.decrease_min = config["settings"]["decrease_min"]
-        self.normalize = config["settings"]["normalize"]
+        self.normalize = config["settings"].get("normalize", True)
         self.seed = config["settings"].get("seed", 1)
 
 
@@ -605,11 +605,11 @@ class LoadEnvVariablesDDPGCarla:
         self.environment["task"] = config["settings"]["task"]
         self.environment["stage"] = config["settings"].get("stage")
         self.environment["framework"] = config["settings"]["framework"]
-        self.environment["appended_states"] = config["settings"]["appended_states"]
+        self.environment["appended_states"] = config["settings"].get("appended_states", 5)
         self.environment["punish_ineffective_vel"] = config["settings"]["reward_params"]["punish_ineffective_vel"]
         self.environment["punish_zig_zag_value"] = config["settings"]["reward_params"]["punish_zig_zag_value"]
-        self.environment["punish_deviation"] = config["settings"]["reward_params"]["punish_deviation"]
-        self.environment["punish_braking"] = config["settings"]["reward_params"]["punish_braking"]
+        self.environment["punish_deviation"] = config["settings"]["reward_params"].get("punish_deviation", 10)
+        self.environment["punish_braking"] = config["settings"]["reward_params"].get("punish_braking", 2)
         self.environment["reward_function_tuning"] = config["settings"]["reward_params"]["function"]
         self.environment["beta_1"] = config["settings"]["reward_params"]["beta_1"]
         self.environment["normalize"] = config["settings"].get("normalize")

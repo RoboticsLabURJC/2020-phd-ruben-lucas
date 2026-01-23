@@ -124,7 +124,7 @@
       rolename: "hero" #name
       gamma: 2.2 #for camera
       sync: True #syncronous mode or async
-      detection_mode: carla_perfect_center  # carla_segmentated
+      detection_mode: lane_detector_v2  # carla_segmentated
       fixed_delta_seconds: 0.1
       async_forced_delta_seconds: 0
       reset_threshold: 0.35
