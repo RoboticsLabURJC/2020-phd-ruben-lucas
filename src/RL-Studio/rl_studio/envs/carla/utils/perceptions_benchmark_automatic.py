@@ -96,19 +96,19 @@ yolop_model = yolop_model.to(device)
 # 1. Standard Transforms (Keep these, they are the same for v2)
 import torchvision.transforms as transforms
 
-yolop_v2_transform = transforms.Compose([
+yolop_v2_lines_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 # 2. INIT YOLOPv2
 # Load the model directly using torch.jit or the model class
-yolop_v2_model = torch.jit.load(
+yolop_v2_lines_model = torch.jit.load(
     "envs/carla/utils/yolop/weights/yolopv2.pt",
     map_location=device
 ).float()  # Ensure it is in float for quality
-yolop_v2_model.to(device)
-yolop_v2_model.eval()  # CRITICAL for inference quality
+yolop_v2_lines_model.to(device)
+yolop_v2_lines_model.eval()  # CRITICAL for inference quality
 
 lane_model_v3 = torch.load('envs/carla/utils/lane_det/best_model_torch.pth')
 lane_model = None
@@ -378,29 +378,6 @@ def post_process_hough_programmatic(ll_segment):
 
     return lines
 
-def extend_lines(lines, image_height):
-    extended_lines = []
-    for line in lines if lines is not None else []:
-        x1, y1, x2, y2 = line[0]
-        # Calculate slope and intercept
-        if x2 - x1 != 0:
-            slope = (y2 - y1) / (x2 - x1)
-            intercept = y1 - slope * x1
-            # Calculate new endpoints to extend the line
-            x1_extended = int(x1 - 2 * (x2 - x1))  # Extend 2 times the original length
-            y1_extended = int(slope * x1_extended + intercept)
-            x2_extended = int(x2 + 2 * (x2 - x1))  # Extend 2 times the original length
-            y2_extended = int(slope * x2_extended + intercept)
-            # Ensure the extended points are within the image bounds
-            x1_extended = max(0, min(x1_extended, image_height - 1))
-            y1_extended = max(0, min(y1_extended, image_height - 1))
-            x2_extended = max(0, min(x2_extended, image_height - 1))
-            y2_extended = max(0, min(y2_extended, image_height - 1))
-            # Append the extended line to the list
-            extended_lines.append([(x1_extended, y1_extended, x2_extended, y2_extended)])
-    return extended_lines
-
-
 def detect_yolop(raw_image):
     # Get names and colors
     names = yolop_model.module.names if hasattr(yolop_model, 'module') else yolop_model.names
@@ -424,6 +401,44 @@ def detect_yolop(raw_image):
 # global variable for temporal smoothing
 prev_fit = None
 
+def detect_yolop_v2_drivable(raw_image):
+    # Standard resize to the native resolution YOLOPv2 expects
+    raw_image = cv2.resize(raw_image, (640, 384))
+
+    img = yolop_v2_lines_transform(raw_image).to(device)
+    if img.ndimension() == 3:
+        img = img.unsqueeze(0)
+
+    # Inference
+    outputs = yolop_v2_lines_model(img)
+
+    # The drivable area segmentation is at index 1
+    da_seg_out = outputs[1]
+
+    # Interpolate back to original resolution
+    da_seg_mask = torch.nn.functional.interpolate(
+        da_seg_out,
+        size=(raw_image.shape[0], raw_image.shape[1]),
+        mode='bilinear',
+        align_corners=False
+    )
+
+    # Apply softmax and select the drivable class (usually class 1)
+    da_seg_mask = torch.softmax(da_seg_mask, dim=1)
+    da_seg_mask = da_seg_mask[0][1, :, :] # Select class 1 for drivable area
+
+    # Squeeze and convert to numpy for OpenCV operations
+    probs_np = da_seg_mask.squeeze().cpu().numpy()
+
+    # Threshold to create a binary mask
+    binary_mask = (probs_np > 0.5).astype(np.uint8) * 255
+
+    # Morphological Closing to fill gaps
+    kernel = np.ones((5, 5), np.uint8)
+    cleaned_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel)
+
+    return cleaned_mask
+
 def handle_detection_failure(ll_seg_mask):
     """
     Handles cases where lane detection fails.
@@ -433,17 +448,17 @@ def handle_detection_failure(ll_seg_mask):
     debug_image = np.zeros((ll_seg_mask.shape[0], ll_seg_mask.shape[1], 3), dtype=np.uint8)
     return np.zeros_like(ll_seg_mask), [], [], debug_image
 
-def detect_yolop_v2(raw_image):
+def detect_yolop_v2_lines(raw_image):
     # Standard resize to the native resolution YOLOPv2 expects
     # Ensure this matches the 640x384 or 640x640 your model was trained on
     raw_image = cv2.resize(raw_image, (640, 384))
 
-    img = yolop_v2_transform(raw_image).to(device)
+    img = yolop_v2_lines_transform(raw_image).to(device)
     if img.ndimension() == 3:
         img = img.unsqueeze(0)
 
     # Inference
-    outputs = yolop_v2_model(img)
+    outputs = yolop_v2_lines_model(img)
 
     # DEBUG: Uncomment this once to see the shapes in your console
     # for i, out in enumerate(outputs): print(f"Index {i} shape: {out.shape}")
@@ -482,100 +497,166 @@ def detect_yolop_v2(raw_image):
 
     return cleaned_mask
 
-def _find_and_draw_lane_boundaries(binary_mask):
+from skimage.morphology import skeletonize
+
+def _extend_line(skeleton, height):
+    if skeleton is None:
+        return None
+
+    points = np.argwhere(skeleton > 0)
+    if len(points) < 2:
+        return skeleton # Not enough points to process
+
+    y_coords = points[:, 0]
+    max_y = np.max(y_coords)
+
+    # 1. Keep Complete Lines: If the line already reaches the bottom, return it as is.
+    if max_y >= height - 5: # 5-pixel tolerance
+        return skeleton
+
+    # 2. Extend Partial Lines:
+    # Use the bottom half of the line's points for a more accurate trajectory prediction.
+    median_y = np.median(y_coords)
+    lower_points = points[y_coords >= median_y]
+    
+    # Fallback to all points if the lower half is too sparse
+    if len(lower_points) < 2:
+        lower_points = points
+    if len(lower_points) < 2:
+        return skeleton # Still not enough points, can't extend.
+
+    y_fit = lower_points[:, 0]
+    x_fit = lower_points[:, 1]
+    
+    try:
+        # Fit a robust straight line to the trajectory
+        fit = np.polyfit(y_fit, x_fit, 1)
+        line_fn = np.poly1d(fit)
+    except (np.linalg.LinAlgError, TypeError):
+        return skeleton # If fit fails, return the original.
+
+    # Find the actual lowest point on the original skeleton
+    # Average the x-coordinates in case the lowest part is a horizontal segment
+    original_bottom_x = int(np.mean(points[y_coords == max_y, 1]))
+    original_bottom_point = (original_bottom_x, max_y)
+
+    # Calculate the target point where the line should hit the image bottom
+    target_y = height - 1
+    target_x = int(line_fn(target_y))
+    
+    # Ensure the target point is within the image's width
+    width = skeleton.shape[1]
+    target_x = np.clip(target_x, 0, width - 1)
+    target_point = (target_x, target_y)
+
+    # Draw the new extension onto a copy of the original skeleton
+    extended_mask = skeleton.copy()
+    cv2.line(extended_mask, original_bottom_point, target_point, 255, 2)
+    
+    return extended_mask
+
+def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None, img_path=None):
     height, width = binary_mask.shape
     debug_viz = np.zeros((height, width, 3), dtype=np.uint8)
-    output_mask = np.zeros_like(binary_mask)
-    center_x = width // 2
 
-    # 1. Connected Components
-    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
+    # Step 1: Create a single skeleton of all lines
+    skeleton = skeletonize(binary_mask // 255).astype(np.uint8)
 
-    left_label_counts = np.zeros(num_labels)
-    right_label_counts = np.zeros(num_labels)
+    # Step 2: Find and break ALL merge points in the entire skeleton
+    skeleton_points = np.argwhere(skeleton > 0)
+    # Sort points from top to bottom to ensure we find the highest merge points first
+    skeleton_points = skeleton_points[skeleton_points[:, 0].argsort()]
 
-    # PASS 1: Find the most consistent objects for ego-lane
-    for y in range(0, height, 4):
-        # Scan Left half
-        l_pixels = np.where(binary_mask[y, :center_x] > 0)[0]
-        if len(l_pixels) > 0:
-            label_id = labels[y, l_pixels[-1]]
-            if label_id > 0: left_label_counts[label_id] += 1
+    for y, x in skeleton_points:
+        # Check the 3x3 neighborhood, avoiding image borders
+        if y > 0 and y < height - 1 and x > 0 and x < width - 1:
+            neighborhood = skeleton[y-1:y+2, x-1:x+2]
+            num_neighbors = np.sum(neighborhood) - 1 # Subtract the center pixel
+            if num_neighbors > 2:
+                skeleton[y, x] = 0 # Break the skeleton at the merge point
 
-        # Scan Right half
-        r_pixels = np.where(binary_mask[y, center_x:] > 0)[0]
-        if len(r_pixels) > 0:
-            label_id = labels[y, r_pixels[0] + center_x]
-            if label_id > 0: right_label_counts[label_id] += 1
+    # Step 3: Find all resulting branches in the (now broken) skeleton
+    branch_num_labels, branch_labels, stats, _ = cv2.connectedComponentsWithStats(skeleton, connectivity=8)
 
-    best_left_label = np.argmax(left_label_counts) if np.any(left_label_counts > 0) else -1
-    best_right_label = np.argmax(right_label_counts) if np.any(right_label_counts > 0) else -1
+    all_extended_lines = []
+    if branch_num_labels > 1:
+        for branch_id in range(1, branch_num_labels):
+            # Filter out tiny noise branches that might result from the breaking process
+            if stats[branch_id, cv2.CC_STAT_AREA] > 100:
+                branch_mask = (branch_labels == branch_id).astype(np.uint8) * 255
+                extended_line = _extend_line(branch_mask, height)
+                if extended_line is not None:
+                    all_extended_lines.append(extended_line)
 
-    # PASS 2: Morphological Cleanup for the Winners
-    # This fills 'holes' inside the lines so the boundary search doesn't get stuck inside the line
-    kernel = np.ones((3, 3), np.uint8)
+    # Step 4: Combine all extended lines into a single mask
+    all_extended_lines_mask = np.zeros_like(binary_mask)
+    for ext_line in all_extended_lines:
+        all_extended_lines_mask = cv2.bitwise_or(all_extended_lines_mask, ext_line)
 
-    def get_clean_mask(label_id):
-        if label_id == -1: return None
-        mask = (labels == label_id).astype(np.uint8) * 255
-        # Closing fills small holes; Dilation ensures we catch the outermost pixel
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-        return mask
+    if save_path_intermediate_dir and img_path:
+        base_name = Path(img_path).stem
+        # Save the unified skeleton *after* breaking it to debug the splitting process
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_1_broken_skeleton.png"), skeleton * 255)
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_2_all_extended_lines.png"), all_extended_lines_mask)
 
-    clean_left_mask = get_clean_mask(best_left_label)
-    clean_right_mask = get_clean_mask(best_right_label)
+    return all_extended_lines_mask, [], [], debug_viz, None, None, all_extended_lines_mask
 
-    # Color the cleaned winners
-    if clean_left_mask is not None: debug_viz[clean_left_mask > 0] = [60, 0, 0]
-    if clean_right_mask is not None: debug_viz[clean_right_mask > 0] = [0, 0, 60]
+def detect_lanes_yolop_v2_drivable_agent(image, save_path_intermediate_dir=None, img_path=None):
+    with torch.no_grad():
+        drivable_mask = detect_yolop_v2_drivable(image)
 
-    # PASS 3: Final Boundary Extraction
+    if save_path_intermediate_dir and img_path:
+        base_name = Path(img_path).stem
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_raw_drivable.png"), drivable_mask)
+
+    height, width = drivable_mask.shape
+    
+    # --- EGO LANE ISOLATION with STATIC TRAPEZOIDAL ROI ---
+    # 1. Define the vertices of the trapezoid that represents the ego lane.
+    # These points are fine-tuned for a 640x384 image with a standard forward-facing camera.
+    roi_vertices = np.array([
+        [0, height],          # Bottom-left
+        [width, height],      # Bottom-right
+        [width // 2 + 80, height // 2], # Top-right
+        [width // 2 - 80, height // 2]  # Top-left
+    ], dtype=np.int32)
+
+    # 2. Create a black mask and draw the filled trapezoid onto it.
+    roi_mask = np.zeros_like(drivable_mask)
+    cv2.fillPoly(roi_mask, [roi_vertices], 255)
+
+    # 3. Apply the ROI mask to the drivable area mask.
+    # This effectively "cuts out" and keeps only the drivable area within our ego lane.
+    ego_lane_mask = cv2.bitwise_and(drivable_mask, drivable_mask, mask=roi_mask)
+
+    if save_path_intermediate_dir and img_path:
+        base_name = Path(img_path).stem
+        # Save the isolated ego lane for debugging
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_ego_lane_mask.png"), ego_lane_mask)
+        # Also save a visualization of the trapezoid on the original image
+        roi_viz = image.copy()
+        cv2.polylines(roi_viz, [roi_vertices], isClosed=True, color=(0, 255, 255), thickness=2)
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_roi_visualization.png"), roi_viz)
+    # --- END EGO LANE ISOLATION ---
+
     center_points = []
-    for y in range(0, height, 4):
-        y_edge, o_edge = -1, -1
+    output_mask = np.zeros_like(drivable_mask)
 
-        # STRICTEST LEFT BOUNDARY: The absolute furthest RIGHT pixel of the winner
-        if clean_left_mask is not None:
-            l_pixels = np.where(clean_left_mask[y, :] > 0)[0]
-            if len(l_pixels) > 0:
-                y_edge = np.max(l_pixels)  # Maximum X on the left side
-                cv2.circle(debug_viz, (y_edge, y), 2, (0, 255, 255), -1)  # YELLOW
-
-        # STRICTEST RIGHT BOUNDARY: The absolute furthest LEFT pixel of the winner
-        if clean_right_mask is not None:
-            r_pixels = np.where(clean_right_mask[y, :] > 0)[0]
-            if len(r_pixels) > 0:
-                o_edge = np.min(r_pixels)  # Minimum X on the right side
-                cv2.circle(debug_viz, (o_edge, y), 2, (0, 165, 255), -1)  # ORANGE
-
-        if y_edge != -1 and o_edge != -1:
-            mid_x = (y_edge + o_edge) // 2
+    # Find center of the ISOLATED ego lane for each row
+    for y in range(height // 2, height, 4): # Scan lower half
+        row = ego_lane_mask[y, :]
+        white_pixels = np.where(row > 0)[0]
+        if len(white_pixels) > 1:
+            leftmost = white_pixels[0]
+            rightmost = white_pixels[-1]
+            mid_x = (leftmost + rightmost) // 2
             center_points.append([mid_x, y])
-            cv2.circle(debug_viz, (mid_x, y), 2, (0, 255, 0), -1)  # GREEN
 
-    # PASS 4: Polyfit with RANSAC Filtering
+    # Polyfit to get a smooth curve
     poly_points = []
-    if len(center_points) > 10:  # Increased minimum slightly for RANSAC stability
+    if len(center_points) > 10:
         try:
             c_pts = np.array(center_points)
-
-            # --- RANSAC FILTERING START ---
-            from sklearn.linear_model import RANSACRegressor
-
-            X = c_pts[:, 1].reshape(-1, 1)  # Y is our independent variable (driving vertically)
-            y = c_pts[:, 0]  # X is what we want to predict
-
-            # residual_threshold is the max pixel distance allowed from the model
-            # set it to 15-20 for lane detection in 640x480 resolution
-            ransac = RANSACRegressor(residual_threshold=15.0)
-            ransac.fit(X, y)
-
-            # Keep only the inliers
-            inlier_mask = ransac.inlier_mask_
-            c_pts = c_pts[inlier_mask]
-            # --- RANSAC FILTERING END ---
-
-            # Now fit the curve using ONLY the cleaned points
             fit = np.polyfit(c_pts[:, 1], c_pts[:, 0], 2)
             y_min, y_max = c_pts[:, 1].min(), height - 1
             plot_y = np.linspace(y_min, y_max, 25).astype(int)
@@ -583,43 +664,20 @@ def _find_and_draw_lane_boundaries(binary_mask):
 
             pts = np.array([np.transpose(np.vstack([fit_x, plot_y]))], np.int32)
             cv2.polylines(output_mask, pts, False, 255, 2)
-            cv2.polylines(debug_viz, pts, False, (255, 255, 255), 1)
-            poly_points = pts.squeeze()
+            poly_points = pts.squeeze() if pts.shape[0] > 0 else []
         except Exception as e:
-            print(f"RANSAC/Fit Error: {e}")
+            print(f"Drivable area polyfit Error: {e}")
             pass
-
-    return output_mask, poly_points, center_points, debug_viz
-
-def detect_lanes_yolop_v2_agent(image, save_path_intermediate_dir=None, img_path=None):
-    with torch.no_grad():
-        ll_segment = detect_yolop_v2(image)
-    if save_path_intermediate_dir and img_path:
-        base_name = Path(img_path).name
-        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"raw_{base_name}"), ll_segment)
-
-    # Store the raw detection for visualization before processing
-    masked_ll_segment = ll_segment.copy()
-
-    # Find, fit, and draw full lane boundaries using polynomials
-    extended_lanes_mask, poly_points, filtered_points, debug_viz = _find_and_draw_lane_boundaries(ll_segment)
-    # 7. RENDER
-    if save_path_intermediate_dir and img_path:
-        base_name = Path(img_path).name
-        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"Edge-Optimized_Consensus_Debug_{base_name}"), debug_viz)
-
-    # 2. CALCULATION: Derive 10 evenly spaced points
-    width = image.shape[1]
+    
+    # --- The rest of the function remains the same ---
     center_image_x = width // 2
     num_agent_points = 10
     center_lanes = []
     if len(poly_points) > 0:
-        # Get vertical bounds and sample 10 points
         y_min = np.min(poly_points[:, 1])
         y_max = np.max(poly_points[:, 1])
         target_y_coords = np.linspace(y_min, y_max, num_agent_points).astype(int)
 
-        # Fit polynomial for precise sampling
         fit = np.polyfit(poly_points[:, 1], poly_points[:, 0], 2)
         curve_fn = np.poly1d(fit)
 
@@ -629,49 +687,139 @@ def detect_lanes_yolop_v2_agent(image, save_path_intermediate_dir=None, img_path
 
         center_lanes = np.array(center_lanes)
         valid_points_x = center_lanes[:, 0]
-
-        # --- IMPROVED: SIGNED WEIGHTED DISTANCE CALCULATION ---
-        # Calculate raw error: positive means car is too far left, negative too far right
-        # (Assuming x increases to the right)
         raw_errors = (valid_points_x - center_image_x)
-
-        # Weights: points are sorted from top (horizon) to bottom (bumper).
-        # We want the bumper points (index -1) to have the most influence.
         weights = np.linspace(0.2, 1.0, num_agent_points)
         weighted_error = np.sum(raw_errors * weights) / np.sum(weights)
-
-        # Normalization: Map to [-1, 1].
-        # width // 4 represents a reasonable 'off-lane' threshold for sensitivity
         MAX_DEV = width // 4
         distance_to_center = np.clip(weighted_error / MAX_DEV, -1.0, 1.0)
     else:
-        # Fallback if perception fails
         center_lanes = np.array([[0, 0] for _ in range(num_agent_points)])
-        distance_to_center = 1.0  # Max error
+        distance_to_center = 1.0
 
-    centers_image = np.zeros_like(image)
-    if len(poly_points) > 0:
-        cv2.polylines(centers_image, [poly_points], False, (0, 255, 255), 2)
-        for point in center_lanes:
-            cv2.circle(centers_image, (point[0], point[1]), 5, (255, 0, 255), -1)
-
-    gray_overlay = cv2.cvtColor(centers_image, cv2.COLOR_BGR2GRAY)
-    mask_3ch = np.stack([gray_overlay > 0] * 3, axis=-1)
-    stacked_image = np.where(mask_3ch, centers_image, image)
-    # 7. RENDER
+    # Visualization
     if save_path_intermediate_dir and img_path:
         base_name = Path(img_path).name
-        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"overlayed_image_{base_name}"), stacked_image)
-    det_img = cv2.cvtColor(masked_ll_segment, cv2.COLOR_GRAY2BGR)
-    for pt in center_lanes:
-            cv2.circle(det_img, (pt[0], pt[1]), 4, (255, 0, 255), -1)
-    if save_path_intermediate_dir and img_path:
-        base_name = Path(img_path).name
-        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"Detections_with_Centers_{base_name}"), det_img)
-    # cv2.waitKey(0)
+        debug_viz = cv2.cvtColor(drivable_mask, cv2.COLOR_GRAY2BGR)
+        debug_viz[ego_lane_mask > 0] = [0, 50, 0]
+        for pt in center_lanes:
+            cv2.circle(debug_viz, (pt[0], pt[1]), 4, (0, 255, 0), -1)
+        if len(poly_points) > 0:
+            cv2.polylines(debug_viz, [poly_points.reshape((-1, 1, 2))], False, (255, 0, 0), 2)
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"drivable_centers_{base_name}"), debug_viz)
 
-    # Normalize for the rest of the pipeline
-    return (extended_lanes_mask / 255).astype(np.uint8), distance_to_center, center_lanes, center_lanes
+    return (output_mask / 255).astype(np.uint8), distance_to_center, center_lanes, center_lanes
+
+def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, img_path=None):
+    # Step 1 & 2: Calculate both drivable area and lines first
+    with torch.no_grad():
+        ll_segment = detect_yolop_v2_lines(image)
+        drivable_mask = detect_yolop_v2_drivable(image)
+
+    height, width = ll_segment.shape
+    base_name = Path(img_path).stem if img_path else "debug"
+    
+    if save_path_intermediate_dir:
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_0_raw_line_mask.png"), ll_segment)
+
+    # Use the simplified line-finding logic which now only extends lines
+    _, _, _, _, _, _, all_extended_lines_mask = _find_and_draw_lane_boundaries(ll_segment, save_path_intermediate_dir, img_path)
+
+    # Step 3: Check if any lines were extended.
+    if np.any(all_extended_lines_mask):
+        # --- PRIMARY LOGIC: Lines were detected. Use the extended lines mask directly. ---
+        if save_path_intermediate_dir:
+            print(f"[{base_name}] SUCCESS: Lines detected. Returning all extended lines.")
+            # We can save a debug image here if needed, but the primary debug image is saved in _find_and_draw...
+
+        final_mask = all_extended_lines_mask
+        distance_to_center = 0.0 # Placeholder
+        center_lanes = np.array([[width // 2, y] for y in range(height // 2, height, height // 20)]) # Placeholder center points
+
+    else:
+        # --- FALLBACK LOGIC: No lines detected, use drivable area ---
+        if save_path_intermediate_dir:
+            print(f"[{base_name}] FALLBACK: No lines detected. Using drivable-area logic.")
+            cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_1_drivable_mask.png"), drivable_mask)
+
+        roi_vertices = np.array([
+            [0, height], [width, height],
+            [width // 2 + 80, height // 2], [width // 2 - 80, height // 2]
+        ], dtype=np.int32)
+        roi_mask = np.zeros_like(drivable_mask)
+        cv2.fillPoly(roi_mask, [roi_vertices], 255)
+        ego_lane_mask = cv2.bitwise_and(drivable_mask, drivable_mask, mask=roi_mask)
+        
+        if save_path_intermediate_dir:
+            cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_2_roi_applied.png"), ego_lane_mask)
+
+        center_points = []
+        for y in range(height // 2, height, 4):
+            row = ego_lane_mask[y, :]
+            white_pixels = np.where(row > 0)[0]
+            if len(white_pixels) > 1:
+                center_points.append([(white_pixels[0] + white_pixels[-1]) // 2, y])
+
+        center_lanes = []
+        final_mask = np.zeros_like(drivable_mask)
+        distance_to_center = 1.0 # Default to max error
+
+        if len(center_points) > 10:
+            c_pts = np.array(center_points)
+            try:
+                fit = np.polyfit(c_pts[:, 1], c_pts[:, 0], 2)
+                curve_fn = np.poly1d(fit)
+                y_min, y_max = c_pts[:, 1].min(), height - 1
+                plot_y = np.linspace(y_min, y_max, 10).astype(int)
+                fit_x = np.clip(curve_fn(plot_y).astype(int), 0, width - 1)
+
+                pts = np.array([np.transpose(np.vstack([fit_x, plot_y]))], np.int32)
+                cv2.polylines(final_mask, pts, False, 255, 2)
+                
+                center_lanes = np.transpose(np.vstack([fit_x, plot_y])).astype(np.int32)
+                raw_errors = (center_lanes[:, 0] - (width // 2))
+                weights = np.linspace(0.2, 1.0, len(raw_errors))
+                weighted_error = np.sum(raw_errors * weights) / np.sum(weights)
+                distance_to_center = np.clip(weighted_error / (width // 4), -1.0, 1.0)
+            except Exception as e:
+                 print(f"[{base_name}] ERROR in drivable fallback polyfit: {e}")
+
+        if len(center_lanes) == 0:
+            center_lanes = np.array([[0, 0] for _ in range(10)])
+
+    # Visualization for both paths
+    if save_path_intermediate_dir:
+        final_output_viz = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        # Draw the final calculated polyline or extended lines
+        final_mask_bgr = cv2.cvtColor(final_mask, cv2.COLOR_GRAY2BGR)
+        final_output_viz[final_mask > 0] = [0, 255, 0] # Green for final path
+        # Draw the center points (placeholders or calculated)
+        for p in center_lanes:
+             cv2.circle(final_output_viz, (p[0], p[1]), 3, (0, 255, 255), -1) # Yellow dots
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_3_final_output.png"), final_output_viz)
+        
+    return (final_mask / 255).astype(np.uint8), distance_to_center, center_lanes, center_lanes
+
+
+def detect_lanes_yolop_v2_lines_agent(image, save_path_intermediate_dir=None, img_path=None):
+    with torch.no_grad():
+        ll_segment = detect_yolop_v2_lines(image)
+    if save_path_intermediate_dir and img_path:
+        base_name = Path(img_path).stem
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_raw.png"), ll_segment)
+
+    # Use the simplified line-finding logic which now only extends lines
+    output_mask, _, _, debug_viz, _, _, all_extended_lines_mask = _find_and_draw_lane_boundaries(ll_segment, save_path_intermediate_dir, img_path)
+
+    if save_path_intermediate_dir and img_path:
+        base_name = Path(img_path).stem
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_Edge-Optimized_Consensus_Debug.png"), debug_viz)
+
+    # Return the combined extended line mask directly and default values
+    final_mask = all_extended_lines_mask if all_extended_lines_mask is not None else np.zeros_like(ll_segment)
+    distance_to_center = 0.0 # Placeholder
+    center_lanes = np.array([[image.shape[1] // 2, y] for y in range(image.shape[0] // 2, image.shape[0], image.shape[0] // 20)])
+
+    return (final_mask / 255).astype(np.uint8), distance_to_center, center_lanes, center_lanes
 
 
 def normalize_centers(centers):
@@ -798,8 +946,16 @@ def detect_lines(raw_image, detection_mode, processing_mode, img_path, save_path
             lines = processed
         else:
             lines = post_process_hough_programmatic(processed if apply_mask else ll_segment)
-    elif detection_mode == 'yolop_v2':
-        detected_lines, distance_to_center, distance_to_center_normalized, centers = detect_lanes_yolop_v2_agent(raw_image, save_path_intermediate_dir, img_path)
+    elif detection_mode == 'yolop_v2_lines':
+        detected_lines, distance_to_center, distance_to_center_normalized, centers = detect_lanes_yolop_v2_lines_agent(raw_image, save_path_intermediate_dir, img_path)
+        x_centers = [point[0] for point in centers]
+        return detected_lines, distance_to_center, distance_to_center_normalized, np.array(x_centers)
+    elif detection_mode == 'yolop_v2_drivable':
+        detected_lines, distance_to_center, distance_to_center_normalized, centers = detect_lanes_yolop_v2_drivable_agent(raw_image, save_path_intermediate_dir, img_path)
+        x_centers = [point[0] for point in centers]
+        return detected_lines, distance_to_center, distance_to_center_normalized, np.array(x_centers)
+    elif detection_mode == 'yolop_v2_hybrid':
+        detected_lines, distance_to_center, distance_to_center_normalized, centers = detect_lanes_yolop_v2_hybrid_agent(raw_image, save_path_intermediate_dir, img_path)
         x_centers = [point[0] for point in centers]
         return detected_lines, distance_to_center, distance_to_center_normalized, np.array(x_centers)
     elif detection_mode == 'yolop':
@@ -1105,7 +1261,7 @@ def draw_dash(index, dist, ll_segment):
 
 
 def calculate_and_plot_lines_counts_above(save_results_benchmark_path, percs, yolop_left_perc, yolop_right_perc,
-                                                yolop_v2_left_perc, yolop_v2_right_perc,
+                                                yolop_v2_lines_left_perc, yolop_v2_lines_right_perc,
                                                 lane_detector_left_perc, lane_detector_right_perc,
                                                 lane_detector_v3_left_perc, lane_detector_v3_right_perc,
                                                 programmatic_left_perc, programmatic_right_perc,
@@ -1113,7 +1269,7 @@ def calculate_and_plot_lines_counts_above(save_results_benchmark_path, percs, yo
 
     for perc in percs:
         yolop_counts = calculate_lines_counts_above(perc, yolop_left_perc, yolop_right_perc)
-        yolop_v2_counts = calculate_lines_counts_above(perc, yolop_v2_left_perc, yolop_v2_right_perc)
+        yolop_v2_lines_counts = calculate_lines_counts_above(perc, yolop_v2_lines_left_perc, yolop_v2_lines_right_perc)
         lane_det_counts = calculate_lines_counts_above(perc, lane_detector_left_perc,
                                                        lane_detector_right_perc)
         lane_det_v3_counts = calculate_lines_counts_above(perc, lane_detector_v3_left_perc,
@@ -1131,8 +1287,8 @@ def calculate_and_plot_lines_counts_above(save_results_benchmark_path, percs, yo
         axs2[0].set_ylabel(f'percentage of images above {perc * 100}% detected')
         axs2[0].set_ylim(0, 100)
 
-        axs2[1].bar(['Just left', 'Just right', 'both', 'none'], yolop_v2_counts, color=['blue', 'green'])
-        axs2[1].set_title('YOLOP_V2')
+        axs2[1].bar(['Just left', 'Just right', 'both', 'none'], yolop_v2_lines_counts, color=['blue', 'green'])
+        axs2[1].set_title('yolop_v2_lines')
         axs2[1].set_ylabel(f'percentage of images above {perc * 100}% detected')
         axs2[1].set_ylim(0, 100)
 
@@ -1189,7 +1345,9 @@ def perform_all_benchmarking(dataset, processing_mode, detection_modes=None):
 
     all_modes = {
         "yolop": "YOLOP",
-        "yolop_v2": "YOLOP_V2",
+        "yolop_v2_lines": "yolop_v2_lines",
+        "yolop_v2_drivable": "yolop_v2_drivable",
+        "yolop_v2_hybrid": "yolop_v2_hybrid",
         "lane_det_v3": "Lane Detector_v3",
         "lane_detector": "Lane Detector_v2",
         "programmatic": "Programmatic",
@@ -1202,7 +1360,7 @@ def perform_all_benchmarking(dataset, processing_mode, detection_modes=None):
 
     for mode in modes_to_run:
         if mode in all_modes:
-            if processing_mode == 'none' and mode in ['yolop_v2']:
+            if processing_mode == 'none' and 'yolop_v2' in mode:
                 print(f"Skipping {mode} for processing_mode {processing_mode}.")
                 continue
             print(f"Running benchmark on {mode} with processing_mode: {processing_mode}")
@@ -1373,7 +1531,7 @@ def benchmark_one(dataset, detection_mode, processing_mode):
         processing_time = time.time() - start
         times.append(processing_time)
         
-        # This part below is now redundant for yolop_v2 but needed for other models' metrics
+        # This part below is now redundant for yolop_v2_lines but needed for other models' metrics
         ll_seg_out_raw = ll_seg_out
         (
             center_lanes,
@@ -1428,10 +1586,21 @@ def benchmark_one(dataset, detection_mode, processing_mode):
 
 
 def wasDetected(labels: list):
-    for i in range(len(labels)):
-        if abs(labels[i]) != 1:
-            return True
-    return False
+    if not labels:
+        return False  # Empty list is a failure
+
+    # Check for yolop_v2_lines failure case (all zeros)
+    is_all_zeros = all(x == 0 for x in labels)
+    if is_all_zeros:
+        return False
+
+    # Check for other modes' failure case (all abs(1))
+    is_all_ones = all(abs(x) == 1 for x in labels)
+    if is_all_ones:
+        return False
+
+    # If neither failure case is met, it's a success
+    return True
 
 def anyDetected(labels: list):
     for i in range(len(labels)):

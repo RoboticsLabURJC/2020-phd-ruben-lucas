@@ -1392,6 +1392,14 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         raw_image = self.get_resized_image(self.front_camera_1_5.front_camera)
 
         # 1. PERCEPTION: Detect lines
+        # TODO (GEMINI): Implement temporal smoothing/tracking for the lane detection.
+        # Instead of re-detecting lanes in every frame, track them.
+        # 1. In the first frame, detect the lanes as usual.
+        # 2. In subsequent frames, define a small search window around the position
+        #    of the lanes from the *previous* frame. This will make the detection
+        #    much more stable and less prone to "flickering" when temporary
+        #    occlusions or shadows appear. A Kalman filter would be a good
+        #    choice for this.
         ll_segment, distance_to_center, center_lanes_normalized = self.detect_lines(raw_image)
 
         # 3. METRICS & STATE
