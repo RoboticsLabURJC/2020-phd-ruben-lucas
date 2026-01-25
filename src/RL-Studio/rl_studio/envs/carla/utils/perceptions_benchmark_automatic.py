@@ -448,9 +448,12 @@ def handle_detection_failure(ll_seg_mask):
     debug_image = np.zeros((ll_seg_mask.shape[0], ll_seg_mask.shape[1], 3), dtype=np.uint8)
     return np.zeros_like(ll_seg_mask), [], [], debug_image
 
-def detect_yolop_v2_lines(raw_image):
-    # Standard resize to the native resolution YOLOPv2 expects
-    # Ensure this matches the 640x384 or 640x640 your model was trained on
+
+
+
+def detect_yolop_v2_lines(raw_image, force_classical_fallback=False):
+
+    # Resize as your model expects
     raw_image = cv2.resize(raw_image, (640, 384))
 
     img = yolop_v2_lines_transform(raw_image).to(device)
@@ -460,15 +463,8 @@ def detect_yolop_v2_lines(raw_image):
     # Inference
     outputs = yolop_v2_lines_model(img)
 
-    # DEBUG: Uncomment this once to see the shapes in your console
-    # for i, out in enumerate(outputs): print(f"Index {i} shape: {out.shape}")
-
-    # For YOLOPv2 JIT, the lane line is usually at index 2 or 1
-    # We select the lane head and apply softmax for better quality
     ll_seg_out = outputs[2]
 
-    # QUALITY UPGRADE: Interpolate back to original resolution first
-    # This prevents the "blocky" look in the raw window
     ll_seg_mask = torch.nn.functional.interpolate(
         ll_seg_out,
         size=(raw_image.shape[0], raw_image.shape[1]),
@@ -476,40 +472,159 @@ def detect_yolop_v2_lines(raw_image):
         align_corners=False
     )
 
-    # Apply sigmoid to convert logits to probabilities
     probs = torch.sigmoid(ll_seg_mask)
-
-    # Squeeze and convert to numpy for OpenCV operations
     probs_np = probs.squeeze().cpu().numpy()
 
-    # --- Advanced Post-Processing ---
-    # 1. Bilateral Filter: Smooth while preserving edges
-    # blurred = cv2.bilateralFilter((probs_np * 255).astype(np.uint8), 9, 75, 75)
-
-    # 2. Otsu's Thresholding: Find the optimal threshold to create a binary mask
-    _, binary_mask = cv2.threshold(
-        (probs_np * 255).astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+    # Otsu threshold
+    _, yolo_mask = cv2.threshold(
+        (probs_np * 255).astype(np.uint8),
+        0, 255,
+        cv2.THRESH_BINARY + cv2.THRESH_OTSU
     )
 
-    # 3. Morphological Closing: Fill gaps in the detected lines
+    # Morphological cleanup
     kernel = np.ones((5, 5), np.uint8)
-    cleaned_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel)
+    yolo_mask = cv2.morphologyEx(yolo_mask, cv2.MORPH_CLOSE, kernel)
 
-    return cleaned_mask
+    # ==========================
+    # CLASSICAL CV FALLBACK
+    # ==========================
+
+    gray = cv2.cvtColor(raw_image, cv2.COLOR_BGR2GRAY)
+
+    # Light blur only (avoid destroying lines)
+    blur = cv2.GaussianBlur(gray, (5,5), 0)
+
+    edges = cv2.Canny(blur, 50, 150)
+
+    lines = cv2.HoughLinesP(
+        edges,
+        rho=1,
+        theta=np.pi/180,
+        threshold=80,
+        minLineLength=50,
+        maxLineGap=40
+    )
+
+    cv_mask = np.zeros_like(yolo_mask)
+
+    if lines is not None:
+        for line in lines:
+            x1,y1,x2,y2 = line[0]
+            cv2.line(cv_mask, (x1,y1), (x2,y2), 255, 2)
+
+    if not force_classical_fallback:
+        return yolo_mask
+
+    cv_mask = classical_lane_fallback(raw_image)
+
+    # Apply road ROI
+    cv_mask = apply_road_roi(cv_mask, keep_ratio=0.35)
+
+    # Now filter lane-like regions
+    # cv_mask_filtered = filter_lane_like_regions(cv_mask)
+
+    hybrid_mask = cv2.bitwise_or(yolo_mask, cv_mask)
+
+    return hybrid_mask
+
+def apply_road_roi(mask, keep_ratio=0.25):
+    """
+    Keeps only the bottom portion of the image.
+    keep_ratio = 0.45 means bottom 45% is kept.
+    """
+    h = mask.shape[0]
+    roi_mask = np.zeros_like(mask)
+    roi_mask[int(h*(1-keep_ratio)):, :] = 255
+    return cv2.bitwise_and(mask, roi_mask)
+
+def filter_lane_like_regions(white_mask):
+
+    filtered = np.zeros_like(white_mask)
+
+    # Find connected components
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
+        white_mask, connectivity=8
+    )
+
+    h, w = white_mask.shape
+
+    for i in range(1, num_labels):  # skip background
+        x,y,w_box,h_box,area = stats[i]
+
+        # --- FILTER RULES ---
+
+        # 1. Remove tiny areas
+        if area < 80:
+            continue
+
+        # 2. Aspect ratio: long and thin
+        aspect = max(w_box, h_box) / (min(w_box, h_box) + 1e-6)
+        if aspect < 2.5:
+            continue
+
+        # 3. Orientation: mostly vertical
+        component = (labels == i).astype(np.uint8) * 255
+        ys, xs = np.where(component > 0)
+        if len(xs) < 30:
+            continue
+
+        vx, vy, _, _ = cv2.fitLine(
+            np.column_stack([xs, ys]), cv2.DIST_L2, 0, 0.01, 0.01
+        )
+
+        angle = abs(np.arctan2(vy, vx)) * 180 / np.pi
+        if angle < 25 or angle > 155:
+            continue  # reject near-horizontal
+
+        # 4. Position: bottom half only
+        cy = centroids[i][1]
+        if cy < h * 0.45:
+            continue
+
+        # Passed all filters → keep
+        filtered[labels == i] = 255
+
+    return filtered
+
+
+def classical_lane_fallback(raw_image):
+
+    hsv = cv2.cvtColor(raw_image, cv2.COLOR_BGR2HSV)
+
+    # Detect white-ish pixels (lane paint)
+    lower_white = np.array([0, 0, 180])
+    upper_white = np.array([180, 40, 255])
+
+    white_mask = cv2.inRange(hsv, lower_white, upper_white)
+
+    # Clean noise
+    kernel = np.ones((3,3), np.uint8)
+    white_mask = cv2.morphologyEx(white_mask, cv2.MORPH_OPEN, kernel)
+
+    # Keep only bottom half (where lanes are)
+    h = white_mask.shape[0]
+    white_mask[:h//2, :] = 0
+
+    # Optional thinning
+    white_mask = cv2.morphologyEx(white_mask, cv2.MORPH_CLOSE, kernel)
+
+    return white_mask
 
 from scipy.signal import savgol_filter
 from skimage.morphology import skeletonize
 
 def _extend_line(skeleton, height):
     if skeleton is None:
-        return None
+        return None, None
 
     points = np.argwhere(skeleton > 0)
-    if len(points) < 60: # Need at least 5 points for savgol filter
-        return skeleton
+    if len(points) < 750: # Need at least a few points to do anything
+        return skeleton, None
 
-    # Create a copy to draw extensions on
+    # Create a copy to draw extensions on and a debug visualizer
     extended_mask = skeleton.copy()
+    debug_viz = cv2.cvtColor(skeleton.copy(), cv2.COLOR_GRAY2BGR)
     width = skeleton.shape[1]
     
     # Sort points from top to bottom
@@ -537,11 +652,15 @@ def _extend_line(skeleton, height):
     # --- Downward Extension ---
     BORDER_TOLERANCE = 5 # pixels
     if max_y < height - 5: # 5-pixel tolerance for bottom
-        num_points_to_use = 60
+        num_points_to_use = 750
         lower_points = points[-num_points_to_use:]
         if len(lower_points) < 2:
             lower_points = points
         
+        # Draw the points being used for downward extension in RED
+        for p in lower_points:
+            cv2.circle(debug_viz, (p[1], p[0]), 3, (0, 0, 255), -1)
+
         if len(lower_points) >= 2:
             y_fit = lower_points[:, 0]
             x_fit = lower_points[:, 1]
@@ -567,10 +686,14 @@ def _extend_line(skeleton, height):
 
     # --- Upward Extension ---
     if min_y > height // 2: # Only extend up if the line starts below the halfway point
-        num_points_to_use = 60
+        num_points_to_use = 750
         upper_points = points[:num_points_to_use]
         if len(upper_points) < 2:
             upper_points = points
+
+        # Draw the points being used for upward extension in BLUE
+        for p in upper_points:
+            cv2.circle(debug_viz, (p[1], p[0]), 3, (255, 0, 0), -1)
 
         if len(upper_points) >= 2:
             y_fit = upper_points[:, 0]
@@ -592,7 +715,7 @@ def _extend_line(skeleton, height):
             except (np.linalg.LinAlgError, TypeError):
                 pass # If fit fails, we just don't extend upwards
     
-    return extended_mask
+    return extended_mask, debug_viz
 
 def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None, img_path=None):
     height, width = binary_mask.shape
@@ -605,12 +728,23 @@ def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None,
     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(closed_mask, connectivity=8)
     
     all_extended_lines_mask = np.zeros_like(binary_mask)
+    lines_debug_viz = np.zeros((height, width, 3), dtype=np.uint8)
+
     for i in range(1, num_labels):
-        if stats[i, cv2.CC_STAT_AREA] > 100:
+        # Filter based on length (width or height) instead of area to better detect thin lines
+        if stats[i, cv2.CC_STAT_WIDTH] > 20 or stats[i, cv2.CC_STAT_HEIGHT] > 20:
             segment_mask = (labels == i).astype(np.uint8) * 255
-            extended_line = _extend_line(segment_mask, height)
+            extended_line, segment_debug_viz = _extend_line(segment_mask, height)
             if extended_line is not None:
                 all_extended_lines_mask = cv2.bitwise_or(all_extended_lines_mask, extended_line)
+            if segment_debug_viz is not None:
+                lines_debug_viz = cv2.bitwise_or(lines_debug_viz, segment_debug_viz)
+
+    # --- Step 1b: Save the debug visualization of points used for fitting ---
+    if save_path_intermediate_dir and img_path:
+        base_name = Path(img_path).stem
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_1b_points_used_for_fit.png"), lines_debug_viz)
+
 
     # --- Step 2: Robustly Track All Potential Center Paths ---
     active_paths = []
@@ -881,10 +1015,10 @@ def detect_lanes_yolop_v2_drivable_agent(image, save_path_intermediate_dir=None,
 
     return (output_mask / 255).astype(np.uint8), distance_to_center, center_lanes, center_lanes
 
-def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, img_path=None, force_drivable_fallback=False):
+def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, img_path=None, force_drivable_fallback=False, force_classical_fallback=False):
     # Step 1 & 2: Calculate both drivable area and lines first
     with torch.no_grad():
-        ll_segment = detect_yolop_v2_lines(image)
+        ll_segment = detect_yolop_v2_lines(image, force_classical_fallback)
         drivable_mask = detect_yolop_v2_drivable(image)
 
     height, width = ll_segment.shape
@@ -988,9 +1122,9 @@ def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, i
     return (final_mask / 255).astype(np.uint8), distance_to_center, center_lanes, center_lanes
 
 
-def detect_lanes_yolop_v2_lines_agent(image, save_path_intermediate_dir=None, img_path=None):
+def detect_lanes_yolop_v2_lines_agent(image, save_path_intermediate_dir=None, img_path=None, force_classical_fallback=False):
     with torch.no_grad():
-        ll_segment = detect_yolop_v2_lines(image)
+        ll_segment = detect_yolop_v2_lines(image, force_classical_fallback)
     if save_path_intermediate_dir and img_path:
         base_name = Path(img_path).stem
         cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_raw.png"), ll_segment)
@@ -1110,7 +1244,7 @@ def extract_green_lines(image):
 
     return green_mask
 
-def detect_lines(raw_image, detection_mode, processing_mode, img_path, save_path_intermediate_dir=None, force_drivable_fallback=False):
+def detect_lines(raw_image, detection_mode, processing_mode, img_path, save_path_intermediate_dir=None, force_drivable_fallback=False, force_classical_fallback=False):
     if detection_mode == 'carla_perfect':
 
         green_mask = extract_green_lines(raw_image)
@@ -1135,7 +1269,7 @@ def detect_lines(raw_image, detection_mode, processing_mode, img_path, save_path
         else:
             lines = post_process_hough_programmatic(processed if apply_mask else ll_segment)
     elif detection_mode == 'yolop_v2_lines':
-        detected_lines, distance_to_center, distance_to_center_normalized, centers = detect_lanes_yolop_v2_lines_agent(raw_image, save_path_intermediate_dir, img_path)
+        detected_lines, distance_to_center, distance_to_center_normalized, centers = detect_lanes_yolop_v2_lines_agent(raw_image, save_path_intermediate_dir, img_path, force_classical_fallback)
         x_centers = [point[0] for point in centers]
         return detected_lines, distance_to_center, distance_to_center_normalized, np.array(x_centers)
     elif detection_mode == 'yolop_v2_drivable':
@@ -1143,7 +1277,7 @@ def detect_lines(raw_image, detection_mode, processing_mode, img_path, save_path
         x_centers = [point[0] for point in centers]
         return detected_lines, distance_to_center, distance_to_center_normalized, np.array(x_centers)
     elif detection_mode == 'yolop_v2_hybrid':
-        detected_lines, distance_to_center, distance_to_center_normalized, centers = detect_lanes_yolop_v2_hybrid_agent(raw_image, save_path_intermediate_dir, img_path, force_drivable_fallback)
+        detected_lines, distance_to_center, distance_to_center_normalized, centers = detect_lanes_yolop_v2_hybrid_agent(raw_image, save_path_intermediate_dir, img_path, force_drivable_fallback, force_classical_fallback)
         x_centers = [point[0] for point in centers]
         return detected_lines, distance_to_center, distance_to_center_normalized, np.array(x_centers)
     elif detection_mode == 'yolop':
@@ -1514,7 +1648,7 @@ def calculate_lines_counts_above(threshold, left_perc, right_perc):
         (np.sum((np.array(left_perc) < threshold) & (np.array(right_perc) < threshold)) / len(left_perc)) * 100,
     ]
 
-def perform_all_benchmarking(dataset, processing_mode, detection_modes=None, save_intermediate=False, force_drivable_fallback=False):
+def perform_all_benchmarking(dataset, processing_mode, detection_modes=None, save_intermediate=False, force_drivable_fallback=False, force_classical_fallback=False):
     if detection_modes is None:
         detection_modes = []
     # Create the save directory if it doesn't exist
@@ -1552,7 +1686,7 @@ def perform_all_benchmarking(dataset, processing_mode, detection_modes=None, sav
                 print(f"Skipping {mode} for processing_mode {processing_mode}.")
                 continue
             print(f"Running benchmark on {mode} with processing_mode: {processing_mode}")
-            times, errors, left_perc, right_perc, percentage = benchmark_one(dataset, mode, processing_mode, save_intermediate, force_drivable_fallback)
+            times, errors, left_perc, right_perc, percentage = benchmark_one(dataset, mode, processing_mode, save_intermediate, force_drivable_fallback, force_classical_fallback)
             results[mode] = {
                 "times": times, "errors": errors, "left_perc": left_perc,
                 "right_perc": right_perc, "percentage": percentage, "label": all_modes[mode]
@@ -1611,10 +1745,10 @@ def detect(opt):
         dataset = LoadImages(opt.source, img_size=opt.img_size)
 
     detection_modes = opt.detection_modes if opt.detection_modes else []
-    perform_all_benchmarking(dataset, "none", detection_modes, opt.save_intermediate_images, opt.force_drivable_fallback)
-    perform_all_benchmarking(dataset, "postprocess", detection_modes, opt.save_intermediate_images, opt.force_drivable_fallback)
+    perform_all_benchmarking(dataset, "none", detection_modes, opt.save_intermediate_images, opt.force_drivable_fallback, opt.force_classical_fallback)
+    perform_all_benchmarking(dataset, "postprocess", detection_modes, opt.save_intermediate_images, opt.force_drivable_fallback, opt.force_classical_fallback)
 
-def benchmark_one(dataset, detection_mode, processing_mode, save_intermediate=False, force_drivable_fallback=False):
+def benchmark_one(dataset, detection_mode, processing_mode, save_intermediate=False, force_drivable_fallback=False, force_classical_fallback=False):
     global prev_fit
     prev_fit = None
     print("running benchmarking on " + detection_mode)
@@ -1688,7 +1822,7 @@ def benchmark_one(dataset, detection_mode, processing_mode, save_intermediate=Fa
         # resized_img_np = np.array(resized_img)
         start = time.time()
 
-        ll_seg_out_list, distance_to_center, center_lanes_normalized, x_centers = detect_lines(resized_img_np, detection_mode, processing_mode, path, save_path_intermediate_dir, force_drivable_fallback)
+        ll_seg_out_list, distance_to_center, center_lanes_normalized, x_centers = detect_lines(resized_img_np, detection_mode, processing_mode, path, save_path_intermediate_dir, force_drivable_fallback, force_classical_fallback)
 
         ll_seg_out = ll_seg_out_list
 
@@ -1815,6 +1949,7 @@ if __name__ == '__main__':
     parser.add_argument('--detection-modes', nargs='+', type=str, help='List of detection modes to benchmark')
     parser.add_argument('--save-intermediate-images', action='store_true', help='save all intermediate images for debugging')
     parser.add_argument('--force-drivable-fallback', action='store_true', help='force the hybrid agent to use drivable area fallback logic')
+    parser.add_argument('--force-classical-fallback', action='store_true', help='force to only use classical lane fallback.')
     opt = parser.parse_args()
     with torch.no_grad():
         detect(opt)
