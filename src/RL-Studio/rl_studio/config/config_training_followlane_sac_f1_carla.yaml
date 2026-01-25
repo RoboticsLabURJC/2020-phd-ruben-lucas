@@ -40,7 +40,7 @@ inference:
     retrain_ddpg_tf_model_name:
 
 algorithm:
-  ddpg:
+  sac:
     gamma: 0.9
     tau: 0.005
     std_dev: 0.06

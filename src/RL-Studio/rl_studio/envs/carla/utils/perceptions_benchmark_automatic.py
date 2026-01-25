@@ -881,7 +881,7 @@ def detect_lanes_yolop_v2_drivable_agent(image, save_path_intermediate_dir=None,
 
     return (output_mask / 255).astype(np.uint8), distance_to_center, center_lanes, center_lanes
 
-def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, img_path=None):
+def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, img_path=None, force_drivable_fallback=False):
     # Step 1 & 2: Calculate both drivable area and lines first
     with torch.no_grad():
         ll_segment = detect_yolop_v2_lines(image)
@@ -896,17 +896,12 @@ def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, i
     # Use the simplified line-finding logic which now only extends lines
     _, _, _, _, _, _, all_extended_lines_mask = _find_and_draw_lane_boundaries(ll_segment, save_path_intermediate_dir, img_path)
 
-    # Step 3: Check if any lines were extended.
-    if np.any(all_extended_lines_mask):
+    # Step 3: Check if any lines were extended or if fallback is forced.
+    if np.any(all_extended_lines_mask) and not force_drivable_fallback:
         # --- PRIMARY LOGIC: Lines were detected. Use the extended lines mask directly. ---
         if save_path_intermediate_dir:
             print(f"[{base_name}] SUCCESS: Lines detected. Returning all extended lines.")
-            # We can save a debug image here if needed, but the primary debug image is saved in _find_and_draw...
-
         final_mask = all_extended_lines_mask
-        distance_to_center = 0.0 # Placeholder
-        center_lanes = np.array([[width // 2, y] for y in range(height // 2, height, height // 20)]) # Placeholder center points
-
     else:
         # --- FALLBACK LOGIC: No lines detected, use drivable area ---
         if save_path_intermediate_dir:
@@ -931,32 +926,53 @@ def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, i
             if len(white_pixels) > 1:
                 center_points.append([(white_pixels[0] + white_pixels[-1]) // 2, y])
 
-        center_lanes = []
         final_mask = np.zeros_like(drivable_mask)
-        distance_to_center = 1.0 # Default to max error
-
         if len(center_points) > 10:
             c_pts = np.array(center_points)
             try:
                 fit = np.polyfit(c_pts[:, 1], c_pts[:, 0], 2)
                 curve_fn = np.poly1d(fit)
                 y_min, y_max = c_pts[:, 1].min(), height - 1
-                plot_y = np.linspace(y_min, y_max, 10).astype(int)
+                plot_y = np.linspace(y_min, y_max, 50).astype(int)
                 fit_x = np.clip(curve_fn(plot_y).astype(int), 0, width - 1)
 
                 pts = np.array([np.transpose(np.vstack([fit_x, plot_y]))], np.int32)
                 cv2.polylines(final_mask, pts, False, 255, 2)
-                
-                center_lanes = np.transpose(np.vstack([fit_x, plot_y])).astype(np.int32)
-                raw_errors = (center_lanes[:, 0] - (width // 2))
-                weights = np.linspace(0.2, 1.0, len(raw_errors))
-                weighted_error = np.sum(raw_errors * weights) / np.sum(weights)
-                distance_to_center = np.clip(weighted_error / (width // 4), -1.0, 1.0)
             except Exception as e:
                  print(f"[{base_name}] ERROR in drivable fallback polyfit: {e}")
 
-        if len(center_lanes) == 0:
-            center_lanes = np.array([[0, 0] for _ in range(10)])
+    # --- UNIFIED STEP 4: Calculate 10 points and distance from the FINAL MASK ---
+    center_lanes = []
+    distance_to_center = 1.0 # Default to max error
+
+    path_points = np.argwhere(final_mask > 0)
+    if len(path_points) > 10:
+        # Swap columns so we have (x, y)
+        path_points = path_points[:, [1, 0]]
+        
+        try:
+            fit = np.polyfit(path_points[:, 1], path_points[:, 0], 2)
+            curve_fn = np.poly1d(fit)
+            
+            y_coords = path_points[:, 1]
+            y_min, y_max = y_coords.min(), y_coords.max()
+            
+            # Generate 10 evenly spaced points
+            plot_y = np.linspace(y_min, y_max, 10).astype(int)
+            fit_x = np.clip(curve_fn(plot_y).astype(int), 0, width - 1)
+
+            center_lanes = np.transpose(np.vstack([fit_x, plot_y])).astype(np.int32)
+            
+            # Calculate weighted error for distance_to_center
+            raw_errors = (center_lanes[:, 0] - (width // 2))
+            weights = np.linspace(0.2, 1.0, len(raw_errors))
+            weighted_error = np.sum(raw_errors * weights) / np.sum(weights)
+            distance_to_center = np.clip(weighted_error / (width // 4), -1.0, 1.0)
+        except Exception as e:
+            print(f"[{base_name}] ERROR in final unified polyfit: {e}")
+
+    if len(center_lanes) == 0:
+        center_lanes = np.array([[0, 0] for _ in range(10)])
 
     # Visualization for both paths
     if save_path_intermediate_dir:
@@ -1094,7 +1110,7 @@ def extract_green_lines(image):
 
     return green_mask
 
-def detect_lines(raw_image, detection_mode, processing_mode, img_path, save_path_intermediate_dir=None):
+def detect_lines(raw_image, detection_mode, processing_mode, img_path, save_path_intermediate_dir=None, force_drivable_fallback=False):
     if detection_mode == 'carla_perfect':
 
         green_mask = extract_green_lines(raw_image)
@@ -1127,7 +1143,7 @@ def detect_lines(raw_image, detection_mode, processing_mode, img_path, save_path
         x_centers = [point[0] for point in centers]
         return detected_lines, distance_to_center, distance_to_center_normalized, np.array(x_centers)
     elif detection_mode == 'yolop_v2_hybrid':
-        detected_lines, distance_to_center, distance_to_center_normalized, centers = detect_lanes_yolop_v2_hybrid_agent(raw_image, save_path_intermediate_dir, img_path)
+        detected_lines, distance_to_center, distance_to_center_normalized, centers = detect_lanes_yolop_v2_hybrid_agent(raw_image, save_path_intermediate_dir, img_path, force_drivable_fallback)
         x_centers = [point[0] for point in centers]
         return detected_lines, distance_to_center, distance_to_center_normalized, np.array(x_centers)
     elif detection_mode == 'yolop':
@@ -1498,7 +1514,7 @@ def calculate_lines_counts_above(threshold, left_perc, right_perc):
         (np.sum((np.array(left_perc) < threshold) & (np.array(right_perc) < threshold)) / len(left_perc)) * 100,
     ]
 
-def perform_all_benchmarking(dataset, processing_mode, detection_modes=None, save_intermediate=False):
+def perform_all_benchmarking(dataset, processing_mode, detection_modes=None, save_intermediate=False, force_drivable_fallback=False):
     if detection_modes is None:
         detection_modes = []
     # Create the save directory if it doesn't exist
@@ -1536,7 +1552,7 @@ def perform_all_benchmarking(dataset, processing_mode, detection_modes=None, sav
                 print(f"Skipping {mode} for processing_mode {processing_mode}.")
                 continue
             print(f"Running benchmark on {mode} with processing_mode: {processing_mode}")
-            times, errors, left_perc, right_perc, percentage = benchmark_one(dataset, mode, processing_mode, save_intermediate)
+            times, errors, left_perc, right_perc, percentage = benchmark_one(dataset, mode, processing_mode, save_intermediate, force_drivable_fallback)
             results[mode] = {
                 "times": times, "errors": errors, "left_perc": left_perc,
                 "right_perc": right_perc, "percentage": percentage, "label": all_modes[mode]
@@ -1595,10 +1611,10 @@ def detect(opt):
         dataset = LoadImages(opt.source, img_size=opt.img_size)
 
     detection_modes = opt.detection_modes if opt.detection_modes else []
-    perform_all_benchmarking(dataset, "none", detection_modes, opt.save_intermediate_images)
-    perform_all_benchmarking(dataset, "postprocess", detection_modes, opt.save_intermediate_images)
+    perform_all_benchmarking(dataset, "none", detection_modes, opt.save_intermediate_images, opt.force_drivable_fallback)
+    perform_all_benchmarking(dataset, "postprocess", detection_modes, opt.save_intermediate_images, opt.force_drivable_fallback)
 
-def benchmark_one(dataset, detection_mode, processing_mode, save_intermediate=False):
+def benchmark_one(dataset, detection_mode, processing_mode, save_intermediate=False, force_drivable_fallback=False):
     global prev_fit
     prev_fit = None
     print("running benchmarking on " + detection_mode)
@@ -1672,7 +1688,7 @@ def benchmark_one(dataset, detection_mode, processing_mode, save_intermediate=Fa
         # resized_img_np = np.array(resized_img)
         start = time.time()
 
-        ll_seg_out_list, distance_to_center, center_lanes_normalized, x_centers = detect_lines(resized_img_np, detection_mode, processing_mode, path, save_path_intermediate_dir)
+        ll_seg_out_list, distance_to_center, center_lanes_normalized, x_centers = detect_lines(resized_img_np, detection_mode, processing_mode, path, save_path_intermediate_dir, force_drivable_fallback)
 
         ll_seg_out = ll_seg_out_list
 
@@ -1798,6 +1814,7 @@ if __name__ == '__main__':
     parser.add_argument('--update', action='store_true', help='update all models')
     parser.add_argument('--detection-modes', nargs='+', type=str, help='List of detection modes to benchmark')
     parser.add_argument('--save-intermediate-images', action='store_true', help='save all intermediate images for debugging')
+    parser.add_argument('--force-drivable-fallback', action='store_true', help='force the hybrid agent to use drivable area fallback logic')
     opt = parser.parse_args()
     with torch.no_grad():
         detect(opt)

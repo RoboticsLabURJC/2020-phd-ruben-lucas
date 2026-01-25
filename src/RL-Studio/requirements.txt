@@ -1,48 +1,53 @@
-ale_py
-#carla_birdeye_view
-#cv_bridge==1.16.2
-gym==0.17.0
-gymnasium==0.28.1
-keras==2.9.0
-markdownTable==6.0.0
-matplotlib==3.7.1
-networkx==2.5.1
-opencv_python==4.5.5.64
-#opencv_python_headless==4.5.5.64
-optuna==3.1.0
-pandas==1.5.3
-Pillow==10.1.0
-py3rosmsgs==1.18.2
-py_markdown_table==0.3.3
-pydantic==1.10.2
-pygame==2.4.0
-Pygments==2.14.0
-PyYAML==6.0.1
-reloading==1.1.2
-#rosbag==1.16.0
-#rosgraph==1.16.0
-#rosnode==1.16.0
-#rospy==1.16.0
+# --- Core Math & Image Processing ---
+numpy==1.23.5
 scipy==1.10.1
-#sensor_msgs==1.13.1
-six==1.14.0
+pandas==1.5.3
+matplotlib==3.7.1
+Pillow==10.1.0
+opencv-python==4.5.5.64
+scikit-learn==1.2.2
+scikit-image==0.19.3
+shapely
+
+# --- Deep Learning: TensorFlow Stack ---
+# TensorFlow 2.9.1 REQUIRES protobuf < 3.20
+protobuf==3.19.6
+tensorflow==2.9.1
+tensorflow-gpu==2.9.1
+keras==2.9.0
+tensorboardX
+
+# --- Deep Learning: PyTorch Stack ---
+# Torch 2.2.0 REQUIRES torchvision 0.17.x
+torch==2.2.0
+torchvision==0.17.0
+
+# --- Reinforcement Learning Stack ---
+# Stable Baselines 3 v2.4.1 REQUIRES Gymnasium >= 0.29.1
+gym==0.17.0
+gymnasium==0.29.1
+stable-baselines3==2.4.1
+optuna==3.1.0
+
+# --- Utilities & Tools ---
+PyYAML==6.0.1
+tqdm==4.64.0
+pygame==2.4.0
+networkx==2.5.1
 statsmodels==0.13.2
 tabulate==0.9.0
-tensorboardX
-tensorflow==2.9.1
-tensorflow_gpu==2.9.1
-#tf==1.13.2
-torch==2.2.0
-tqdm==4.64.0
-protobuf
-rospkg==1.5.0
-torchvision
+Pygments==2.14.0
+pydantic==1.10.2
+reloading==1.1.2
 prefetch_generator
 nvidia-ml-py3
 pynvml
 fastseg
-shapely
+markdownTable==6.0.0
+py_markdown_table==0.3.3
+
+# --- Specialized / Robotics ---
+rospkg==1.5.0
+py3rosmsgs==1.18.2
+# Note: Ensure you have the correct .egg for your Python version
 carla==0.9.13
-numpy==1.23.5
-scikit-learn==1.2.2
-scikit-image==0.19.3

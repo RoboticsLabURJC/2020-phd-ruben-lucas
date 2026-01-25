@@ -5,13 +5,13 @@ import time
 import random
 
 import numpy as np
-import pynvml
+# import pynvml
 from typing import Callable
 from stable_baselines3.common.vec_env import DummyVecEnv
 from rl_studio.envs.carla.utils.logger import logger
 
-import mlflow
-import mlflow.sklearn
+# import mlflow
+# import mlflow.sklearn
 from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import MlpExtractor
