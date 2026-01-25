@@ -505,7 +505,7 @@ def _extend_line(skeleton, height):
         return None
 
     points = np.argwhere(skeleton > 0)
-    if len(points) < 5: # Need at least 5 points for savgol filter
+    if len(points) < 60: # Need at least 5 points for savgol filter
         return skeleton
 
     # Create a copy to draw extensions on
@@ -546,7 +546,9 @@ def _extend_line(skeleton, height):
             y_fit = lower_points[:, 0]
             x_fit = lower_points[:, 1]
             try:
-                fit = np.polyfit(y_fit, x_fit, 1)
+                # Use a more robust linear fit if we don't have enough points for a quadratic one
+                degree = 2 if len(np.unique(y_fit)) > 2 else 1
+                fit = np.polyfit(y_fit, x_fit, degree)
                 line_fn = np.poly1d(fit)
                 
                 original_bottom_x = int(np.mean(points[y_coords == max_y, 1]))
@@ -574,7 +576,8 @@ def _extend_line(skeleton, height):
             y_fit = upper_points[:, 0]
             x_fit = upper_points[:, 1]
             try:
-                fit = np.polyfit(y_fit, x_fit, 1)
+                degree = 2 if len(np.unique(y_fit)) > 2 else 1
+                fit = np.polyfit(y_fit, x_fit, degree)
                 line_fn = np.poly1d(fit)
 
                 original_top_x = int(np.mean(points[y_coords == min_y, 1]))
@@ -603,7 +606,7 @@ def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None,
     
     all_extended_lines_mask = np.zeros_like(binary_mask)
     for i in range(1, num_labels):
-        if stats[i, cv2.CC_STAT_AREA] > 10:
+        if stats[i, cv2.CC_STAT_AREA] > 100:
             segment_mask = (labels == i).astype(np.uint8) * 255
             extended_line = _extend_line(segment_mask, height)
             if extended_line is not None:
@@ -683,7 +686,7 @@ def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None,
                 cv2.polylines(all_paths_viz, [path_pts], isClosed=False, color=colors[i % len(colors)], thickness=2)
         cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_2_all_candidate_paths.png"), all_paths_viz)
 
-    # --- Step 4: Select the Path Closest to the Center ---
+    # --- Step 4: Select the best path ---
     best_path = None
     best_score = float('inf')
     long_paths = [path for path in terminated_paths if len(path) > 10]
@@ -691,13 +694,58 @@ def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None,
     if not long_paths:
         return np.zeros_like(binary_mask), [], [], debug_viz, None, None, np.zeros_like(binary_mask)
 
+    # First, iterate through all paths to find the best one based on the score
     for path in long_paths:
         path_points = np.array(path)
-        avg_distance = np.mean(np.abs(path_points[:, 0] - width / 2))
+        y_coords = path_points[:, 1]
+        x_coords = path_points[:, 0]
+
+        try:
+            # Polyfit level 2
+            fit_2 = np.polyfit(y_coords, x_coords, 2)
+            curve_fn_2 = np.poly1d(fit_2)
+
+            # Use level 2 polyfit to determine the best path by checking its intersection at the bottom of the image
+            bottom_y = height - 1
+            bottom_x = curve_fn_2(bottom_y)
+
+            distance_to_center = abs(bottom_x - (width / 2))
+
+            if distance_to_center < best_score:
+                best_score = distance_to_center
+                best_path = path_points
+
+        except (np.linalg.LinAlgError, TypeError):
+            continue
+
+    # --- Step 4a: Save intermediate visualizations IF requested ---
+    if save_path_intermediate_dir and img_path:
+        base_name = Path(img_path).stem
+        polyfit_viz_2 = np.zeros((height, width, 3), dtype=np.uint8)
+        colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255)]
         
-        if avg_distance < best_score:
-            best_score = avg_distance
-            best_path = path_points
+        # Now, iterate again to draw all the candidates
+        for i, path in enumerate(long_paths):
+            path_points = np.array(path)
+            y_coords = path_points[:, 1]
+            x_coords = path_points[:, 0]
+            try:
+                fit_2 = np.polyfit(y_coords, x_coords, 2)
+                curve_fn_2 = np.poly1d(fit_2)
+
+                plot_y = np.linspace(y_coords.min(), y_coords.max(), 100).astype(int)
+                color = colors[i % len(colors)]
+
+                # Draw level 2
+                plot_x_2 = np.clip(curve_fn_2(plot_y), 0, width - 1).astype(int)
+                pts_2 = np.array(list(zip(plot_x_2, plot_y))).reshape((-1, 1, 2))
+                cv2.polylines(polyfit_viz_2, [pts_2], isClosed=False, color=color, thickness=2)
+            except (np.linalg.LinAlgError, TypeError):
+                continue # Skip drawing if fit fails
+                
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_2b_polyfit_deg2.png"), polyfit_viz_2)
+
+
     
     # --- Step 5: Create Final Mask from the Best Path ---
     final_mask = np.zeros_like(binary_mask)
@@ -705,8 +753,12 @@ def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None,
         try:
             fit = np.polyfit(best_path[:, 1], best_path[:, 0], 2)
             curve_fn = np.poly1d(fit)
-            y_coords = best_path[:, 1]
-            plot_y = np.linspace(y_coords.min(), y_coords.max(), len(y_coords)).astype(int)
+            
+            # Extend the final path to cover from height // 2 to the bottom
+            plot_y_min = max(height // 2, best_path[:, 1].min()) # Start from higher up, but not above where we have data
+            plot_y_max = height - 1 # Go all the way to the bottom
+            
+            plot_y = np.linspace(plot_y_min, plot_y_max, 50).astype(int) # More points for smoother curve
             plot_x = np.clip(curve_fn(plot_y), 0, width - 1).astype(int)
             path_pts = np.array(list(zip(plot_x, plot_y))).reshape((-1, 1, 2))
             cv2.polylines(final_mask, [path_pts], isClosed=False, color=255, thickness=2)
@@ -912,9 +964,9 @@ def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, i
         # Draw the final calculated polyline or extended lines
         final_mask_bgr = cv2.cvtColor(final_mask, cv2.COLOR_GRAY2BGR)
         final_output_viz[final_mask > 0] = [0, 255, 0] # Green for final path
-        # Draw the center points (placeholders or calculated)
+        # Draw the 10 evenly spaced center points
         for p in center_lanes:
-             cv2.circle(final_output_viz, (p[0], p[1]), 3, (0, 255, 255), -1) # Yellow dots
+             cv2.circle(final_output_viz, (p[0], p[1]), 5, (0, 0, 255), -1) # Red dots for the 10 points
         cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_3_final_output.png"), final_output_viz)
         
     return (final_mask / 255).astype(np.uint8), distance_to_center, center_lanes, center_lanes
@@ -1446,7 +1498,7 @@ def calculate_lines_counts_above(threshold, left_perc, right_perc):
         (np.sum((np.array(left_perc) < threshold) & (np.array(right_perc) < threshold)) / len(left_perc)) * 100,
     ]
 
-def perform_all_benchmarking(dataset, processing_mode, detection_modes=None):
+def perform_all_benchmarking(dataset, processing_mode, detection_modes=None, save_intermediate=False):
     if detection_modes is None:
         detection_modes = []
     # Create the save directory if it doesn't exist
@@ -1484,7 +1536,7 @@ def perform_all_benchmarking(dataset, processing_mode, detection_modes=None):
                 print(f"Skipping {mode} for processing_mode {processing_mode}.")
                 continue
             print(f"Running benchmark on {mode} with processing_mode: {processing_mode}")
-            times, errors, left_perc, right_perc, percentage = benchmark_one(dataset, mode, processing_mode)
+            times, errors, left_perc, right_perc, percentage = benchmark_one(dataset, mode, processing_mode, save_intermediate)
             results[mode] = {
                 "times": times, "errors": errors, "left_perc": left_perc,
                 "right_perc": right_perc, "percentage": percentage, "label": all_modes[mode]
@@ -1498,7 +1550,7 @@ def perform_all_benchmarking(dataset, processing_mode, detection_modes=None):
     labels = [res["label"] for res in results.values()]
     percentages = [res["percentage"] for res in results.values()]
     times = [np.mean(res["times"]) for res in results.values()]
-    errors = [np.mean(res["errors"]) for res in results.values()]
+    errors = [np.mean(res["errors"]) if res["errors"] else 0 for res in results.values()]
     
     # Generate colors for the plots
     base_colors = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'pink']
@@ -1543,10 +1595,10 @@ def detect(opt):
         dataset = LoadImages(opt.source, img_size=opt.img_size)
 
     detection_modes = opt.detection_modes if opt.detection_modes else []
-    perform_all_benchmarking(dataset, "none", detection_modes)
-    perform_all_benchmarking(dataset, "postprocess", detection_modes)
+    perform_all_benchmarking(dataset, "none", detection_modes, opt.save_intermediate_images)
+    perform_all_benchmarking(dataset, "postprocess", detection_modes, opt.save_intermediate_images)
 
-def benchmark_one(dataset, detection_mode, processing_mode):
+def benchmark_one(dataset, detection_mode, processing_mode, save_intermediate=False):
     global prev_fit
     prev_fit = None
     print("running benchmarking on " + detection_mode)
@@ -1558,7 +1610,9 @@ def benchmark_one(dataset, detection_mode, processing_mode):
     save_path_bad_raw_dir = str(opt.save_dir + detection_mode + "/" + processing_mode +  "/bad_raw")
     save_path_out_raw_dir = str(opt.save_dir + detection_mode + "/" + processing_mode + "/good_raw")
     save_results_metrics_dir = str(opt.save_dir + detection_mode + "/" + processing_mode + "/metrics")
-    save_path_intermediate_dir = str(opt.save_dir + detection_mode + "/" + processing_mode + "/intermediate")
+    save_path_intermediate_dir = None
+    if save_intermediate:
+        save_path_intermediate_dir = str(opt.save_dir + detection_mode + "/" + processing_mode + "/intermediate")
 
     # TODO avoid this duplicated code
     if not os.path.exists(save_path_bad_dir):
@@ -1576,11 +1630,13 @@ def benchmark_one(dataset, detection_mode, processing_mode):
     if not os.path.exists(save_results_metrics_dir):
         os.makedirs(save_results_metrics_dir)
         
-    if not os.path.exists(save_path_intermediate_dir):
+    if save_intermediate and not os.path.exists(save_path_intermediate_dir):
         os.makedirs(save_path_intermediate_dir)
 
     directories = [save_path_bad_dir, save_path_good_dir, save_path_bad_raw_dir, save_path_out_raw_dir,
-                   save_results_metrics_dir, save_path_intermediate_dir]
+                   save_results_metrics_dir]
+    if save_intermediate:
+        directories.append(save_path_intermediate_dir)
     for directory_path in directories:
         if os.path.exists(directory_path):
             for file_name in os.listdir(directory_path):
@@ -1741,6 +1797,7 @@ if __name__ == '__main__':
     parser.add_argument('--augment', action='store_true', help='augmented inference')
     parser.add_argument('--update', action='store_true', help='update all models')
     parser.add_argument('--detection-modes', nargs='+', type=str, help='List of detection modes to benchmark')
+    parser.add_argument('--save-intermediate-images', action='store_true', help='save all intermediate images for debugging')
     opt = parser.parse_args()
     with torch.no_grad():
         detect(opt)
