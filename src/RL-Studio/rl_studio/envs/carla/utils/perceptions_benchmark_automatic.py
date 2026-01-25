@@ -497,6 +497,7 @@ def detect_yolop_v2_lines(raw_image):
 
     return cleaned_mask
 
+from scipy.signal import savgol_filter
 from skimage.morphology import skeletonize
 
 def _extend_line(skeleton, height):
@@ -504,54 +505,89 @@ def _extend_line(skeleton, height):
         return None
 
     points = np.argwhere(skeleton > 0)
-    if len(points) < 2:
-        return skeleton # Not enough points to process
-
-    y_coords = points[:, 0]
-    max_y = np.max(y_coords)
-
-    # 1. Keep Complete Lines: If the line already reaches the bottom, return it as is.
-    if max_y >= height - 5: # 5-pixel tolerance
+    if len(points) < 5: # Need at least 5 points for savgol filter
         return skeleton
 
-    # 2. Extend Partial Lines:
-    # Use the bottom half of the line's points for a more accurate trajectory prediction.
-    median_y = np.median(y_coords)
-    lower_points = points[y_coords >= median_y]
-    
-    # Fallback to all points if the lower half is too sparse
-    if len(lower_points) < 2:
-        lower_points = points
-    if len(lower_points) < 2:
-        return skeleton # Still not enough points, can't extend.
-
-    y_fit = lower_points[:, 0]
-    x_fit = lower_points[:, 1]
-    
-    try:
-        # Fit a robust straight line to the trajectory
-        fit = np.polyfit(y_fit, x_fit, 1)
-        line_fn = np.poly1d(fit)
-    except (np.linalg.LinAlgError, TypeError):
-        return skeleton # If fit fails, return the original.
-
-    # Find the actual lowest point on the original skeleton
-    # Average the x-coordinates in case the lowest part is a horizontal segment
-    original_bottom_x = int(np.mean(points[y_coords == max_y, 1]))
-    original_bottom_point = (original_bottom_x, max_y)
-
-    # Calculate the target point where the line should hit the image bottom
-    target_y = height - 1
-    target_x = int(line_fn(target_y))
-    
-    # Ensure the target point is within the image's width
-    width = skeleton.shape[1]
-    target_x = np.clip(target_x, 0, width - 1)
-    target_point = (target_x, target_y)
-
-    # Draw the new extension onto a copy of the original skeleton
+    # Create a copy to draw extensions on
     extended_mask = skeleton.copy()
-    cv2.line(extended_mask, original_bottom_point, target_point, 255, 2)
+    width = skeleton.shape[1]
+    
+    # Sort points from top to bottom
+    points = points[points[:, 0].argsort()]
+
+    # --- SMOOTHING STEP ---
+    try:
+        # Window size must be odd and smaller than the number of points
+        window_length = min(len(points) // 3, 51) # Window up to 51, or 1/3 of points
+        if window_length < 5: window_length = 5
+        if window_length % 2 == 0: window_length += 1
+        
+        if len(points) > window_length:
+            # Smooth the x-coordinates of the line
+            smoothed_x = savgol_filter(points[:, 1], window_length=window_length, polyorder=2)
+            # Update points with the smoothed x-values
+            points = np.array(list(zip(points[:, 0], smoothed_x))).astype(np.int32)
+    except Exception:
+        pass # If smoothing fails for any reason, proceed with the original noisy line
+    # --- END SMOOTHING ---
+
+    y_coords = points[:, 0]
+    min_y, max_y = y_coords.min(), y_coords.max()
+
+    # --- Downward Extension ---
+    BORDER_TOLERANCE = 5 # pixels
+    if max_y < height - 5: # 5-pixel tolerance for bottom
+        num_points_to_use = 60
+        lower_points = points[-num_points_to_use:]
+        if len(lower_points) < 2:
+            lower_points = points
+        
+        if len(lower_points) >= 2:
+            y_fit = lower_points[:, 0]
+            x_fit = lower_points[:, 1]
+            try:
+                fit = np.polyfit(y_fit, x_fit, 1)
+                line_fn = np.poly1d(fit)
+                
+                original_bottom_x = int(np.mean(points[y_coords == max_y, 1]))
+                original_bottom_point = (original_bottom_x, max_y)
+
+                # ONLY extend downwards if the line is NOT hitting the left/right border
+                if not (original_bottom_x < BORDER_TOLERANCE or original_bottom_x > width - 1 - BORDER_TOLERANCE):
+                    target_y = height - 1
+                    target_x = int(line_fn(target_y))
+                    target_x = np.clip(target_x, 0, width - 1)
+                    target_point = (target_x, target_y)
+                    
+                    cv2.line(extended_mask, original_bottom_point, target_point, 255, 2)
+            except (np.linalg.LinAlgError, TypeError):
+                pass # If fit fails, we just don't extend downwards
+
+    # --- Upward Extension ---
+    if min_y > height // 2: # Only extend up if the line starts below the halfway point
+        num_points_to_use = 60
+        upper_points = points[:num_points_to_use]
+        if len(upper_points) < 2:
+            upper_points = points
+
+        if len(upper_points) >= 2:
+            y_fit = upper_points[:, 0]
+            x_fit = upper_points[:, 1]
+            try:
+                fit = np.polyfit(y_fit, x_fit, 1)
+                line_fn = np.poly1d(fit)
+
+                original_top_x = int(np.mean(points[y_coords == min_y, 1]))
+                original_top_point = (original_top_x, min_y)
+
+                target_y = height // 2
+                target_x = int(line_fn(target_y))
+                target_x = np.clip(target_x, 0, width - 1)
+                target_point = (target_x, target_y)
+
+                cv2.line(extended_mask, original_top_point, target_point, 255, 2)
+            except (np.linalg.LinAlgError, TypeError):
+                pass # If fit fails, we just don't extend upwards
     
     return extended_mask
 
@@ -559,47 +595,131 @@ def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None,
     height, width = binary_mask.shape
     debug_viz = np.zeros((height, width, 3), dtype=np.uint8)
 
-    # Step 1: Create a single skeleton of all lines
-    skeleton = skeletonize(binary_mask // 255).astype(np.uint8)
-
-    # Step 2: Find and break ALL merge points in the entire skeleton
-    skeleton_points = np.argwhere(skeleton > 0)
-    # Sort points from top to bottom to ensure we find the highest merge points first
-    skeleton_points = skeleton_points[skeleton_points[:, 0].argsort()]
-
-    for y, x in skeleton_points:
-        # Check the 3x3 neighborhood, avoiding image borders
-        if y > 0 and y < height - 1 and x > 0 and x < width - 1:
-            neighborhood = skeleton[y-1:y+2, x-1:x+2]
-            num_neighbors = np.sum(neighborhood) - 1 # Subtract the center pixel
-            if num_neighbors > 2:
-                skeleton[y, x] = 0 # Break the skeleton at the merge point
-
-    # Step 3: Find all resulting branches in the (now broken) skeleton
-    branch_num_labels, branch_labels, stats, _ = cv2.connectedComponentsWithStats(skeleton, connectivity=8)
-
-    all_extended_lines = []
-    if branch_num_labels > 1:
-        for branch_id in range(1, branch_num_labels):
-            # Filter out tiny noise branches that might result from the breaking process
-            if stats[branch_id, cv2.CC_STAT_AREA] > 100:
-                branch_mask = (branch_labels == branch_id).astype(np.uint8) * 255
-                extended_line = _extend_line(branch_mask, height)
-                if extended_line is not None:
-                    all_extended_lines.append(extended_line)
-
-    # Step 4: Combine all extended lines into a single mask
+    # --- Step 1: Pre-process and Get All Extended Lines ---
+    kernel = np.ones((15, 5), np.uint8)
+    closed_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel)
+    
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(closed_mask, connectivity=8)
+    
     all_extended_lines_mask = np.zeros_like(binary_mask)
-    for ext_line in all_extended_lines:
-        all_extended_lines_mask = cv2.bitwise_or(all_extended_lines_mask, ext_line)
+    for i in range(1, num_labels):
+        if stats[i, cv2.CC_STAT_AREA] > 10:
+            segment_mask = (labels == i).astype(np.uint8) * 255
+            extended_line = _extend_line(segment_mask, height)
+            if extended_line is not None:
+                all_extended_lines_mask = cv2.bitwise_or(all_extended_lines_mask, extended_line)
+
+    # --- Step 2: Robustly Track All Potential Center Paths ---
+    active_paths = []
+    terminated_paths = []
+    MAX_PATH_JUMP_DISTANCE = 75
+
+    for y in range(height // 2, height):
+        row = all_extended_lines_mask[y, :]
+        
+        # --- Correct Midpoint Calculation: Find gaps between lines, not points within them ---
+        # Pad the row to find changes at the edges
+        padded_row = np.pad(row, (1, 1), 'constant')
+        diffs = np.diff(padded_row.astype(np.int32))
+        
+        # Find start and end points of white segments
+        starts = np.where(diffs > 0)[0]
+        ends = np.where(diffs < 0)[0]
+
+        current_midpoints = []
+        # Calculate the midpoint of the black space BETWEEN the white segments
+        if len(starts) >= 2:
+            for i in range(len(starts) - 1):
+                # Midpoint is between the end of the first segment and the start of the second
+                midpoint_x = (ends[i] + starts[i+1]) // 2
+                current_midpoints.append([midpoint_x, y])
+        # --- End Correct Midpoint Calculation ---
+
+        if not active_paths and current_midpoints:
+            for midpt in current_midpoints:
+                active_paths.append([midpt])
+            continue
+            
+        new_active_paths = []
+        unmatched_midpoints = list(current_midpoints)
+        
+        for path in active_paths:
+            last_point = path[-1]
+            closest_midpoint = None
+            min_dist = float('inf')
+            
+            # Find the closest available midpoint for the current path
+            temp_closest = None
+            for midpt in unmatched_midpoints:
+                dist = np.linalg.norm(np.array(last_point) - np.array(midpt))
+                if dist < min_dist and dist < MAX_PATH_JUMP_DISTANCE:
+                    min_dist = dist
+                    temp_closest = midpt
+            
+            if temp_closest is not None:
+                path.append(temp_closest)
+                new_active_paths.append(path)
+                unmatched_midpoints.remove(temp_closest)
+            else:
+                # This path is terminated
+                terminated_paths.append(path)
+        
+        # Any remaining midpoints start new paths
+        for midpt in unmatched_midpoints:
+            new_active_paths.append([midpt])
+            
+        active_paths = new_active_paths
+
+    terminated_paths.extend(active_paths)
+
+    # --- Step 3: Save debug image of all found paths ---
+    if save_path_intermediate_dir and img_path:
+        base_name = Path(img_path).stem
+        all_paths_viz = np.zeros((height, width, 3), dtype=np.uint8)
+        colors = [(255,0,0), (0,255,0), (0,0,255), (255,255,0), (0,255,255), (255,0,255)]
+        for i, path in enumerate(terminated_paths):
+            if len(path) > 1:
+                path_pts = np.array(path).reshape((-1, 1, 2))
+                cv2.polylines(all_paths_viz, [path_pts], isClosed=False, color=colors[i % len(colors)], thickness=2)
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_2_all_candidate_paths.png"), all_paths_viz)
+
+    # --- Step 4: Select the Path Closest to the Center ---
+    best_path = None
+    best_score = float('inf')
+    long_paths = [path for path in terminated_paths if len(path) > 10]
+
+    if not long_paths:
+        return np.zeros_like(binary_mask), [], [], debug_viz, None, None, np.zeros_like(binary_mask)
+
+    for path in long_paths:
+        path_points = np.array(path)
+        avg_distance = np.mean(np.abs(path_points[:, 0] - width / 2))
+        
+        if avg_distance < best_score:
+            best_score = avg_distance
+            best_path = path_points
+    
+    # --- Step 5: Create Final Mask from the Best Path ---
+    final_mask = np.zeros_like(binary_mask)
+    if best_path is not None and len(best_path) > 1:
+        try:
+            fit = np.polyfit(best_path[:, 1], best_path[:, 0], 2)
+            curve_fn = np.poly1d(fit)
+            y_coords = best_path[:, 1]
+            plot_y = np.linspace(y_coords.min(), y_coords.max(), len(y_coords)).astype(int)
+            plot_x = np.clip(curve_fn(plot_y), 0, width - 1).astype(int)
+            path_pts = np.array(list(zip(plot_x, plot_y))).reshape((-1, 1, 2))
+            cv2.polylines(final_mask, [path_pts], isClosed=False, color=255, thickness=2)
+        except (np.linalg.LinAlgError, TypeError):
+             cv2.polylines(final_mask, [best_path.reshape((-1,1,2))], isClosed=False, color=255, thickness=2)
 
     if save_path_intermediate_dir and img_path:
         base_name = Path(img_path).stem
-        # Save the unified skeleton *after* breaking it to debug the splitting process
-        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_1_broken_skeleton.png"), skeleton * 255)
-        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_2_all_extended_lines.png"), all_extended_lines_mask)
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_1_all_extended_lines.png"), all_extended_lines_mask)
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_3_final_path.png"), final_mask)
 
-    return all_extended_lines_mask, [], [], debug_viz, None, None, all_extended_lines_mask
+    return final_mask, [], [], debug_viz, None, None, final_mask
+
 
 def detect_lanes_yolop_v2_drivable_agent(image, save_path_intermediate_dir=None, img_path=None):
     with torch.no_grad():
