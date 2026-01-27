@@ -529,7 +529,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.masked_ll_segment = None
         self.extended_lanes_mask = None
         self.ema_lane_points = None
-        self.EMA_ALPHA = config.get("ema_alpha", 0.2)
+        self.EMA_ALPHA = config.get("ema_alpha", 0.85)
+        self.last_detected_point = None
 
         self.update_from_hot_config(config)
 
@@ -808,6 +809,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.last_centers = None
         self.lane_points = None
         self.ema_lane_points = None
+        self.last_detected_point = None
 
         # if self.episode % 20 == 0:
         #     self.tensorboard.save_location_stats(self.location_stats)
@@ -1414,9 +1416,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         # Ground truth lane position for debugging
         _, gt_center_distance, alignment = self.get_lane_position(self.car, self.map)
-        if self.step_count % 20 == 0:
-            print(f"GT Center Distance: {gt_center_distance}")
-            print(f"Center Distance: {distance_to_center}")
 
         # 5. REWARDS
         x_normalized = np.array(x_centers_normalized)
@@ -1426,9 +1425,18 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.v_goal_buffer.append(v_goal)
         v_goal = sum(self.v_goal_buffer) / len(self.v_goal_buffer)
 
+        if self.step_count % 20 == 0:
+            print(f"PERFECT Center Distance: {gt_center_distance}")
+            print(f"Center Distance: {distance_to_center}")
+            perfect_v_goal = self.calculate_v_goal(mean_curvature, abs(gt_center_distance), deviated_points)
+            print(f"PERFECT target speed.  {perfect_v_goal}")
+            print(f"target speed.  {v_goal}")
+            # OJO!! We could use this to monitor how good is current speed regarding perfect speed
+            # self.monitor_center_distance(action, distance_to_center)
+
         params["final_curvature"] = final_curvature
         # Use distance_to_center for reward calculation
-        reward, done, has_crashed = self.rewards_easy(distance_to_center, action, params, gt_center_distance, v_goal=v_goal)
+        reward, done, has_crashed = self.rewards_easy(action, params, gt_center_distance, v_goal=v_goal)
 
         self.car.v_goal = v_goal
         self.car.reward = reward
@@ -1570,7 +1578,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # Logarithmic scaling formula
         return math.log(1 + velocity) / math.log(1 + v_max)
 
-    def rewards_easy(self, center_distance, action, params, gt_center_distance, v_goal=None):
+    def rewards_easy(self, action, params, center_distance, v_goal=None):
         # distance_error = error[3:]  # We are just rewarding the 3 lowest points!
         # distance_error = [abs(x) for x in centers_distances]
 
@@ -1595,7 +1603,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #    return car_deviated_punish, done, False
         # return -5 * action[0], done, crash
 
-        if self.is_out(gt_center_distance):
+        if self.is_out(center_distance):
             return punish_deviation, True, self.has_crashed()
 
         d_reward = (1 - abs(center_distance)) ** self.punish_braking
@@ -1655,44 +1663,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # function_reward = d_reward * v_reward
         params["reward"] = function_reward
 
-        self.car.error = center_distance
-
         self.episode_d_reward = self.episode_d_reward + (d_reward - self.episode_d_reward) / self.step_count
         self.episode_d_deviation = self.episode_d_deviation + (center_distance - self.episode_d_deviation) / self.step_count
 
-        if center_distance < 0.05:
-            # Step 1: Increase step count first
-            self.step_count_no_curves += 1
-            # --- Throttle action stats using Welford's algorithm ---
-            delta = action[0] - self.throttle_action_avg_no_curves
-            self.throttle_action_avg_no_curves += delta / self.step_count_no_curves
-            delta2 = action[0] - self.throttle_action_avg_no_curves
-            self.throttle_action_variance_no_curves += delta * delta2
-            if self.step_count_no_curves > 1:
-                self.throttle_action_std_dev_no_curves = (
-                                 self.throttle_action_variance_no_curves / (
-                                     self.step_count_no_curves - 1)
-                         ) ** 0.5
-            else:
-                self.throttle_action_std_dev_no_curves = 0.0  # Not enough data yet
-            # --- Absolute angular velocity (action[1]) average ---
-            self.abs_w_no_curves_avg += (
-                                                abs(action[1]) - self.abs_w_no_curves_avg
-                                        ) / self.step_count_no_curves
-
-        else:
-            self.curves_states += 1
-            # Step 1: Increase step count first
-            self.step_count_curves += 1
-            delta = action[0] - self.throttle_action_avg_curves
-            self.throttle_action_avg_curves += delta / self.step_count_curves
-            delta2 = action[0] - self.throttle_action_avg_curves
-            self.throttle_action_variance_curves += delta * delta2
-            if self.step_count_curves > 1:
-                self.throttle_action_std_dev_curves = (self.throttle_action_variance_curves / (
-                            self.step_count_curves - 1)) ** 0.5
-            else:
-                self.throttle_action_std_dev_curves = 0.0  # Not enough data yet
+        self.car.error = center_distance
 
         if self.step_count > self.estimated_steps:
             logger.info(f"episode finished, {self.algorithm_trained}")
@@ -2123,8 +2097,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             carla.Transform(
                 # carla.Location(x=0, z=2.5),
                 # carla.Rotation(pitch=-4.0, yaw=0.0)
-                carla.Location(x=0, y=0, z=3),
-                carla.Rotation(pitch=-3, yaw=0, roll=0.0)
+                carla.Location(x=1, y=0, z=3),
+                carla.Rotation(pitch=-1, yaw=0, roll=0.0)
             ),
             self.car,
             {},
@@ -2767,174 +2741,20 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         return lines
 
-    def extend_lines(self, lines, image_height):
-        extended_lines = []
-        for line in lines if lines is not None else []:
-            x1, y1, x2, y2 = line[0]
-            # Calculate slope and intercept
-            if x2 - x1 != 0:
-                slope = (y2 - y1) / (x2 - x1)
-                intercept = y1 - slope * x1
-                # Calculate new endpoints to extend the line
-                x1_extended = int(x1 - 2 * (x2 - x1))  # Extend 2 times the original length
-                y1_extended = int(slope * x1_extended + intercept)
-                x2_extended = int(x2 + 2 * (x2 - x1))  # Extend 2 times the original length
-                y2_extended = int(slope * x2_extended + intercept)
-                # Ensure the extended points are within the image bounds
-                x1_extended = max(0, min(x1_extended, image_height - 1))
-                y1_extended = max(0, min(y1_extended, image_height - 1))
-                x2_extended = max(0, min(x2_extended, image_height - 1))
-                y2_extended = max(0, min(y2_extended, image_height - 1))
-                # Append the extended line to the list
-                extended_lines.append([(x1_extended, y1_extended, x2_extended, y2_extended)])
-        return extended_lines
-
-    def _find_sharpest_corner(self, contour, angle_threshold=95):
-        max_cos = -1
-        split_idx = -1
-
-        for i in range(len(contour)):
-            p1 = contour[i - 1][0]
-            p2 = contour[i][0]
-            p3 = contour[(i + 1) % len(contour)][0]
-
-            v1 = p2 - p1
-            v2 = p3 - p2
-
-            norm_v1 = np.linalg.norm(v1)
-            norm_v2 = np.linalg.norm(v2)
-
-            if norm_v1 == 0 or norm_v2 == 0:
-                continue
-
-            dot_product = np.dot(v1, v2)
-            cos_theta = dot_product / (norm_v1 * norm_v2)
-
-            if cos_theta < max_cos:
-                max_cos = cos_theta
-                split_idx = i
-
-        if split_idx != -1 and np.degrees(np.arccos(max_cos)) > angle_threshold:
-            return split_idx
-        else:
-            return -1
-
-    def _find_and_draw_lane_boundaries(self, binary_mask):
-        height, width = binary_mask.shape
-        debug_viz = np.zeros((height, width, 3), dtype=np.uint8)
-        output_mask = np.zeros_like(binary_mask)
-        center_x = width // 2
-
-        # 1. Connected Components
-        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
-
-        left_label_counts = np.zeros(num_labels)
-        right_label_counts = np.zeros(num_labels)
-
-        # PASS 1: Find the most consistent objects for ego-lane
-        for y in range(0, height, 4):
-            # Scan Left half
-            l_pixels = np.where(binary_mask[y, :center_x] > 0)[0]
-            if len(l_pixels) > 0:
-                label_id = labels[y, l_pixels[-1]]
-                if label_id > 0: left_label_counts[label_id] += 1
-
-            # Scan Right half
-            r_pixels = np.where(binary_mask[y, center_x:] > 0)[0]
-            if len(r_pixels) > 0:
-                label_id = labels[y, r_pixels[0] + center_x]
-                if label_id > 0: right_label_counts[label_id] += 1
-
-        best_left_label = np.argmax(left_label_counts) if np.any(left_label_counts > 0) else -1
-        best_right_label = np.argmax(right_label_counts) if np.any(right_label_counts > 0) else -1
-
-        # PASS 2: Morphological Cleanup for the Winners
-        # This fills 'holes' inside the lines so the boundary search doesn't get stuck inside the line
-        kernel = np.ones((3, 3), np.uint8)
-
-        def get_clean_mask(label_id):
-            if label_id == -1: return None
-            mask = (labels == label_id).astype(np.uint8) * 255
-            # Closing fills small holes; Dilation ensures we catch the outermost pixel
-            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-            return mask
-
-        clean_left_mask = get_clean_mask(best_left_label)
-        clean_right_mask = get_clean_mask(best_right_label)
-
-        # Color the cleaned winners
-        if clean_left_mask is not None: debug_viz[clean_left_mask > 0] = [60, 0, 0]
-        if clean_right_mask is not None: debug_viz[clean_right_mask > 0] = [0, 0, 60]
-
-        # PASS 3: Final Boundary Extraction
-        center_points = []
-        for y in range(0, height, 4):
-            y_edge, o_edge = -1, -1
-
-            # STRICTEST LEFT BOUNDARY: The absolute furthest RIGHT pixel of the winner
-            if clean_left_mask is not None:
-                l_pixels = np.where(clean_left_mask[y, :] > 0)[0]
-                if len(l_pixels) > 0:
-                    y_edge = np.max(l_pixels)  # Maximum X on the left side
-                    cv2.circle(debug_viz, (y_edge, y), 2, (0, 255, 255), -1)  # YELLOW
-
-            # STRICTEST RIGHT BOUNDARY: The absolute furthest LEFT pixel of the winner
-            if clean_right_mask is not None:
-                r_pixels = np.where(clean_right_mask[y, :] > 0)[0]
-                if len(r_pixels) > 0:
-                    o_edge = np.min(r_pixels)  # Minimum X on the right side
-                    cv2.circle(debug_viz, (o_edge, y), 2, (0, 165, 255), -1)  # ORANGE
-
-            if y_edge != -1 and o_edge != -1:
-                mid_x = (y_edge + o_edge) // 2
-                center_points.append([mid_x, y])
-                cv2.circle(debug_viz, (mid_x, y), 2, (0, 255, 0), -1)  # GREEN
-
-        # PASS 4: Polyfit with RANSAC Filtering
-        poly_points = []
-        if len(center_points) > 10:  # Increased minimum slightly for RANSAC stability
-            try:
-                c_pts = np.array(center_points)
-
-                # --- RANSAC FILTERING START ---
-                from sklearn.linear_model import RANSACRegressor
-
-                X = c_pts[:, 1].reshape(-1, 1)  # Y is our independent variable (driving vertically)
-                y = c_pts[:, 0]  # X is what we want to predict
-
-                # residual_threshold is the max pixel distance allowed from the model
-                # set it to 15-20 for lane detection in 640x480 resolution
-                ransac = RANSACRegressor(residual_threshold=15.0)
-                ransac.fit(X, y)
-
-                # Keep only the inliers
-                inlier_mask = ransac.inlier_mask_
-                c_pts = c_pts[inlier_mask]
-                # --- RANSAC FILTERING END ---
-
-                # Now fit the curve using ONLY the cleaned points
-                fit = np.polyfit(c_pts[:, 1], c_pts[:, 0], 2)
-                y_min, y_max = c_pts[:, 1].min(), height - 1
-                plot_y = np.linspace(y_min, y_max, 25).astype(int)
-                fit_x = np.poly1d(fit)(plot_y).astype(int)
-
-                pts = np.array([np.transpose(np.vstack([fit_x, plot_y]))], np.int32)
-                cv2.polylines(output_mask, pts, False, 255, 2)
-                cv2.polylines(debug_viz, pts, False, (255, 255, 255), 1)
-                poly_points = pts.squeeze()
-            except Exception as e:
-                print(f"RANSAC/Fit Error: {e}")
-                pass
-
-        if self.show_images == True:
-            self.show_image('Edge-Optimized Consensus Debug', debucog_viz)
-        return output_mask, poly_points, center_points
-
     def detect_lines(self, raw_image):
         # YOLOPv2 gets a dedicated, simpler, more direct pipeline
         if self.detection_mode == 'yolop_v2':
             with torch.no_grad():
-                ll_segment, distance_to_center, raw_center_lanes_normalized, _ = detect_lanes_yolop_v2_hybrid_agent(raw_image)
+                ll_segment, distance_to_center, raw_center_lanes_normalized, _,  raw_detection_image, extended_image, paths_image, points_for_extension  = detect_lanes_yolop_v2_hybrid_agent(raw_image, reference_point=self.last_detected_point)
+
+            if raw_center_lanes_normalized is not None and len(raw_center_lanes_normalized) > 0:
+                self.last_detected_point = raw_center_lanes_normalized[-1]
+
+            if self.show_images:
+                self.show_image("raw",  raw_detection_image)
+                # self.show_image("extended_lines",  extended_image)
+                # self.show_image("extended_references",  points_for_extension)
+                self.show_image("paths",  paths_image)
 
             # Apply EMA filter to center_lanes_normalized
             if self.ema_lane_points is None:
@@ -2958,15 +2778,18 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             visible_mask = cv2.normalize(ll_segment, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
             # Show the reconstructed lane lines in the "raw" window
-            cv2.imshow("raw", visible_mask) if self.sync_mode and self.show_images else None
+            # cv2.imshow("raw", visible_mask) if self.sync_mode and self.show_images else None
 
             # Filter out invalid points for drawing centers
             valid_points = [p for p in center_lanes_normalized if p[0] != self.NON_DETECTED and p[0] != 0]
 
             # 2. Create the 'overlayed_image'
             overlay_image = raw_image.copy()
-            # Make lane lines yellow on the overlay
-            overlay_image[visible_mask > 128] = [0, 255, 255] # BGR for yellow, thresholded
+            # Ensure overlay_image is 3-channel before color assignment
+            mask = visible_mask > 128
+            if np.any(mask):
+                overlay_image[mask] = [0, 255, 255] # BGR for yellow, thresholded
+
             # Draw center points
             for point in valid_points:
                 cv2.circle(overlay_image, (int(point[0]), int(point[1])), 5, (255, 0, 255), -1) # Magenta
@@ -2979,7 +2802,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             # 4. Render the images
             if self.visualize:
                 self.show_image('overlayed_image', overlay_image)
-                self.show_image('Detections with Centers', detections_image)
+                # self.show_image('Detections with Centers', detections_image)
 
             return ll_segment, distance_to_center, center_lanes_normalized
 
@@ -3060,6 +2883,40 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
     #
     #     return punish
 
+    def monitor_center_distance(self, action, center_distance):
+        if center_distance < 0.05:
+            # Step 1: Increase step count first
+            self.step_count_no_curves += 1
+            # --- Throttle action stats using Welford's algorithm ---
+            delta = action[0] - self.throttle_action_avg_no_curves
+            self.throttle_action_avg_no_curves += delta / self.step_count_no_curves
+            delta2 = action[0] - self.throttle_action_avg_no_curves
+            self.throttle_action_variance_no_curves += delta * delta2
+            if self.step_count_no_curves > 1:
+                self.throttle_action_std_dev_no_curves = (
+                                 self.throttle_action_variance_no_curves / (
+                                     self.step_count_no_curves - 1)
+                         ) ** 0.5
+            else:
+                self.throttle_action_std_dev_no_curves = 0.0  # Not enough data yet
+            # --- Absolute angular velocity (action[1]) average ---
+            self.abs_w_no_curves_avg += (
+                                                abs(action[1]) - self.abs_w_no_curves_avg
+                                        ) / self.step_count_no_curves
+
+        else:
+            self.curves_states += 1
+            # Step 1: Increase step count first
+            self.step_count_curves += 1
+            delta = action[0] - self.throttle_action_avg_curves
+            self.throttle_action_avg_curves += delta / self.step_count_curves
+            delta2 = action[0] - self.throttle_action_avg_curves
+            self.throttle_action_variance_curves += delta * delta2
+            if self.step_count_curves > 1:
+                self.throttle_action_std_dev_curves = (self.throttle_action_variance_curves / (
+                            self.step_count_curves - 1)) ** 0.5
+            else:
+                self.throttle_action_std_dev_curves = 0.0  # Not enough data yet
 
 
 def init_client(ip, port):
