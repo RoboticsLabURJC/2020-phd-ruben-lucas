@@ -529,7 +529,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.masked_ll_segment = None
         self.extended_lanes_mask = None
         self.ema_lane_points = None
-        self.EMA_ALPHA = config.get("ema_alpha", 0.85)
+        self.EMA_ALPHA = config.get("ema_alpha", 1)
         self.last_detected_point = None
 
         self.update_from_hot_config(config)
