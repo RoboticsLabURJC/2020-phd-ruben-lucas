@@ -764,7 +764,7 @@ def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None,
     # 2. Hybrid path generation
     Y_GAP_THRESHOLD = 8 # If y-distance between points is > this, it's a gap to be filled
 
-    MAX_PATH_JUMP_DISTANCE = 75      # Max distance to consider a match
+    MAX_PATH_JUMP_DISTANCE = 30      # Max distance to consider a match
     MAX_LOST_FRAMES = 8              # Max frames to keep a path without a match
 
     # --- Step 1: Pre-process ---
@@ -778,7 +778,6 @@ def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None,
     terminated_paths = []
 
     for y in range(height // 2, height, 4):
-        # Refined Midpoint Extraction
         row = closed_mask[y, :]
         padded_row = np.pad(row, (1, 1), 'constant')
         diffs = np.diff(padded_row.astype(np.int32))
@@ -792,16 +791,6 @@ def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None,
                 for i in range(len(marking_centers) - 1):
                     lane_center_x = (marking_centers[i] + marking_centers[i+1]) // 2
                     current_midpoints.append([lane_center_x, y])
-            # IMPROVEMENT 1: Perspective-Aware Single-Line Estimation
-            # elif len(marking_centers) == 1:
-            #     line_mid = marking_centers[0]
-            #     # Determine offset based on y-position (perspective)
-            #     scan_y_ratio = (y - height / 2) / (height / 2) # 0.0 at mid, 1.0 at bottom
-            #     perspective_offset = HALF_LANE_WIDTH_TOP + (HALF_LANE_WIDTH_BOTTOM - HALF_LANE_WIDTH_TOP) * scan_y_ratio
-            #
-            #     side = 1 if line_mid < (width // 2) else -1
-            #     est_mid_x = line_mid + (side * perspective_offset)
-            #     current_midpoints.append([int(np.clip(est_mid_x, 0, width - 1)), y])
 
         # Optimal assignment with Hungarian Algorithm
         if not active_paths and current_midpoints:
@@ -852,7 +841,6 @@ def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None,
 
     final_paths = terminated_paths + [p['pts'] for p in active_paths if len(p['pts']) > 10]
 
-    # Visualize the final paths found by the tracker to create the debug image
     all_paths_viz = np.zeros((height, width, 3), dtype=np.uint8)
     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255)]
     for i, path in enumerate(final_paths):
@@ -864,9 +852,11 @@ def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None,
         cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_2_all_candidate_paths.png"),
                     all_paths_viz)
 
-    # --- Step 4: Robust Fitting ---
+    # --- Step 4: Robust Fitting & Path Selection ---
     best_path = None
     best_score = float('inf')
+    fitted_paths = []
+
     long_paths = [p for p in final_paths if len(p) > 10]
 
     if not long_paths:
@@ -879,112 +869,146 @@ def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None,
         weights = np.exp((y_pts - height) / (height / 2)) # Weight points at bottom higher
         best_fit, max_inliers = None, -1
         # RANSAC
-        for _ in range(20):
+        for _ in range(10):
             idx = np.random.choice(len(pts), min(len(pts), 5), replace=False)
             try:
-                # Use degree 3, but ensure enough unique y-points are available, fallback to 1 if not.
                 current_degree = 3 if len(np.unique(y_pts[idx])) > 3 else 1
                 sample_fit = np.polyfit(y_pts[idx], x_pts[idx], current_degree)
                 inliers = np.abs(np.polyval(sample_fit, y_pts) - x_pts) < 25
                 if np.sum(inliers) > max_inliers:
                     max_inliers = np.sum(inliers)
-                    # Use degree 3 for the final fit on inliers, but ensure enough unique y-points
                     final_degree = 3 if len(np.unique(y_pts[inliers])) > 3 else 1
                     best_fit = np.polyfit(y_pts[inliers], x_pts[inliers], final_degree, w=weights[inliers])
             except (np.linalg.LinAlgError, TypeError):
-                continue # Skip if fit fails
+                continue
         return np.poly1d(best_fit) if best_fit is not None else None
 
     for path in long_paths:
-        try:
-            path_arr = np.array(path)
-            fn = fit_weighted_robust(path_arr)
-            if fn is None: continue
-            bottom_x = fn(height - 1)
-            ref_x = reference_point[0] if reference_point is not None else width / 2
-            # Score based on proximity to center and path length
-            score = abs(bottom_x - ref_x) - len(path) * 2
-            if score < best_score:
-                best_score = score
-                best_path = path_arr
-        except:
-            continue
-    
-    # Debug polyfit viz of all candidates
-    if save_path_intermediate_dir and base_name:
-        polyfit_viz = np.zeros((height, width, 3), dtype=np.uint8)
-        colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255)]
-        for i, path in enumerate(long_paths):
+        fn = fit_weighted_robust(np.array(path))
+        if fn:
+            fitted_paths.append({'path': path, 'fit': fn})
+
+    if not fitted_paths:
+        return np.zeros_like(binary_mask), [], [], debug_viz, None, None, np.zeros_like(binary_mask), np.zeros_like(
+            binary_mask), np.zeros_like(binary_mask), np.zeros_like(binary_mask)
+
+    for fitted in fitted_paths:
+        path_points = np.array(fitted['path'])
+        shape_fn = fitted['fit']
+        
+        # Determine the true bottom_x by using the same linear extension logic as the final path
+        num_points_for_linear_fit = min(len(path_points), 20)
+        last_points = path_points[-num_points_for_linear_fit:]
+        
+        final_bottom_x = shape_fn(height-1) # Default to the curve's end
+        if len(last_points) >= 2:
             try:
-                fn = fit_weighted_robust(np.array(path))
-                if fn:
-                    y_range = np.linspace(min([p[1] for p in path]), max([p[1] for p in path]), 50).astype(int)
-                    x_range = np.clip(fn(y_range), 0, width - 1).astype(int)
-                    pts = np.array(list(zip(x_range, y_range))).reshape((-1, 1, 2))
-                    cv2.polylines(polyfit_viz, [pts], False, colors[i % len(colors)], 2)
+                # Calculate the specific linear fit for this candidate's tail
+                linear_fit = np.polyfit(last_points[:, 1], last_points[:, 0], 1)
+                linear_fit_fn = np.poly1d(linear_fit)
+                final_bottom_x = linear_fit_fn(height - 1) # Use the linear fit's end
+            except (np.linalg.LinAlgError, TypeError):
+                pass # Fallback to using the shape_fn's end if linear fit fails
+
+        ref_x = reference_point[0] if reference_point is not None else width / 2
+        score = abs(final_bottom_x - ref_x)
+        if score < best_score:
+            best_score = score
+            best_path = path_points
+
+    if save_path_intermediate_dir and base_name:
+        # Create a visualization of all fully extended polyfit candidates before selection
+        extended_polyfit_viz = np.zeros((height, width, 3), dtype=np.uint8)
+        colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255)]
+        for i, fitted in enumerate(fitted_paths):
+            try:
+                path_points = np.array(fitted['path'])
+                shape_fn = fitted['fit']
+                
+                # Replicate the exact same two-part extension logic used for the final path
+                candidate_hybrid_pts = []
+                
+                # Part 1: Curved upper section and gap filling
+                if len(path_points) > 0:
+                    first_point = path_points[0]
+                    if first_point[1] > height // 2:
+                        extension_ys_up = np.arange(height // 2, int(first_point[1]))
+                        if len(extension_ys_up) > 0:
+                            extension_xs_up = np.clip(shape_fn(extension_ys_up), 0, width - 1)
+                            for ex, ey in zip(reversed(extension_xs_up), reversed(extension_ys_up)):
+                                candidate_hybrid_pts.insert(0, [ex, ey])
+                    candidate_hybrid_pts.append(first_point.tolist())
+
+                for j in range(len(path_points) - 1):
+                    p1 = path_points[j]
+                    p2 = path_points[j+1]
+                    if p2[1] - p1[1] > Y_GAP_THRESHOLD:
+                        gap_ys = np.arange(p1[1] + 1, p2[1])
+                        if len(gap_ys) > 0:
+                            gap_xs = np.clip(shape_fn(gap_ys), 0, width - 1)
+                            for gx, gy in zip(gap_xs, gap_ys):
+                                candidate_hybrid_pts.append([gx, gy])
+                    candidate_hybrid_pts.append(p2.tolist())
+                
+                # Part 2: Linear bottom extension
+                if candidate_hybrid_pts:
+                    last_point = candidate_hybrid_pts[-1]
+                    if last_point[1] < height - 1:
+                        num_points_for_linear_fit = min(len(path_points), 20)
+                        last_points = path_points[-num_points_for_linear_fit:]
+                        linear_fit_fn = shape_fn # Default to curve if linear fails
+                        if len(last_points) >= 2:
+                            try:
+                                linear_fit = np.polyfit(last_points[:, 1], last_points[:, 0], 1)
+                                linear_fit_fn = np.poly1d(linear_fit)
+                            except (np.linalg.LinAlgError, TypeError):
+                                pass
+                        
+                        extension_ys = np.arange(int(last_point[1]) + 1, height)
+                        if len(extension_ys) > 0:
+                            extension_xs = np.clip(linear_fit_fn(extension_ys), 0, width - 1)
+                            for ex, ey in zip(extension_xs, extension_ys):
+                                candidate_hybrid_pts.append([ex, ey])
+                
+                # Draw the full candidate path
+                if candidate_hybrid_pts:
+                    pts = np.array(candidate_hybrid_pts, dtype=np.int32).reshape((-1, 1, 2))
+                    cv2.polylines(extended_polyfit_viz, [pts], False, colors[i % len(colors)], 2)
             except:
-                continue
-        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_2b_polyfit_candidates.png"), polyfit_viz)
+                continue # Skip if there's any error with a specific path
+        
+        # This image now accurately shows the final candidates
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_1_all_extended_lines.png"), extended_polyfit_viz)
 
 
     # --- Step 5: Final Result ---
     final_mask = np.zeros_like(binary_mask)
+    hybrid_path_pts = []
     points_used_for_fit = []
     if best_path is not None:
         points_used_for_fit = best_path.copy()
         for p in points_used_for_fit:
             cv2.circle(lines_debug_viz, (int(p[0]), int(p[1])), 3, (0, 255, 0), -1)
 
-        # Reduce the number of anchor points to lessen their pull on the curve's orientation
-        num_anchor_points = 4
-        anchor_y_start = height - num_anchor_points
-        anchor_points = np.array([[width / 2 + (i % 3 - 1), anchor_y_start + i] for i in range(num_anchor_points)])
-        for p in anchor_points:
-             cv2.circle(lines_debug_viz, (int(p[0]), int(p[1])), 3, (0, 0, 255), -1)
-
-        best_path_with_anchors = np.vstack([best_path, anchor_points])
-        points_used_for_fit = best_path_with_anchors
-
         try:
-            # 1. Create a curve that perfectly models the shape of the DETECTED points.
             shape_fn = fit_weighted_robust(best_path)
 
-            # Calculate anchor_x based on the lowest point of the best_path
-            # This ensures anchors align with the detected lane's natural trajectory at the bottom.
-            anchor_x = width / 2 # Default fallback
-            if len(best_path) > 0:
-                lowest_point_x = best_path[-1][0] # Assuming best_path is sorted by y, last point is lowest
-                anchor_x = lowest_point_x
-            
-            # Re-create anchor points with the new simplified anchor_x
-            anchor_points_simplified = np.array([[anchor_x + (i % 3 - 1), anchor_y_start + i] for i in range(num_anchor_points)])
-            best_path_with_simplified_anchors = np.vstack([best_path, anchor_points_simplified])
-
-            # 2. Create a separate, stabilized curve for the bottom extension.
-            stabilized_fn = fit_weighted_robust(best_path_with_simplified_anchors)
-
-            if shape_fn and stabilized_fn:
-                hybrid_path_pts = []
+            if shape_fn:
                 
-                # --- Upward Extension & Gap Filling (using shape_fn) ---
                 if len(best_path) > 0:
                     first_point = best_path[0]
-                    # Extend upwards from the first detected point to the middle of the screen
                     if first_point[1] > height // 2:
                         extension_ys_up = np.arange(height // 2, int(first_point[1]))
                         if len(extension_ys_up) > 0:
                             extension_xs_up = np.clip(shape_fn(extension_ys_up), 0, width - 1)
-                            # Prepend points in reverse order to maintain correct sequence
                             for ex, ey in zip(reversed(extension_xs_up), reversed(extension_ys_up)):
                                 hybrid_path_pts.insert(0, [ex, ey])
-
-                    hybrid_path_pts.append(first_point)
+                    hybrid_path_pts.append(first_point.tolist())
 
                 for i in range(len(best_path) - 1):
                     p1 = best_path[i]
                     p2 = best_path[i+1]
                     
-                    # If there's a significant vertical gap, fill it with the curve
                     if p2[1] - p1[1] > Y_GAP_THRESHOLD:
                         gap_ys = np.arange(p1[1] + 1, p2[1])
                         if len(gap_ys) > 0:
@@ -992,33 +1016,43 @@ def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None,
                             for gx, gy in zip(gap_xs, gap_ys):
                                 hybrid_path_pts.append([gx, gy])
                     
-                    # Always add the next detected point
-                    hybrid_path_pts.append(p2)
+                    hybrid_path_pts.append(p2.tolist())
                 
-                # --- Final Extension Step ---
-                # After stitching, extend the path from the last point down to the bottom of the image
                 if hybrid_path_pts:
                     last_point = hybrid_path_pts[-1]
                     if last_point[1] < height - 1:
+                        # --- Create a simpler, more predictable linear extension for the bottom part ---
+                        num_points_for_linear_fit = min(len(best_path), 20)
+                        last_points = best_path[-num_points_for_linear_fit:]
+                        
+                        linear_fit_fn = None
+                        if len(last_points) >= 2:
+                            y_pts = last_points[:, 1]
+                            x_pts = last_points[:, 0]
+                            try:
+                                # Always use degree 1 for a predictable straight line
+                                linear_fit = np.polyfit(y_pts, x_pts, 1)
+                                linear_fit_fn = np.poly1d(linear_fit)
+                            except (np.linalg.LinAlgError, TypeError):
+                                linear_fit_fn = shape_fn # Fallback to original shape_fn if linear fit fails
+
+                        # Use the simple linear fit if available, otherwise fallback to the curve
+                        extension_fn = linear_fit_fn if linear_fit_fn is not None else shape_fn
+
                         extension_ys = np.arange(int(last_point[1]) + 1, height)
                         if len(extension_ys) > 0:
-                            # Use the stabilized curve for the final segment to prevent swinging
-                            extension_xs = np.clip(stabilized_fn(extension_ys), 0, width - 1)
+                            extension_xs = np.clip(extension_fn(extension_ys), 0, width - 1)
                             for ex, ey in zip(extension_xs, extension_ys):
                                 hybrid_path_pts.append([ex, ey])
 
-                # Draw the final, stitched and extended path
                 path_pts = np.array(hybrid_path_pts, dtype=np.int32).reshape((-1, 1, 2))
                 cv2.polylines(final_mask, [path_pts], False, 255, 2)
             else:
-                # Fallback if curve fitting completely fails
                 cv2.polylines(final_mask, [best_path.reshape((-1, 1, 2))], False, 255, 2)
         except:
             cv2.polylines(final_mask, [best_path.reshape((-1, 1, 2))], False, 255, 2)
 
     if save_path_intermediate_dir and base_name:
-        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_1_all_extended_lines.png"),
-                    all_extended_lines_mask)
         cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_3_final_path.png"), final_mask)
 
     return final_mask, [], [], debug_viz, None, None, np.array(hybrid_path_pts, dtype=np.int32), lines_debug_viz, all_paths_viz, all_extended_lines_mask
@@ -2071,12 +2105,12 @@ def anyDetected(labels: list):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='weights/End-to-end.pth', help='model.pth path(s)')
-    parser.add_argument('--source', type=str, default='/home/ruben/Desktop/broken_p', help='source')  # file/folder   ex:inference/images
+    parser.add_argument('--source', type=str, default='/home/ruben/Desktop/broken_perc', help='source')  # file/folder   ex:inference/images
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
     parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
-    parser.add_argument('--save-dir', type=str, default='/home/ruben/Desktop/broken_p_output/', help='directory to save results')
+    parser.add_argument('--save-dir', type=str, default='/home/ruben/Desktop/broken_perc_output/', help='directory to save results')
     parser.add_argument('--augment', action='store_true', help='augmented inference')
     parser.add_argument('--update', action='store_true', help='update all models')
     parser.add_argument('--detection-modes', nargs='+', type=str, help='List of detection modes to benchmark')

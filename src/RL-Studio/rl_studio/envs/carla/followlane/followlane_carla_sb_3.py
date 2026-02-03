@@ -531,6 +531,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.ema_lane_points = None
         self.EMA_ALPHA = config.get("ema_alpha", 1)
         self.last_detected_point = None
+        self.LANE_JUMP_THRESHOLD = 0.2 # Normalized distance threshold for lane center jump detection
 
         self.update_from_hot_config(config)
 
@@ -1399,20 +1400,22 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         raw_image = self.get_resized_image(self.front_camera_1_5.front_camera)
 
         # 1. PERCEPTION: Detect lines
-        # TODO (GEMINI): Implement temporal smoothing/tracking for the lane detection.
-        # Instead of re-detecting lanes in every frame, track them.
-        # 1. In the first frame, detect the lanes as usual.
-        # 2. In subsequent frames, define a small search window around the position
-        #    of the lanes from the *previous* frame. This will make the detection
-        #    much more stable and less prone to "flickering" when temporary
-        #    occlusions or shadows appear. A Kalman filter would be a good
-        #    choice for this.
-        ll_segment, distance_to_center, center_lanes_normalized = self.detect_lines(raw_image)
+        ll_segment, distance_to_center, detected_center_lanes = self.detect_lines(raw_image)
+            
+        final_curvature = calculate_max_curveture_from_centers(detected_center_lanes)
+        mean_curvature = average_curvature_from_centers(detected_center_lanes)
+        states, x_centers_normalized, y_normalized = self.normalize_centers(detected_center_lanes)
 
-        # 3. METRICS & STATE
-        final_curvature = calculate_max_curveture_from_centers(center_lanes_normalized)
-        mean_curvature = average_curvature_from_centers(center_lanes_normalized)
-        states, x_centers_normalized, y_normalized = self.normalize_centers(center_lanes_normalized)
+        # Check for sudden jumps in lane center detection
+        x_differences = None
+        if self.last_centers is not None and len(self.last_centers) == len(detected_center_lanes):
+            # Convert to numpy arrays for distance calculation
+            current_centers_np = np.array(x_centers_normalized)
+            last_centers_np = np.array(self.last_centers)
+            x_differences = np.abs(current_centers_np - last_centers_np)
+
+        # Update last_centers after all calculations, but before returning
+        self.last_centers = np.array(x_centers_normalized).copy() # Store as numpy array for next comparison
 
         # Ground truth lane position for debugging
         _, gt_center_distance, alignment = self.get_lane_position(self.car, self.map)
@@ -1455,11 +1458,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         states.append(action[0])
         states.append(action[1])
 
-        if not all(x == 0 for x in states):
-            self.last_centers = x_centers_normalized.copy()
-
         self.previous_action = action
         self.display_manager.render(vehicle=self.car)
+
+        if x_differences is not None and np.any(x_differences > self.LANE_JUMP_THRESHOLD):
+            logger.info(f"Lane center jumped significantly: {x_differences}. Resetting episode.")
+            return np.array(states), 0, True, True, params
 
         return np.array(states), reward, done, done, params
 
@@ -2745,7 +2749,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # YOLOPv2 gets a dedicated, simpler, more direct pipeline
         if self.detection_mode == 'yolop_v2':
             with torch.no_grad():
-                ll_segment, distance_to_center, raw_center_lanes_normalized, _,  raw_detection_image, extended_image, paths_image, points_for_extension  = detect_lanes_yolop_v2_hybrid_agent(raw_image, reference_point=self.last_detected_point)
+                ll_segment, distance_to_center, raw_center_lanes_normalized, _,  raw_detection_image, extended_image, paths_image, points_for_extension  = detect_lanes_yolop_v2_hybrid_agent(raw_image) # dont use for now the reference_point=self.last_detected_point
 
             if raw_center_lanes_normalized is not None and len(raw_center_lanes_normalized) > 0:
                 self.last_detected_point = raw_center_lanes_normalized[-1]

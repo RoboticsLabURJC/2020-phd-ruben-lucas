@@ -18,7 +18,7 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 3000
+  steps_to_decrease: 1000
   entropy_factor: 0
   net_arch: [ 128, 128, 128, 128, 128 ]
   normalize: true
