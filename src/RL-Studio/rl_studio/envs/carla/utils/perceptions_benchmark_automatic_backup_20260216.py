@@ -13,7 +13,6 @@ sys.path.append(BASE_DIR)
 from collections import Counter
 
 print(sys.path)
-import random
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
@@ -788,22 +787,34 @@ import cv2
 import os
 
 
-import random
-
 def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None, base_name=None, reference_point=None):
     height, width = binary_mask.shape
-    debug_viz = cv2.cvtColor(binary_mask, cv2.COLOR_GRAY2BGR)
+    debug_viz = np.zeros((height, width, 3), dtype=np.uint8)
 
-    # --- Step 1: Find lane segments row-by-row and track them ---
-    active_lanes = []  # Each element: {'points': [[x,y], ...], 'lost_frames': 0}
-    terminated_lanes = []
-    MAX_LOST = 5  # How many rows a lane can be missing before we terminate it
-    MAX_DIST = 75 # Max horizontal distance to associate a segment with an ongoing lane track
+    # --- Constants for new logic ---
+    # 1. Perspective-aware lane estimation
+    HALF_LANE_WIDTH_BOTTOM = 220  # Estimated half-width at the bottom of the image
+    HALF_LANE_WIDTH_TOP = 40  # Estimated half-width at the halfway point
 
-    # Scan from the bottom of the image upwards, row by row
-    for y in range(height - 1, height // 2, -1):
-        # Find all white segments in the current row
-        row = binary_mask[y, :]
+    # 2. Hybrid path generation
+    Y_GAP_THRESHOLD = 8  # If y-distance between points is > this, it's a gap to be filled
+
+    MAX_PATH_JUMP_DISTANCE = 30  # Max distance to consider a match
+    MAX_LOST_FRAMES = 8  # Max frames to keep a path without a match
+    MIN_LINE_LENGTH = 5
+
+    # --- Step 1: Pre-process ---
+    kernel = np.ones((5, 5), np.uint8)
+    closed_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel)
+    all_extended_lines_mask = np.zeros_like(binary_mask)
+    lines_debug_viz = np.zeros((height, width, 3), dtype=np.uint8)
+
+    # --- Step 2: Path Tracking with Hungarian Algorithm & Refined Midpoints ---
+    active_paths = []  # List of {'pts': [[x,y]...], 'lost_count': 0}
+    terminated_paths = []
+
+    for y in range(height // 2, height, 4):
+        row = closed_mask[y, :]
         padded_row = np.pad(row, (1, 1), 'constant')
         diffs = np.diff(padded_row.astype(np.int32))
         starts = np.where(diffs > 0)[0]
@@ -811,125 +822,308 @@ def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None,
 
         current_midpoints = []
         if len(starts) > 0 and len(starts) == len(ends):
-            current_midpoints = [(s + e) // 2 for s, e in zip(starts, ends)]
+            marking_centers = [(s + e) // 2 for s, e in zip(starts, ends)]
+            if len(marking_centers) >= 2:
+                for i in range(len(marking_centers) - 1):
+                    lane_center_x = (marking_centers[i] + marking_centers[i + 1]) // 2
+                    current_midpoints.append([lane_center_x, y])
 
-        # If this is the first row with detections, initialize all segments as new lanes
-        if not active_lanes and current_midpoints:
-            for mid_x in current_midpoints:
-                active_lanes.append({'points': [[mid_x, y]], 'lost_frames': 0, 'color': (random.randint(50, 255), random.randint(50, 255), random.randint(50, 255))})
+        # Optimal assignment with Hungarian Algorithm
+        if not active_paths and current_midpoints:
+            for midpt in current_midpoints:
+                active_paths.append({'pts': [midpt], 'lost_count': 0})
             continue
 
-        matched_midpoints = [False] * len(current_midpoints)
-        
-        # Try to associate current midpoints with our active lane tracks
-        for lane in active_lanes:
-            last_x = lane['points'][-1][0]
-            
-            best_match_dist = float('inf')
-            best_match_idx = -1
+        if not current_midpoints:
+            for path_data in active_paths:
+                path_data['lost_count'] += 1
+        elif active_paths:
+            cost_matrix = np.full((len(active_paths), len(current_midpoints)), fill_value=1e5)
+            for i, path_data in enumerate(active_paths):
+                path = path_data['pts']
+                last_pt = np.array(path[-1])
+                prediction = last_pt + (last_pt - np.array(path[-2])) * (path_data['lost_count'] + 1) if len(
+                    path) >= 2 else last_pt
+                for j, midpt in enumerate(current_midpoints):
+                    cost_matrix[i, j] = np.linalg.norm(prediction - np.array(midpt))
 
-            # Find the closest unmatched midpoint to the last point of the current lane track
-            for i, mid_x in enumerate(current_midpoints):
-                if not matched_midpoints[i]:
-                    dist = abs(last_x - mid_x)
-                    if dist < MAX_DIST and dist < best_match_dist:
-                        best_match_dist = dist
-                        best_match_idx = i
-            
-            if best_match_idx != -1:
-                # If a match is found, add the point and reset the lost counter
-                lane['points'].append([current_midpoints[best_match_idx], y])
-                lane['lost_frames'] = 0
-                matched_midpoints[best_match_idx] = True
-            else:
-                # If no match, increment the lost counter
-                lane['lost_frames'] += 1
+            row_ind, col_ind = linear_sum_assignment(cost_matrix)
 
-        # Prune lanes that have been lost for too long
+            assigned_paths = set()
+            assigned_midpoints = set()
+            for r, c in zip(row_ind, col_ind):
+                if cost_matrix[r, c] < MAX_PATH_JUMP_DISTANCE:
+                    active_paths[r]['pts'].append(current_midpoints[c])
+                    active_paths[r]['lost_count'] = 0
+                    assigned_paths.add(r)
+                    assigned_midpoints.add(c)
+
+            for i in range(len(active_paths)):
+                if i not in assigned_paths:
+                    active_paths[i]['lost_count'] += 1
+
+            for i in range(len(current_midpoints)):
+                if i not in assigned_midpoints:
+                    active_paths.append({'pts': [current_midpoints[i]], 'lost_count': 0})
+
+        # Termination Logic
         still_active = []
-        for lane in active_lanes:
-            if lane['lost_frames'] >= MAX_LOST:
-                if len(lane['points']) > 10: # Filter out very short, noisy tracks
-                    terminated_lanes.append(lane)
+        for path_data in active_paths:
+            if path_data['lost_count'] >= MAX_LOST_FRAMES:
+                # print(f"Path terminated. Reason: Lost count ({path_data['lost_count']}) >= MAX_LOST_FRAMES ({MAX_LOST_FRAMES}). Path length: {len(path_data['pts'])}.")
+                if len(path_data['pts']) > MIN_LINE_LENGTH:
+                    terminated_paths.append(path_data['pts'])
+                    # print(f"  -> Path added to terminated_paths.")
+                # else:
+                # print(f"  -> Path discarded because length ({len(path_data['pts'])}) is not > 5.")
             else:
-                still_active.append(lane)
-        active_lanes = still_active
+                still_active.append(path_data)
+        active_paths = still_active
 
-        # Start new lane tracks for any midpoints that weren't matched to existing lanes
-        for i, matched in enumerate(matched_midpoints):
-            if not matched:
-                active_lanes.append({'points': [[current_midpoints[i], y]], 'lost_frames': 0, 'color': (random.randint(50, 255), random.randint(50, 255), random.randint(50, 255))})
+    # print(f"\n--- End of Scan ---")
+    # print(f"Found {len(terminated_paths)} terminated paths that met length criteria.")
+    # print(f"Found {len(active_paths)} paths that are still active.")
 
-    # The final set of lanes are those that were terminated plus any that were still active at the end
-    all_lanes = terminated_lanes + [lane for lane in active_lanes if len(lane['points']) > 10]
+    active_paths_to_add = []
+    for i, p_data in enumerate(active_paths):
+        if len(p_data['pts']) > MIN_LINE_LENGTH:
+            active_paths_to_add.append(p_data['pts'])
+        # else:
+        # print(f"  -> Discarding active path {i} (length {len(p_data['pts'])} <= {MIN_LINE_LENGTH}).")
 
-    # --- Step 2: Fit a polynomial for each uniquely identified lane track ---
-    fitted_lines = []
-    for i, lane in enumerate(all_lanes):
-        points = np.array(lane['points'])
-        x_pts = points[:, 0]
-        y_pts = points[:, 1]
-        
-        # Color the pixels of each distinct lane for visualization
-        for x, y in points:
-             cv2.circle(debug_viz, (x, y), 3, lane['color'], -1)
+    final_paths = terminated_paths + active_paths_to_add
+    # print(f"Total final paths for fitting: {len(final_paths)}")
+    # print(f"-------------------\n")
+
+    all_paths_viz = np.zeros((height, width, 3), dtype=np.uint8)
+    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255)]
+    for i, path in enumerate(final_paths):
+        path_pts = np.array(path).reshape((-1, 1, 2))
+        cv2.polylines(all_paths_viz, [path_pts], False, colors[i % len(colors)], 2)
+
+    if save_path_intermediate_dir and base_name:
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_2_all_candidate_paths.png"),
+                    all_paths_viz)
+
+    # --- Step 4: Robust Fitting & Path Selection ---
+    best_path = None
+    best_score = float('inf')
+    fitted_paths = []
+
+    long_paths = [p for p in final_paths if len(p) > MIN_LINE_LENGTH]
+
+    if not long_paths:
+        return np.zeros_like(binary_mask), [], [], debug_viz, None, None, np.zeros_like(binary_mask), np.zeros_like(
+            binary_mask), np.zeros_like(binary_mask), np.zeros_like(binary_mask)
+
+    def fit_weighted_robust(pts):
+        pts = np.array(pts)
+        y_pts, x_pts = pts[:, 1], pts[:, 0]
+        weights = np.exp((y_pts - height) / (height / 2))  # Weight points at bottom higher
+        best_fit, max_inliers = None, -1
+        # RANSAC
+        for _ in range(10):
+            idx = np.random.choice(len(pts), min(len(pts), 5), replace=False)
+            try:
+                current_degree = 3 if len(np.unique(y_pts[idx])) > 3 else 1
+                sample_fit = np.polyfit(y_pts[idx], x_pts[idx], current_degree)
+                inliers = np.abs(np.polyval(sample_fit, y_pts) - x_pts) < 25
+                if np.sum(inliers) > max_inliers:
+                    max_inliers = np.sum(inliers)
+                    final_degree = 3 if len(np.unique(y_pts[inliers])) > 3 else 1
+                    best_fit = np.polyfit(y_pts[inliers], x_pts[inliers], final_degree, w=weights[inliers])
+            except (np.linalg.LinAlgError, TypeError) as e:
+                # print(f"      -> RANSAC polyfit failed with error: {e}")
+                continue
+        return np.poly1d(best_fit) if best_fit is not None else None
+
+    for i, path in enumerate(long_paths):
+        try:
+            # print(f"Fitting path {i} (length: {len(path)} points)...")
+            fn = fit_weighted_robust(np.array(path))
+            if fn:
+                # print(f"  -> Success: Path {i} fitted successfully.")
+                fitted_paths.append({'path': path, 'fit': fn})
+            # else:
+            # print(f"  -> FAIL: Path {i} could not be fitted.")
+        except Exception as e:
+            print(f"  -> UNEXPECTED ERROR while processing path {i}: {e}")
+
+    if not fitted_paths:
+        return np.zeros_like(binary_mask), [], [], debug_viz, None, None, np.zeros_like(binary_mask), np.zeros_like(
+            binary_mask), np.zeros_like(binary_mask), np.zeros_like(binary_mask)
+
+    for fitted in fitted_paths:
+        path_points = np.array(fitted['path'])
+        shape_fn = fitted['fit']
+
+        # Determine the true bottom_x by using the same linear extension logic as the final path
+        num_points_for_linear_fit = min(len(path_points), 50)
+        last_points = path_points[-num_points_for_linear_fit:]
+
+        final_bottom_x = shape_fn(height - 1)  # Default to the curve's end
+        if len(last_points) >= 2:
+            try:
+                # Calculate the specific linear fit for this candidate's tail
+                linear_fit = np.polyfit(last_points[:, 1], last_points[:, 0], 1)
+                linear_fit_fn = np.poly1d(linear_fit)
+                final_bottom_x = linear_fit_fn(height - 1)  # Use the linear fit's end
+            except (np.linalg.LinAlgError, TypeError):
+                pass  # Fallback to using the shape_fn's end if linear fit fails
+
+        ref_x = reference_point[0] if reference_point is not None else width / 2
+        score = abs(final_bottom_x - ref_x)
+        if score < best_score:
+            best_score = score
+            best_path = path_points
+
+    if save_path_intermediate_dir and base_name:
+        # Create a visualization of all fully extended polyfit candidates before selection
+        extended_polyfit_viz = np.zeros((height, width, 3), dtype=np.uint8)
+        colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255)]
+        for i, fitted in enumerate(fitted_paths):
+            try:
+                path_points = np.array(fitted['path'])
+                shape_fn = fitted['fit']
+
+                # Replicate the exact same two-part extension logic used for the final path
+                candidate_hybrid_pts = []
+
+                # Part 1: Curved upper section and gap filling
+                if len(path_points) > 0:
+                    first_point = path_points[0]
+                    if first_point[1] > height // 2:
+                        extension_ys_up = np.arange(height // 2, int(first_point[1]))
+                        if len(extension_ys_up) > 0:
+                            extension_xs_up = np.clip(shape_fn(extension_ys_up), 0, width - 1)
+                            # print(f"Extended path upwards by {len(extension_ys_up)} pixels.")
+                            for ex, ey in zip(reversed(extension_xs_up), reversed(extension_ys_up)):
+                                candidate_hybrid_pts.insert(0, [ex, ey])
+                    candidate_hybrid_pts.append(first_point.tolist())
+
+                for j in range(len(path_points) - 1):
+                    p1 = path_points[j]
+                    p2 = path_points[j + 1]
+                    if p2[1] - p1[1] > Y_GAP_THRESHOLD:
+                        gap_ys = np.arange(p1[1] + 1, p2[1])
+                        if len(gap_ys) > 0:
+                            gap_xs = np.clip(shape_fn(gap_ys), 0, width - 1)
+                            # print(f"Filled {len(gap_ys)} lines in gap.")
+                            for gx, gy in zip(gap_xs, gap_ys):
+                                candidate_hybrid_pts.append([gx, gy])
+                    candidate_hybrid_pts.append(p2.tolist())
+
+                # Part 2: Linear bottom extension
+                if candidate_hybrid_pts:
+                    last_point = candidate_hybrid_pts[-1]
+                    if last_point[1] < height - 1:
+                        num_points_for_linear_fit = min(len(path_points), 50)
+                        last_points = path_points[-num_points_for_linear_fit:]
+                        linear_fit_fn = shape_fn  # Default to curve if linear fails
+                        if len(last_points) >= 2:
+                            try:
+                                linear_fit = np.polyfit(last_points[:, 1], last_points[:, 0], 1)
+                                linear_fit_fn = np.poly1d(linear_fit)
+                            except (np.linalg.LinAlgError, TypeError):
+                                pass
+
+                        extension_ys = np.arange(int(last_point[1]) + 1, height)
+                        if len(extension_ys) > 0:
+                            extension_xs = np.clip(linear_fit_fn(extension_ys), 0, width - 1)
+                            # print(f"Extended {len(extension_ys)} lines linearly.")
+                            for ex, ey in zip(extension_xs, extension_ys):
+                                candidate_hybrid_pts.append([ex, ey])
+
+                # Draw the full candidate path
+                if candidate_hybrid_pts:
+                    pts = np.array(candidate_hybrid_pts, dtype=np.int32).reshape((-1, 1, 2))
+                    cv2.polylines(extended_polyfit_viz, [pts], False, colors[i % len(colors)], 2)
+            except:
+                continue  # Skip if there's any error with a specific path
+
+        # This image now accurately shows the final candidates
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_1_all_extended_lines.png"),
+                    extended_polyfit_viz)
+
+    # --- Step 5: Final Result ---
+    final_mask = np.zeros_like(binary_mask)
+    hybrid_path_pts = []
+    points_used_for_fit = []
+    if best_path is not None:
+        points_used_for_fit = best_path.copy()
+        for p in points_used_for_fit:
+            cv2.circle(lines_debug_viz, (int(p[0]), int(p[1])), 3, (0, 255, 0), -1)
 
         try:
-            fit = np.polyfit(y_pts, x_pts, 2)
-            line_fn = np.poly1d(fit)
-            fitted_lines.append(line_fn)
-        except (np.linalg.LinAlgError, TypeError):
-            continue
-            
-    # --- Step 3: Select the 2 lines closest to the center at the bottom ---
-    if not fitted_lines:
-        return np.zeros_like(binary_mask), [], [], debug_viz, None, None, np.array([]), debug_viz, debug_viz, np.zeros_like(binary_mask)
+            shape_fn = fit_weighted_robust(best_path)
 
-    center_x = width / 2
-    y_bottom = height - 1
+            if shape_fn:
 
-    left_lanes = []
-    right_lanes = []
+                # OJO! Commentin upper extension
+                # if len(best_path) > 0:
+                #     first_point = best_path[0]
+                #     if first_point[1] > height // 2:
+                #         extension_ys_up = np.arange(height // 2, int(first_point[1]))
+                #         if len(extension_ys_up) > 0:
+                #             extension_xs_up = np.clip(shape_fn(extension_ys_up), 0, width - 1)
+                #             for ex, ey in zip(reversed(extension_xs_up), reversed(extension_ys_up)):
+                #                 hybrid_path_pts.insert(0, [ex, ey])
+                #     hybrid_path_pts.append(first_point.tolist())
 
-    for fn in fitted_lines:
-        x_bottom = fn(y_bottom)
-        if x_bottom < center_x:
-            left_lanes.append({'func': fn, 'dist': center_x - x_bottom})
-        else:
-            right_lanes.append({'func': fn, 'dist': x_bottom - center_x})
+                for i in range(len(best_path) - 1):
+                    p1 = best_path[i]
+                    p2 = best_path[i + 1]
 
-    best_left = min(left_lanes, key=lambda x: x['dist']) if left_lanes else None
-    best_right = min(right_lanes, key=lambda x: x['dist']) if right_lanes else None
+                    if p2[1] - p1[1] > Y_GAP_THRESHOLD:
+                        gap_ys = np.arange(p1[1] + 1, p2[1])
+                        if len(gap_ys) > 0:
+                            gap_xs = np.clip(shape_fn(gap_ys), 0, width - 1)
+                            # print(f"Final path: Filled {len(gap_ys)} lines in gap.")
+                            for gx, gy in zip(gap_xs, gap_ys):
+                                hybrid_path_pts.append([gx, gy])
 
-    # --- Step 4: Calculate 10 points in the middle of the two selected lines ---
-    hybrid_path_pts = []
-    if best_left and best_right:
-        f_left = best_left['func']
-        f_right = best_right['func']
+                    hybrid_path_pts.append(p2.tolist())
 
-        y_points = np.linspace(height // 2, y_bottom, 10).astype(int)
-        for y in y_points:
-            x_left = f_left(y)
-            x_right = f_right(y)
-            x_mid = (x_left + x_right) / 2
-            hybrid_path_pts.append([int(x_mid), y])
+                if hybrid_path_pts:
+                    last_point = hybrid_path_pts[-1]
+                    if last_point[1] < height - 1:
+                        # --- Create a simpler, more predictable linear extension for the bottom part ---
+                        num_points_for_linear_fit = min(len(best_path), 20)
+                        last_points = best_path[-num_points_for_linear_fit:]
 
-    # --- Final Mask Generation ---
-    final_mask = np.zeros_like(binary_mask)
-    if hybrid_path_pts:
-        path_pts_np = np.array([hybrid_path_pts], dtype=np.int32)
-        cv2.polylines(final_mask, path_pts_np, isClosed=False, color=255, thickness=2)
+                        linear_fit_fn = None
+                        if len(last_points) >= 2:
+                            y_pts = last_points[:, 1]
+                            x_pts = last_points[:, 0]
+                            try:
+                                # Always use degree 1 for a predictable straight line
+                                linear_fit = np.polyfit(y_pts, x_pts, 1)
+                                linear_fit_fn = np.poly1d(linear_fit)
+                            except (np.linalg.LinAlgError, TypeError):
+                                linear_fit_fn = shape_fn  # Fallback to original shape_fn if linear fit fails
 
-    final_hybrid_path_points = np.array(hybrid_path_pts, dtype=np.int32)
-    lines_debug_viz = debug_viz.copy()
-    all_paths_viz = debug_viz.copy()
-    all_extended_lines_mask = final_mask.copy()
+                        # Use the simple linear fit if available, otherwise fallback to the curve
+                        extension_fn = linear_fit_fn if linear_fit_fn is not None else shape_fn
 
-    return final_mask, [], [], debug_viz, None, None, final_hybrid_path_points, lines_debug_viz, all_paths_viz, all_extended_lines_mask
+                        extension_ys = np.arange(int(last_point[1]) + 1, height)
+                        if len(extension_ys) > 0:
+                            extension_xs = np.clip(extension_fn(extension_ys), 0, width - 1)
+                            # print(f"Final path: Extended {len(extension_ys)} lines linearly.")
+                            for ex, ey in zip(extension_xs, extension_ys):
+                                hybrid_path_pts.append([ex, ey])
 
+                path_pts = np.array(hybrid_path_pts, dtype=np.int32).reshape((-1, 1, 2))
+                cv2.polylines(final_mask, [path_pts], False, 255, 2)
+            else:
+                cv2.polylines(final_mask, [best_path.reshape((-1, 1, 2))], False, 255, 2)
+        except:
+            cv2.polylines(final_mask, [best_path.reshape((-1, 1, 2))], False, 255, 2)
 
+    if save_path_intermediate_dir and base_name:
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_3_final_path.png"), final_mask)
 
-
+    return final_mask, [], [], debug_viz, None, None, np.array(hybrid_path_pts,
+                                                               dtype=np.int32), lines_debug_viz, all_paths_viz, all_extended_lines_mask
 
 
 def detect_lanes_yolop_v2_drivable_agent(image, save_path_intermediate_dir=None, img_path=None):
@@ -1059,10 +1253,10 @@ def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, i
     # 1. Define the vertices of the trapezoid that represents the ego lane.
     # These points are fine-tuned for a 640x384 image with a standard forward-facing camera.
     roi_vertices = np.array([
-        [0, height - 20],  # Bottom-left
-        [width, height - 20],  # Bottom-right
-        [width, height // 1.6],  # Top-right
-        [0, height // 1.6]  # Top-left
+        [0, height],  # Bottom-left
+        [width, height],  # Bottom-right
+        [width, height // 1.5],  # Top-right
+        [0, height // 1.5]  # Top-left
     ], dtype=np.int32)
 
     # 2. Create a black mask and draw the filled trapezoid onto it.
@@ -1920,7 +2114,7 @@ def benchmark_one(dataset, detection_mode, processing_mode, save_intermediate=Fa
 
         # Pad the results tuple with None until it has 8 elements to support all models
         padded_results = list(detect_lines_results) + [None] * (8 - len(detect_lines_results))
-        ll_seg_out_list, distance_to_center, center_lanes_normalized, x_centers, _, _, final_hybrid_path_points_from_tracker, _ = padded_results
+        ll_seg_out_list, distance_to_center, center_lanes_normalized, x_centers, _, _, _, _ = padded_results
 
         ll_seg_out = ll_seg_out_list
 
@@ -1943,20 +2137,14 @@ def benchmark_one(dataset, detection_mode, processing_mode, save_intermediate=Fa
                                             interpolation=cv2.INTER_NEAREST)
             color_mask[ll_seg_out_resized > 0] = [0, 0, 255]  # Red for detected lines
             # Blend the original image with the color mask
-            overlayed_image = cv2.addWeighted(overlay, 1, color_mask, 0.5, 0)
-
-            # Draw the 10 center points onto the overlayed image using the correct variable
-            if final_hybrid_path_points_from_tracker is not None and len(final_hybrid_path_points_from_tracker) > 0:
-                for point in final_hybrid_path_points_from_tracker:
-                    center_point = (int(point[0]), int(point[1]))
-                    cv2.circle(overlayed_image, center_point, 5, (0, 255, 255), -1)  # Draw yellow dots
+            overlay = cv2.addWeighted(overlay, 1, color_mask, 0.5, 0)
 
             if wasDetected(x_centers.tolist()):
                 detected += 1
-                cv2.imwrite(save_path_good, overlayed_image)
+                cv2.imwrite(save_path_good, overlay)
                 cv2.imwrite(save_path_out_raw, img)
             else:
-                cv2.imwrite(save_path_bad, overlayed_image)
+                cv2.imwrite(save_path_bad, overlay)
                 cv2.imwrite(save_path_bad_raw, img)
 
         processing_time = time.time() - start
@@ -2063,4 +2251,5 @@ if __name__ == '__main__':
                         help='force to only use classical lane fallback.')
     opt = parser.parse_args()
     with torch.no_grad():
+        detect(opt)
         detect(opt)

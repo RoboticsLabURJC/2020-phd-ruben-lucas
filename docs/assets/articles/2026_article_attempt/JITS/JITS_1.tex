@@ -1,10 +1,10 @@
 \documentclass[]{interact}
 
-\usepackage{epstopdf}% To incorporate .eps illustrations using PDFLaTeX, etc.
+\usepackage{epstopdf}
 
-\usepackage[longnamesfirst,sort]{natbib}% Citation support using natbib.sty
-\bibpunct[, ]{(}{)}{;}{a}{,}{,}% Citation support using natbib.sty
-
+\usepackage[natbibapa,nodoi]{apacite}
+\setlength\bibhang{12pt}
+\renewcommand\bibliographytypesize{\fontsize{10}{12}\selectfont}
 
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
@@ -105,6 +105,14 @@ During training, TensorBoard facilitates real-time monitoring of metrics, while 
 
 \subsection{Problem Formulation and Setup}
 \label{sec:problem_formulation}
+The overall architecture of the system, illustrating the interaction between the state space, the DRL agent, and the resulting control actions within the CARLA environment, is presented in Figure~\ref{fig:states_actions}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/states_actions.jpeg}
+    \caption{Overall system architecture.}
+    \label{fig:states_actions}
+\end{figure}
 
 \subsubsection{Action Space}
 The vehicle's actions are continuous controls applied to the vehicle dynamics model:
@@ -119,17 +127,25 @@ The vehicle's actions are continuous controls applied to the vehicle dynamics mo
 The state vector is composed of continuous, normalized inputs, a technique validated during preliminary experimentation to improve training stability and network performance. Normalization ensures all features contribute equally to the policy and value functions. The state, $\mathbf{s}_t$, includes the following features:
 
 \begin{itemize}
-    
-    \item \textbf{Future Waypoints ($\mathbf{w}_{1..10}$):} A sequence of the next ten waypoints, relative to the vehicle, indicating the desired center of the lane. Each point is normalized to the range $[-1, 1]$, where values represent lateral deviation from the vehicle's forward axis. We selected a reduced set of ten points as initial tests with twenty points did not yield significant performance gains but increased dimensionality.
-    
+
+    \item \textbf{Future Waypoints ($\mathbf{w}_{1..10}$):} A sequence of the next ten waypoints, relative to the vehicle, indicating the desired center of the lane as ilustrated in Figure ~\ref{fig:image_waypoints}. Each point is normalized to the range $[-1, 1]$, where values represent lateral deviation from the vehicle's forward axis. We selected a reduced set of ten points as initial tests with twenty points did not yield significant performance gains but increased dimensionality.
+
     \item \textbf{Normalized Linear Velocity ($v_{\text{lin}}$):} The vehicle's current linear speed (in m/s) normalized by the maximum allowed speed ($v_{\text{max}}=25\text{ m/s}$). Since high speeds are penalized in the reward function, this normalization ensures the majority of values range between $[0, 1]$.
-    
+
     \item \textbf{Steering Angle ($	heta_{\text{steer}}$):} The vehicle's current steering angle in radians, normalized to the range $[-1, 1]$ by the maximum steering angle supported by the vehicle dynamics model.
-    
+
     \item \textbf{Normalized Objective Velocity ($v_{\text{target}}$):} The instantaneous target speed for the current road segment, calculated based on the lane curvature. This value is normalized by the maximum allowed speed ($v_{\text{max}}=25\text{ m/s}$).
-    
+
     \item \textbf{Last Performed Actions ($\mathbf{a}_{t-1}$):} The values of the immediately preceding throttle/brake and steer actions. Including these past actions encourages the agent to implicitly learn to penalize sudden or erratic changes in control inputs, promoting smoother driving behavior. This is done to preserve potential-based reward shaping good practices \cite{muller2025improving}, which typically caution against explicit action penalties in the reward function.
 \end{itemize}
+
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/waypoints_carla.png}
+    \caption{CARLA lane center waypoints projected into camera image.}
+    \label{fig:image_waypoints}
+\end{figure}
 
 \subsubsection{Camera Configuration and Feature Projection}
 The agent processes perception data derived from a single front-facing camera, which is positioned \SI{1}{meter} above the vehicle's roof and features a \SI{90}{\degree} Field of View (FOV)
@@ -140,10 +156,10 @@ This ensures the agent operates on visual-domain features (perspective-projected
 The agent's reward function, $R_t$, is engineered to prioritize safety (lane centering), efficiency (optimal speed), and stability (smooth control) simultaneously.
 Although the reward components operate in different physical units (e.g., speed in km/h, angular velocity in rad/s), all terms were empirically scaled during preliminary tuning to ensure comparable magnitudes and prevent the dominance of any single component.
 
-$$ 
+$$
 \label{eq:reward}
- R_t = \begin{cases} 
--10 & \text{if done due to lane departure} 
+ R_t = \begin{cases}
+-10 & \text{if done due to lane departure}
 \\v_{\mathrm{eff}} - 0.5 \cdot |\omega|
 & \text{otherwise}
 \end{cases}
@@ -152,7 +168,7 @@ $$
 The components of the reward function are defined as:
 
 \begin{itemize}
-    
+
     \item \textbf{Lane Departure Penalty:} An immediate, large negative reward ($R_t = -10$) and episode termination is applied if the vehicle invades a contiguous lane boundary, ensuring a strong penalty for unsafe states.
 
     \item \textbf{Stability Penalty ($0.5 \cdot |\omega|$):} This term penalizes rapid turning and erratic behavior. The penalty is proportional to the absolute value of the vehicle's angular velocity ($|\omega|$), directly encouraging stable and smooth policy outputs.
@@ -168,10 +184,9 @@ The components of the reward function are defined as:
     \end{itemize}
 \end{itemize}
 
-Additionally, the following constraints and bonuses are implemented to aid training:
+To mitigate the common "local optima" problem where an agent remains stationary to avoid collision penalties, the following reward shaping and termination constraints are implemented:
 
 \begin{itemize}
-    
     \item \textbf{Initial Movement Bonus:} A small reward of $0.1$ is given when the linear velocity ($v$) is less than $\SI{1}{m/s}$ to accelerate the learning of initial movement and prevent the agent from exploiting low-velocity states.
     \item \textbf{Stagnation Penalty:} The episode is forcibly reset if the vehicle is effectively \textbf{"stopped"} (velocity below a threshold) for an extended period of $\SI{5}{s}$, discouraging policy stagnation.
 \end{itemize}
@@ -183,42 +198,42 @@ The experiments were conducted within the CARLA simulator, utilizing a selection
 
 Training takes place in predefined locations across CARLA's Town01 (a small, simple town with T-junctions, see Figure \ref{fig:town01}), Town03 (a larger, urban map with complex junctions and a roundabout, see Figure \ref{fig:town03}), and Town04 (a high-speed, highway loop embedded in a mountainous area, see Figure \ref{fig:town04}). We selected multiple cities to evaluate the agent's capacity for \textbf{generalization} across diverse urban layouts and road textures. This careful selection provides a similar, yet not identical, representation of the cities used for inference, which are Town02 (Figure \ref{fig:town02}), Town06 (Figure \ref{fig:town06}), and Town10 (Figure \ref{fig:town10}).
 
-\begin{figure}[htbp] 
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/town01.png}
     \caption{CARLA Town01 layout (Training).}
     \label{fig:town01}
 \end{figure}
 
-\begin{figure}[htbp] 
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/town03.png}
     \caption{CARLA Town03 layout (Training).}
     \label{fig:town03}
 \end{figure}
 
-\begin{figure}[htbp] 
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/town04.png}
     \caption{CARLA Town04 layout (Training).}
     \label{fig:town04}
 \end{figure}
 
-\begin{figure}[htbp] 
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/town02.png}
     \caption{CARLA Town02 layout (Inference).}
     \label{fig:town02}
 \end{figure}
 
-\begin{figure}[htbp] 
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/town06.png}
     \caption{CARLA Town06 layout (Inference).}
     \label{fig:town06}
 \end{figure}
 
-\begin{figure}[htbp] 
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/town10.png}
     \caption{CARLA Town10 layout (Inference).}
@@ -231,7 +246,7 @@ To address the inherent stochasticity of DRL training (which can lead to agents 
 
 
 \begin{itemize}
-    
+
     \item \textbf{Seed Fixing:} All algorithms were trained with a fixed set of seeds (1, 42, 888 and 1234) to ensure statistical rigor in the study.
     \item \textbf{Multiple Runs:} We executed 3 independent training runs for each of the four DRL algorithms and each of the 4 seeds for each one, giving a total of 48 training executions.
     \item \textbf{Best Agent Selection:} Every 1,000 training steps, a candidate model was evaluated on a fixed set of 6 validation scenarios (two distinct locations in each of the three inference cities: Town02, Town06, and Town10). The mean cumulative reward across these 6 episodes was the primary metric for selection, mitigating the effect of stochasticity in a single run. The model checkpoint achieving the highest mean cumulative reward was designated the "\textbf{best agent}.
@@ -252,7 +267,7 @@ The following configuration was shared by all algorithms:
 \subsubsection{Proximal Policy Optimization}
 
 \begin{itemize}
-    
+
     \item \textbf{Key hyperparameters:} GAE parameter $\lambda = 0.95$, clipping ratio $\epsilon = 0.2$, batch size of 1024, 10 epochs per update, and an entropy coefficient of 0.03.
     \item \textbf{Exploration strategy:} PPO inherently explores through its stochastic policy. We tested a decaying standard deviation for the policy’s action distribution but found that keeping it constant and relying on entropy maximization led to more stable learning.
 \end{itemize}
@@ -260,7 +275,7 @@ The following configuration was shared by all algorithms:
 \subsubsection{Deep Deterministic Policy Gradient}
 
 \begin{itemize}
-    
+
     \item \textbf{Key hyperparameters:} target network update rate $\tau = 0.005$.
     \item \textbf{Exploration strategy:} DDPG relies on additive noise for exploration. Standard Ornstein--Uhlenbeck noise with exponential decay was used to encourage temporally correlated exploration.
 \end{itemize}
@@ -268,7 +283,7 @@ The following configuration was shared by all algorithms:
 \subsubsection{Twin Delayed DDPG}
 
 \begin{itemize}
-    
+
     \item \textbf{Key hyperparameters:} target update rate $\tau = 0.005$ and a policy update delay of 2.
     \item \textbf{Exploration strategy:} TD3 employs target policy smoothing, where clipped noise is added to target actions during critic updates. We used a target policy noise of 0.1 and a noise clip of 0.5. For exploration noise during environment interaction, the same Ornstein--Uhlenbeck strategy as in DDPG was applied.
 \end{itemize}
@@ -276,19 +291,19 @@ The following configuration was shared by all algorithms:
 \subsubsection{Soft Actor--Critic}
 
 \begin{itemize}
-    
+
     \item \textbf{Key hyperparameters:} target update rate $\tau = 0.002$ and an automatically tuned entropy temperature $\alpha$.
     \item \textbf{Exploration strategy:} SAC’s entropy-maximizing objective provides inherent exploration. We relied entirely on the automatic temperature tuning mechanism, which consistently produced stable learning without requiring additional noise injection.
 \end{itemize}
 
-\begin{figure}[htbp] 
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\textwidth]{figures/averaged_cum.png}
     \caption{Averaged cumulative rewards evolution over training steps.}
     \label{fig:averagedcum}
 \end{figure}
 
-\begin{figure}[htbp] 
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\textwidth]{figures/lane_invasions.png}
     \caption{Lane invasions metric.}
@@ -387,36 +402,36 @@ The training process was repeated by sequentially removing or modifying each of 
 
 \begin{table}
 \tbl{Features Targeted in the Ablation Study}
-{\begin{tabular}{|c|p{0.6\textwidth}|} 
-        \hline
-        \textbf{ID} & \textbf{Feature Description} \\
-        \hline
-        A & Initial spawn points (straight, slight, sharp curves). \\
-        \hline
-        B & Equal distribution of left and right turns in the training curriculum. \\
-        \hline
-        C & Cities with sharp curves (Towns 03 and 04). \\
-        \hline
-        D & Cities (complex and simple scenarios, Town 01). \\
-        \hline
-        E & Randomized initial vehicle speeds (0\text{ km/h} to 90\text{ km/h}). \\
-        \hline
-    \end{tabular}}
+{\begin{tabular}{|c|p{0.7\textwidth}|}
+\hline
+\textbf{ID} & \textbf{Feature} \\
+\hline
+A & Initial position variety across straight, slight, and sharp road geometries. \\
+\hline
+B & Balanced distribution of left and right turns in the training curriculum. \\
+\hline
+C & Inclusion of towns with complex layouts (Towns 03 and 04). \\
+\hline
+D & Inclusion of towns with abrupt and high-curvature road segments (Town 01). \\
+\hline
+E & Randomized initial vehicle speed between 0 and 90~km/h. \\
+\hline
+\end{tabular}}
 \label{tab:ablationfeatures}
 \end{table}
 
-As illustrated by the lane invasion metrics in Figures \ref{fig:ablationlaneinvasions} and \ref{fig:ablationlaneinvasionsboxplot}, all features contribute positively to the final policy quality. The relevance of their performance impact is clearly ordered from A (most impactful) to E (least impactful).
+As illustrated by the lane invasion metrics in Figures \ref{fig:ablationlaneinvasions} and \ref{fig:ablationlaneinvasionsboxplot}, all features contribute positively to the final policy quality. The impact of each feature on safety performance exhibits a clear descending order, from Initial Position Variety (A), which is the most influential, to Initial Speed Randomization (E), which has the least impact.
 
 \subsubsection{Initial Position Variety (A)}
 The removal of Initial Position Variety resulted in the most significant performance degradation. Since training was limited to a fixed number of steps, the agent's experience was heavily skewed by the pre-selected 30 starting points, which exhibited an uneven distribution of road geometries: 23 straight sections, 5 slight curves, and 2 abrupt curves. Consequently, the agent specialized in aggressively speeding up on straight roads, leading to a tendency to invade the lane when subsequently encountering curved segments. This demonstrated that a sufficient diversity of geometric features during initialization is paramount for learning a balanced, robust policy.
 
-\subsubsection{Turn Distribution (B)}
+\subsubsection{Balanced Turn Distribution (B)}
 In the ablation study for Equal Turn Distribution, the policy was trained with fewer right curves (5 right turns vs. 15 left turns), despite having the same complexity of straights and curves as the full setup. This imbalance led to difficulties in generalizing steering control to right-hand turns, highlighting the importance of balanced training data for lateral control consistency.
 
-\subsubsection{Town Variety (C)}
- Ablating the inclusion of simpler cities with a more variety of scenarios (long straights in town04 and round-about in Town03) resulted in the agent failing to properly navigate the small roundabout in Town06. This performance drop indicates that the complex urban geometry found in Town03 was essential for developing a policy capable of handling similar intricate junctions during inference.
+\subsubsection{Complex Town Geometry Exposure (C)}
+Ablating the inclusion of cities with a more variety of scenarios (long straights in town04 and round-about in Town03) resulted in the agent failing to properly navigate the small roundabout in Town06. This performance drop indicates that the complex urban geometry found in Town03 was essential for developing a policy capable of handling similar intricate junctions during inference.
 
-\subsubsection{sharp turns (D)}
+\subsubsection{Abrupt Curve Exposure (D)}
 Removing the inclusion of the town with sharped curves (Town01) from training, significantly hampered the agent's ability to cope with abrupt curves found in Town02. Furthermore, this ablation led to failures in facing a small zigzag curve encountered in some executions within Town06,
 
 \subsubsection{Initial Speed Randomization (E)}
@@ -469,7 +484,7 @@ The authors report there are no competing interests to declare.
 \section*{Data availability statement}
 No external data was used in this study. All experiments were conducted within the CARLA simulator. The code, configurations, and trained models are available from the corresponding author, R.L.Z., upon reasonable request.
 
-\bibliographystyle{apalike}
+\bibliographystyle{apacite}
 \bibliography{references}
 
 \end{document}
