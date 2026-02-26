@@ -409,7 +409,6 @@ class TrainerFollowLaneSACCarla:
             "policy": "MlpPolicy",
             "learning_rate": self.environment.environment["critic_lr"],
             "gamma": self.algoritmhs_params.gamma,
-            "epsilon": self.algoritmhs_params.epsilon,
             "total_timesteps": 5000000,
         }
 

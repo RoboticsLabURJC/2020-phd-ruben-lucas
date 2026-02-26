@@ -1,5 +1,5 @@
 settings:
-  mode: training # training, retraining, inference
+  mode: inference # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: sac # qlearn, dqn, ddpg, sac
   simulator: carla # openai, carla, gazebo, sumo
@@ -18,20 +18,20 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 1000
+  steps_to_decrease: 2000
   entropy_factor: 0
   net_arch: [ 128, 128, 128, 128, 128 ]
   normalize: true
   compensated_inits: true
   random_direction: false
   random_speeds: true
-  initial_std_w: 0.8
-  initial_std_v: 0.8
+  initial_std_w: 0.2
+  initial_std_v: 0.4
   decrease_substraction: 0.003
   decrease_min: 0.003
   reward_params:
     function: pow
-    punish_zig_zag_value: 0.5
+    punish_zig_zag_value: 1
     punish_deviation: 10
     punish_braking: 2
     punish_ineffective_vel: 1 # velocity below which reward is not calculated (0)
@@ -47,7 +47,7 @@ ros:
 
 retraining:
   sac:
-    retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/best_checkpoints/10points/optimal/sac_bs/2nd_less_exploration/best_model.zip
+    retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20260225-003252/model_1340000_steps_20260226-085044.zip
 
 inference:
   sac:
@@ -62,7 +62,7 @@ algorithm:
     episodes_update: 0 # dooing nothing here
     replay_memory_size: 50_000
     memory_fraction: 0.20
-    critic_lr: 0.0002 # This is the only one applying to both now
+    critic_lr: 0.0003 # This is the only one applying to both now
     actor_lr: 0.0001
     model_name: sac_Actor_conv2d32x64_Critic_conv2d32x64
 
@@ -122,7 +122,7 @@ carla_environments:
     traffic_pedestrians: False
     city_lights: False
     car_lights: False
-    estimated_steps: 1000
+    estimated_steps: 3000
     save_episodes: 5 # not used in this carla sac
     save_every_step: 100 # not used in this carla sac
     init_pose:
@@ -141,12 +141,12 @@ carla_environments:
       Town04:
         [
 #          [-320.872070, 15.83397, 0.416225, 0.118217, 176.971695, 0.924344], # sharp to left
-          [278.050293, -368.798950, 0.807949, 0.095828, 16.101439, -2.257110], #slight to right
-          [ -475.506342, 352.208710, 0.807793, 0.051254, 55.662395, 0.072115 ], #slight to left
-          [12.93741, 157.040146, 0.09260, 0.051254, -90.375160, 0.1006703], # straight
-          [384.381470, -116.060329, 0.607339, 0.031453, 90.310402, 0.008101], # sharp to right
-          [199.221252, -367.893829, 0.809260, 0.248796, 0.152361, -0.002625], # straight
-          [ 334.204407,  13.815439, 0.608849, 1.506945, -179.198761, -1.299316] # long straight
+#          [278.050293, -368.798950, 0.357949, 0.095828, 16.101439, -2.257110], #slight to right
+#          [ -475.506342, 352.208710, 0.357793, 0.051254, 55.662395, 0.072115 ], #slight to left
+#          [12.93741, 157.040146, 0.09260, 0.051254, -90.375160, 0.1006703], # straight
+          [384.381470, -116.060329, 0.507339, 0.031453, 90.310402, 0.008101], # sharp to right
+#          [199.221252, -367.893829, 0.509260, 0.248796, 0.152361, -0.002625], # straight
+#          [ 334.204407,  13.815439, 0.608849, 1.506945, -179.198761, -1.299316] # long straight
           #   [235.603699, 12.395636, 5.228042, 3.577455, 0.124573, -0.008118], # straight reverse
     #      [389.385938, -179.152158, 0.457793, 0.082516, 270.889893, 0.078263] # straight reverse
         ]
@@ -175,6 +175,6 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: 4013
+  carla_client: 2000
 #  carla_client: [4013, 4015]
-  manager_port: 8029
+  manager_port: 8049

@@ -409,31 +409,51 @@ def detect_yolop(raw_image):
 # global variable for temporal smoothing
 prev_fit = None
 
+def apply_clahe_bgr(image):
+    lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
 
-def run_yolop_v2_inference(raw_image, stretch_factor=0.8):
+    clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8, 8))
+    l = clahe.apply(l)
+
+    lab = cv2.merge((l, a, b))
+    return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+def soften_overbright_lanes(image, white_threshold=130):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Find very bright pixels
+    mask = gray > white_threshold
+
+    result = image.copy()
+
+    # Reduce brightness slightly instead of eroding
+    result[mask] = result[mask] * 0.85
+
+    return result.astype(np.uint8)
+
+def run_yolop_v2_inference(raw_image, stretch_factor=1.0):
+
+    # --- STEP 1: CLAHE only ---
+    raw_image = apply_clahe_bgr(raw_image)
+    raw_image = soften_overbright_lanes(raw_image)
+
     h, w, _ = raw_image.shape
 
-    # Compute new height
     new_h = int(h * stretch_factor)
-    # Round height and width to nearest multiple of 32
     new_h = ((new_h + 31) // 32) * 32
     new_w = ((w + 31) // 32) * 32
 
-    # Resize image (stretch vertically)
     resized_image = cv2.resize(raw_image, (new_w, new_h))
 
-    # Optionally, you may want to resize again to YOLOv2 input (640x384) but keeping proportions
-    # For now we just return the vertically stretched image
     img = yolop_v2_lines_transform(resized_image).to(device)
     if img.ndimension() == 3:
         img = img.unsqueeze(0)
 
-    # Inference
-    outputs = yolop_v2_lines_model(img)
-    da_seg_out = outputs[1]
-    ll_seg_out = outputs[2]
+    with torch.no_grad():
+        outputs = yolop_v2_lines_model(img)
 
-    return da_seg_out, ll_seg_out, resized_image
+    return outputs[1], outputs[2], resized_image
 
 
 def process_yolop_v2_drivable_output(da_seg_out, resized_image):
@@ -500,19 +520,6 @@ def detect_yolop_v2_lines(raw_image, force_classical_fallback=False, ll_seg_out_
     probs = torch.sigmoid(ll_seg_mask)
     probs_np = probs.squeeze().cpu().numpy()
 
-    # print("Min:", probs_np.min())
-    # print("Max:", probs_np.max())
-    # print("Mean:", probs_np.mean())
-    #
-    # # Otsu threshold
-    # _, yolo_mask = cv2.threshold(
-    #     (probs_np * 255).astype(np.uint8),
-    #     0, 255,
-    #     cv2.THRESH_BINARY + cv2.THRESH_OTSU
-    # )
-
-    probs_np = probs.squeeze().cpu().numpy()
-
     # Normalize relative to max activation
     normalized = (probs_np - probs_np.min()) / (probs_np.max() - probs_np.min() + 1e-6)
 
@@ -520,12 +527,8 @@ def detect_yolop_v2_lines(raw_image, force_classical_fallback=False, ll_seg_out_
     threshold_value = 0.6  # try 0.5 – 0.7
     yolo_mask = (normalized > threshold_value).astype(np.uint8) * 255
 
-    # Reconnect dashed lines
-    kernel = np.ones((5, 5), np.uint8)
-    yolo_mask = cv2.morphologyEx(yolo_mask, cv2.MORPH_CLOSE, kernel)
-
-    # Morphological cleanup
-    kernel = np.ones((5, 5), np.uint8)
+    # Reconnect dashed lines post-unmerging with a conservative vertical kernel
+    kernel = np.ones((5, 1), np.uint8)
     yolo_mask = cv2.morphologyEx(yolo_mask, cv2.MORPH_CLOSE, kernel)
 
     # ==========================
@@ -790,142 +793,311 @@ import os
 
 import random
 
-def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None, base_name=None, reference_point=None):
+def _extend_contour(contour, target_y, direction, num_points_for_fit=30):
+    """
+    Extends a contour to a target y-coordinate using a localized polynomial fit.
+    - contour: The numpy array of [x, y] points.
+    - target_y: The y-coordinate to extend to.
+    - direction: 'down' or 'up'.
+    - num_points_for_fit: How many points from the end of the contour to use for fitting.
+    """
+    if contour is None or len(contour) < 2:
+        return contour
+
+    # Sort points by y-coordinate to ensure correct order
+    contour = contour[contour[:, 1].argsort()]
+    
+    y_pts, x_pts = contour[:, 1], contour[:, 0]
+
+    # Decide which points to use for fitting the extension curve
+    if direction == 'down':
+        if y_pts[-1] >= target_y: return contour # Already past the target
+        fit_points_y = y_pts[-num_points_for_fit:]
+        fit_points_x = x_pts[-num_points_for_fit:]
+        y_start = y_pts[-1]
+        y_end = target_y
+    else: # 'up'
+        if y_pts[0] <= target_y: return contour # Already past the target
+        fit_points_y = y_pts[:num_points_for_fit]
+        fit_points_x = x_pts[:num_points_for_fit]
+        y_start = target_y
+        y_end = y_pts[0]
+
+    if len(fit_points_y) < 2: return contour # Not enough points to fit
+
+    try:
+        # Fit a curve to the end segment of the line
+        # Require a minimum number of points (e.g., 10) to confidently fit a quadratic curve.
+        # Overfitting a 2nd-degree polynomial to very few points creates wild, unnecessary curves.
+        degree = 2 if len(fit_points_y) > 30 else 1
+        fit = np.polyfit(fit_points_y, fit_points_x, degree)
+
+        # --- ROBUSTNESS CHECK ---
+        # If the quadratic term is too large, the curve is unstable.
+        # Fall back to a simple, robust linear fit to prevent "weird" curves.
+        if degree == 2 and abs(fit[0]) > 0.005:
+            fit = np.polyfit(fit_points_y, fit_points_x, 1)
+
+        fit_fn = np.poly1d(fit)
+
+        # Generate new points for the extension
+        num_new_points = abs(int(y_end - y_start))
+        if num_new_points <= 0: return contour
+        
+        y_new = np.linspace(y_start, y_end, num_new_points).astype(int)
+        x_new = fit_fn(y_new).astype(int)
+        
+        extension_points = np.vstack((x_new, y_new)).T
+
+        # Append or prepend the new points to the original contour
+        if direction == 'down':
+            return np.vstack((contour, extension_points))
+        else:
+            return np.vstack((extension_points, contour))
+
+    except (np.linalg.LinAlgError, TypeError):
+        # If fitting fails, just return the original contour
+        return contour
+
+
+def _find_and_draw_lane_boundaries(binary_mask, save_path_intermediate_dir=None, base_name=None, reference_point=None, drivable_mask=None):
     height, width = binary_mask.shape
     debug_viz = cv2.cvtColor(binary_mask, cv2.COLOR_GRAY2BGR)
 
-    # --- Step 1: Find lane segments row-by-row and track them ---
-    active_lanes = []  # Each element: {'points': [[x,y], ...], 'lost_frames': 0}
-    terminated_lanes = []
-    MAX_LOST = 5  # How many rows a lane can be missing before we terminate it
-    MAX_DIST = 75 # Max horizontal distance to associate a segment with an ongoing lane track
+    # --- Step 1: Skeletonize to get thin lines ---
+    skeleton = skeletonize(binary_mask // 255).astype(np.uint8) * 255
 
-    # Scan from the bottom of the image upwards, row by row
-    for y in range(height - 1, height // 2, -1):
-        # Find all white segments in the current row
-        row = binary_mask[y, :]
-        padded_row = np.pad(row, (1, 1), 'constant')
-        diffs = np.diff(padded_row.astype(np.int32))
-        starts = np.where(diffs > 0)[0]
-        ends = np.where(diffs < 0)[0]
+    # --- Step 2: Robust Splitting at Junctions ---
+    # To find junctions in smooth curves (common with neural network outputs), 
+    # we look at a wider neighborhood (5x5) instead of just immediate neighbors.
+    # A point on a simple line will have few neighbors in this larger area,
+    # but a merge point will be "busier" and have more.
+    kernel = np.ones((5, 5), dtype=np.uint8) # Use a larger 5x5 kernel
+    neighbor_count = cv2.filter2D(skeleton // 255, -1, kernel)
 
-        current_midpoints = []
-        if len(starts) > 0 and len(starts) == len(ends):
-            current_midpoints = [(s + e) // 2 for s, e in zip(starts, ends)]
+    # A junction is a point on the original skeleton that is "busy"
+    # (has more than 5 neighbors in its 5x5 radius).
+    # This threshold is loose enough to catch smooth merges.
+    junction_points = np.argwhere((neighbor_count > 5) & (skeleton > 0)).tolist()
 
-        # If this is the first row with detections, initialize all segments as new lanes
-        if not active_lanes and current_midpoints:
-            for mid_x in current_midpoints:
-                active_lanes.append({'points': [[mid_x, y]], 'lost_frames': 0, 'color': (random.randint(50, 255), random.randint(50, 255), random.randint(50, 255))})
+    # --- NEW: Detect lines that go "up and down" (inverted U-shapes) ---
+    # These are continuous curves (like merged lanes at the horizon) that don't form 
+    # a busy junction, so the kernel misses them. We find connected components and 
+    # split them at their highest point (minimum y) if they have parts in the same y coordinate.
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(skeleton, connectivity=8)
+    for i in range(1, num_labels):
+        pts_y, pts_x = np.where(labels == i)
+        
+        if len(pts_y) < 20: # Ignore tiny components
             continue
-
-        matched_midpoints = [False] * len(current_midpoints)
-        
-        # Try to associate current midpoints with our active lane tracks
-        for lane in active_lanes:
-            last_x = lane['points'][-1][0]
             
-            best_match_dist = float('inf')
-            best_match_idx = -1
-
-            # Find the closest unmatched midpoint to the last point of the current lane track
-            for i, mid_x in enumerate(current_midpoints):
-                if not matched_midpoints[i]:
-                    dist = abs(last_x - mid_x)
-                    if dist < MAX_DIST and dist < best_match_dist:
-                        best_match_dist = dist
-                        best_match_idx = i
-            
-            if best_match_idx != -1:
-                # If a match is found, add the point and reset the lost counter
-                lane['points'].append([current_midpoints[best_match_idx], y])
-                lane['lost_frames'] = 0
-                matched_midpoints[best_match_idx] = True
-            else:
-                # If no match, increment the lost counter
-                lane['lost_frames'] += 1
-
-        # Prune lanes that have been lost for too long
-        still_active = []
-        for lane in active_lanes:
-            if lane['lost_frames'] >= MAX_LOST:
-                if len(lane['points']) > 10: # Filter out very short, noisy tracks
-                    terminated_lanes.append(lane)
-            else:
-                still_active.append(lane)
-        active_lanes = still_active
-
-        # Start new lane tracks for any midpoints that weren't matched to existing lanes
-        for i, matched in enumerate(matched_midpoints):
-            if not matched:
-                active_lanes.append({'points': [[current_midpoints[i], y]], 'lost_frames': 0, 'color': (random.randint(50, 255), random.randint(50, 255), random.randint(50, 255))})
-
-    # The final set of lanes are those that were terminated plus any that were still active at the end
-    all_lanes = terminated_lanes + [lane for lane in active_lanes if len(lane['points']) > 10]
-
-    # --- Step 2: Fit a polynomial for each uniquely identified lane track ---
-    fitted_lines = []
-    for i, lane in enumerate(all_lanes):
-        points = np.array(lane['points'])
-        x_pts = points[:, 0]
-        y_pts = points[:, 1]
+        peak_y = np.min(pts_y)
+        peak_x = int(np.mean(pts_x[pts_y == peak_y]))
         
-        # Color the pixels of each distinct lane for visualization
-        for x, y in points:
-             cv2.circle(debug_viz, (x, y), 3, lane['color'], -1)
+        # User's logic: check if the line has parts in the same y coordinate
+        is_u_shape = False
+        unique_y = np.unique(pts_y)
+        for y_val in unique_y:
+            xs_at_y = np.sort(pts_x[pts_y == y_val])
+            if len(xs_at_y) > 1 and np.max(np.diff(xs_at_y)) > 10:
+                # Gap of more than 10 pixels at the same Y coordinate means distinct legs
+                is_u_shape = True
+                break
+                
+        if is_u_shape:
+            junction_points.append([peak_y, peak_x])
+
+    # Create a copy of the skeleton to "erase" the junctions from.
+    split_skeleton = skeleton.copy()
+    for y, x in junction_points:
+        cv2.circle(split_skeleton, (int(x), int(y)), 5, 0, -1)  # Erase a 5-pixel radius around each junction.
+
+    if save_path_intermediate_dir:
+        # Create a visualization showing where the junctions were detected.
+        junction_viz = cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR)
+        for y, x in junction_points:
+            cv2.circle(junction_viz, (int(x), int(y)), 5, (0, 0, 255), 1) # Draw red circles on the original skeleton.
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_1_junctions_erased.png"), junction_viz)
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_1.5_split_skeleton.png"), split_skeleton)
+
+    # --- Step 3: Find Contours of Clean Segments ---
+    # Now that junctions are erased, we can find contours of the simple, separated line segments.
+    contours, _ = cv2.findContours(split_skeleton, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+    # Filter out tiny contours that are likely just noise.
+    min_contour_length = 50
+    long_contours = [c for c in contours if cv2.arcLength(c, False) > min_contour_length]
+
+    # The complex logic for splitting merged contours is no longer needed.
+    # We now have a clean list of line segments.
+    processed_contours = long_contours
+
+    # --- Step 4: Classify Contours and Create Candidate Visualization ---
+    lane_candidates = []
+    # Create a new visualization for all potential lane candidates, starting from the skeleton
+    candidates_viz = cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR)
+
+    for contour in long_contours:
+        points = contour.reshape(-1, 2)
+        x_pts, y_pts = points[:, 0], points[:, 1]
+
+        if len(y_pts) < 3: continue  # Need at least 3 points for a line
 
         try:
-            fit = np.polyfit(y_pts, x_pts, 2)
-            line_fn = np.poly1d(fit)
-            fitted_lines.append(line_fn)
+            # Fit a simple line just to get its position at the bottom of the image
+            fit = np.polyfit(y_pts, x_pts, 1)  # Linear fit is sufficient
+            fit_fn = np.poly1d(fit)
+
+            lane_candidates.append({
+                'points': points,
+                'fit_fn': fit_fn
+            })
+            # Draw this candidate contour in green on the visualization image
+            cv2.polylines(candidates_viz, [points.reshape((-1, 1, 2))], isClosed=False, color=(0, 255, 0), thickness=1)
         except (np.linalg.LinAlgError, TypeError):
             continue
-            
-    # --- Step 3: Select the 2 lines closest to the center at the bottom ---
-    if not fitted_lines:
-        return np.zeros_like(binary_mask), [], [], debug_viz, None, None, np.array([]), debug_viz, debug_viz, np.zeros_like(binary_mask)
 
-    center_x = width / 2
+    # --- Step 5: Select Best Left and Right Lanes ---
+    if not lane_candidates:
+        # Return empty/default values if no lanes are found, including the new viz image
+        return np.zeros_like(binary_mask), [], [], debug_viz, None, None, np.array([]), debug_viz, debug_viz, np.zeros_like(binary_mask), candidates_viz
+
     y_bottom = height - 1
+    LANE_WIDTH_PIXELS = 100  # Approximate lane width in pixels
+    MATCHING_THRESHOLD = 300  # Max pixels a lane can drift between frames
 
-    left_lanes = []
-    right_lanes = []
+    # If we have a reference point, use it for tracking. Otherwise, fall back to image center.
+    expected_center_x = reference_point[0] if reference_point is not None else width / 2
+    
+    expected_left_x = expected_center_x - (LANE_WIDTH_PIXELS / 2)
+    expected_right_x = expected_center_x + (LANE_WIDTH_PIXELS / 2)
 
-    for fn in fitted_lines:
-        x_bottom = fn(y_bottom)
-        if x_bottom < center_x:
-            left_lanes.append({'func': fn, 'dist': center_x - x_bottom})
+    # Draw vertical lines for expected positions on the candidates visualization
+    cv2.line(candidates_viz, (int(expected_left_x), 0), (int(expected_left_x), height - 1), (255, 100, 0), 1)  # Blueish for left
+    cv2.line(candidates_viz, (int(expected_right_x), 0), (int(expected_right_x), height - 1), (0, 100, 255), 1)  # Orangish for right
+    cv2.line(candidates_viz, (int(expected_center_x), 0), (int(expected_center_x), height - 1), (255, 255, 255), 1) # White for center ref
+
+    left_lanes, right_lanes = [], []
+
+    # Classify candidates and find their distance to the *expected* positions
+    for lane in lane_candidates:
+        x_bottom = lane['fit_fn'](y_bottom)
+        if x_bottom < expected_center_x:
+            dist = abs(x_bottom - expected_left_x)
+            left_lanes.append({'lane': lane, 'dist': dist})
         else:
-            right_lanes.append({'func': fn, 'dist': x_bottom - center_x})
+            dist = abs(x_bottom - expected_right_x)
+            right_lanes.append({'lane': lane, 'dist': dist})
 
-    best_left = min(left_lanes, key=lambda x: x['dist']) if left_lanes else None
-    best_right = min(right_lanes, key=lambda x: x['dist']) if right_lanes else None
+    # Select the best lanes, but only if they are within the matching threshold
+    best_left, best_right = None, None
+    if left_lanes:
+        best_left_candidate = min(left_lanes, key=lambda x: x['dist'])
+        if best_left_candidate['dist'] < MATCHING_THRESHOLD:
+            best_left = best_left_candidate['lane']['points']
 
-    # --- Step 4: Calculate 10 points in the middle of the two selected lines ---
+    if right_lanes:
+        best_right_candidate = min(right_lanes, key=lambda x: x['dist'])
+        if best_right_candidate['dist'] < MATCHING_THRESHOLD:
+            best_right = best_right_candidate['lane']['points']
+    
+    # Highlight the chosen lanes on the visualization image
+    if best_left is not None:
+        cv2.polylines(candidates_viz, [best_left.reshape((-1, 1, 2))], isClosed=False, color=(255, 0, 0), thickness=2) # Blue for chosen left
+    if best_right is not None:
+        cv2.polylines(candidates_viz, [best_right.reshape((-1, 1, 2))], isClosed=False, color=(0, 0, 255), thickness=2) # Red for chosen right
+
+    best_left_contour = best_left
+    best_right_contour = best_right
+
+    # --- Step 6: Line Extension ---
+    # Ensure both detected lanes stretch from the middle to the bottom of the image.
+    if best_left_contour is not None:
+        best_left_contour = _extend_contour(best_left_contour, target_y=height - 1, direction='down')
+        best_left_contour = _extend_contour(best_left_contour, target_y=int(height * 0.6), direction='up')
+    
+    if best_right_contour is not None:
+        best_right_contour = _extend_contour(best_right_contour, target_y=height - 1, direction='down')
+        best_right_contour = _extend_contour(best_right_contour, target_y=int(height * 0.6), direction='up')
+
+    # --- Step 7: Path Generation with Fallbacks (using original points) ---
+    # If one lane is missing, we use the drivable area mask to find the other extreme.
+    if drivable_mask is not None and (best_left_contour is None or best_right_contour is None):
+        roi_vertices = np.array([
+            [0, height], [width, height],
+            [width // 2 + 80, height // 3], [width // 2 - 80, height // 3]
+        ], dtype=np.int32)
+        roi_mask = np.zeros_like(drivable_mask)
+        cv2.fillPoly(roi_mask, [roi_vertices], 255)
+        ego_lane_mask = cv2.bitwise_and(drivable_mask, drivable_mask, mask=roi_mask)
+
+        if best_left_contour is not None and best_right_contour is None:
+            # We need the right extreme of the drivable area
+            right_points = []
+            for y in range(int(height * 0.6), height - 1, 10):
+                row = ego_lane_mask[y, :]
+                white_pixels = np.where(row > 0)[0]
+                if len(white_pixels) > 0:
+                    right_points.append([white_pixels[-1], y])
+            if len(right_points) > 2:
+                best_right_contour = np.array(right_points, dtype=np.int32)
+        elif best_right_contour is not None and best_left_contour is None:
+            # We need the left extreme of the drivable area
+            left_points = []
+            for y in range(int(height * 0.6), height - 1, 10):
+                row = ego_lane_mask[y, :]
+                white_pixels = np.where(row > 0)[0]
+                if len(white_pixels) > 0:
+                    left_points.append([white_pixels[0], y])
+            if len(left_points) > 2:
+                best_left_contour = np.array(left_points, dtype=np.int32)
+
+    # --- Step 8: Accurate Midpoint Calculation from Contours ---
     hybrid_path_pts = []
-    if best_left and best_right:
-        f_left = best_left['func']
-        f_right = best_right['func']
+    if best_left_contour is not None and best_right_contour is not None:
+        # Create lookup dictionaries for fast access to x-coordinates for each y
+        left_lookup = {pt[1]: pt[0] for pt in best_left_contour}
+        right_lookup = {pt[1]: pt[0] for pt in best_right_contour}
 
-        y_points = np.linspace(height // 2, y_bottom, 10).astype(int)
+        # Find the common range of y-values, now guaranteed to be from mid to bottom
+        y_points = np.linspace(int(height * 0.65), height - 20, 10).astype(int)
+
         for y in y_points:
-            x_left = f_left(y)
-            x_right = f_right(y)
+            # Find the closest available y in each lookup in case of discrete points
+            actual_y_left = min(left_lookup.keys(), key=lambda k: abs(k - y))
+            actual_y_right = min(right_lookup.keys(), key=lambda k: abs(k - y))
+
+            x_left = left_lookup[actual_y_left]
+            x_right = right_lookup[actual_y_right]
+
             x_mid = (x_left + x_right) / 2
             hybrid_path_pts.append([int(x_mid), y])
 
-    # --- Final Mask Generation ---
+    # --- Final Mask Generation & Visualization ---
     final_mask = np.zeros_like(binary_mask)
+    lines_debug_viz = cv2.cvtColor(skeleton, cv2.COLOR_GRAY2BGR)
+    
+    if best_left_contour is not None:
+        cv2.polylines(lines_debug_viz, [best_left_contour], isClosed=False, color=(255, 0, 0), thickness=2)
+    if best_right_contour is not None:
+        cv2.polylines(lines_debug_viz, [best_right_contour], isClosed=False, color=(0, 0, 255), thickness=2)
+
+    all_paths_viz = lines_debug_viz.copy()
+
     if hybrid_path_pts:
         path_pts_np = np.array([hybrid_path_pts], dtype=np.int32)
         cv2.polylines(final_mask, path_pts_np, isClosed=False, color=255, thickness=2)
+        cv2.polylines(all_paths_viz, path_pts_np, isClosed=False, color=(0, 255, 255), thickness=2)
 
     final_hybrid_path_points = np.array(hybrid_path_pts, dtype=np.int32)
-    lines_debug_viz = debug_viz.copy()
-    all_paths_viz = debug_viz.copy()
     all_extended_lines_mask = final_mask.copy()
+    
+    if save_path_intermediate_dir:
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_1.5_split_debug.png"), debug_viz)
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_2_lines_debug.png"), lines_debug_viz)
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_3_final_path.png"), all_paths_viz)
 
-    return final_mask, [], [], debug_viz, None, None, final_hybrid_path_points, lines_debug_viz, all_paths_viz, all_extended_lines_mask
+    return final_mask, [], [], debug_viz, None, None, final_hybrid_path_points, lines_debug_viz, all_paths_viz, all_extended_lines_mask, candidates_viz
 
 
 
@@ -1045,24 +1217,24 @@ def detect_lanes_yolop_v2_drivable_agent(image, save_path_intermediate_dir=None,
 def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, img_path=None,
                                        force_drivable_fallback=False, force_classical_fallback=False,
                                        reference_point=None):
+    base_name = Path(img_path).stem if img_path else "debug"
     # Step 1 & 2: Calculate both drivable area and lines first
     with torch.no_grad():
         da_seg_out, ll_seg_out, resized_image = run_yolop_v2_inference(image)
         ll_segment = detect_yolop_v2_lines(resized_image, force_classical_fallback,
                                            ll_seg_out_from_inference=ll_seg_out)
-        # drivable_mask = process_yolop_v2_drivable_output(da_seg_out, resized_image)
+        drivable_mask = process_yolop_v2_drivable_output(da_seg_out, resized_image)
 
     height, width = ll_segment.shape
-    base_name = Path(img_path).stem if img_path else "debug"
 
     # --- EGO LANE ISOLATION with STATIC TRAPEZOIDAL ROI ---
     # 1. Define the vertices of the trapezoid that represents the ego lane.
     # These points are fine-tuned for a 640x384 image with a standard forward-facing camera.
     roi_vertices = np.array([
-        [0, height - 20],  # Bottom-left
-        [width, height - 20],  # Bottom-right
-        [width, height // 1.6],  # Top-right
-        [0, height // 1.6]  # Top-left
+        [0, height - 10],  # Bottom-left
+        [width, height - 10],  # Bottom-right
+        [width, height // 2.5],  # Top-right
+        [0, height // 2.5]  # Top-left
     ], dtype=np.int32)
 
     # 2. Create a black mask and draw the filled trapezoid onto it.
@@ -1074,12 +1246,14 @@ def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, i
         cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_0_raw_line_mask.png"), ll_segment)
 
     # Use the simplified line-finding logic which now only extends lines
-    final_mask_image, _, _, _, _, _, final_hybrid_path_points_from_tracker, lines_debug_viz_from_tracker, all_paths_viz_from_tracker, all_extended_lines_mask_from_tracker = _find_and_draw_lane_boundaries(
-        ll_segment, save_path_intermediate_dir, base_name, reference_point=reference_point)
+    final_mask_image, _, _, _, _, _, final_hybrid_path_points_from_tracker, lines_debug_viz_from_tracker, all_paths_viz_from_tracker, all_extended_lines_mask_from_tracker, candidates_viz_from_tracker = _find_and_draw_lane_boundaries(
+        ll_segment, save_path_intermediate_dir, base_name, reference_point=reference_point, drivable_mask=drivable_mask)
+
+    if save_path_intermediate_dir:
+        cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_candidates_viz.png"), candidates_viz_from_tracker)
 
     # Step 3: Check if any lines were extended or if fallback is forced.
-    # if np.any(all_extended_lines_mask) and not force_drivable_fallback: # OJO!! FALBACK when town03 added
-    if True:  # Here we should add the condition to check if lines were detected
+    if np.any(all_extended_lines_mask_from_tracker) and not force_drivable_fallback:
         # --- PRIMARY LOGIC: Lines were detected. Use the extended lines mask directly. ---
         if save_path_intermediate_dir:
             print(f"[{base_name}] SUCCESS: Lines detected. Returning all extended lines.")
@@ -1092,8 +1266,10 @@ def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, i
                         drivable_mask)
 
         roi_vertices = np.array([
-            [0, height], [width, height],
-            [width // 2 + 80, height // 2], [width // 2 - 80, height // 2]
+            [0, height - 50],  # Bottom-left
+            [width, height - 50],  # Bottom-right
+            [width // 2 + 80, height // 3],  # Top-right
+            [width // 2 - 80, height // 3]  # Top-left
         ], dtype=np.int32)
         roi_mask = np.zeros_like(drivable_mask)
         cv2.fillPoly(roi_mask, [roi_vertices], 255)
@@ -1111,6 +1287,7 @@ def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, i
                 center_points.append([(white_pixels[0] + white_pixels[-1]) // 2, y])
 
         final_mask = np.zeros_like(drivable_mask)
+        final_hybrid_path_points_from_tracker = []
         if len(center_points) > 10:
             c_pts = np.array(center_points)
             try:
@@ -1122,6 +1299,7 @@ def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, i
 
                 pts = np.array([np.transpose(np.vstack([fit_x, plot_y]))], np.int32)
                 cv2.polylines(final_mask, pts, False, 255, 2)
+                final_hybrid_path_points_from_tracker = np.transpose(np.vstack([fit_x, plot_y]))
             except Exception as e:
                 print(f"[{base_name}] ERROR in drivable fallback polyfit: {e}")
 
@@ -1130,7 +1308,7 @@ def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, i
     distance_to_center = 1.0  # Default to max error
 
     path_points_for_sampling = final_hybrid_path_points_from_tracker
-    if len(path_points_for_sampling) > 10:
+    if len(path_points_for_sampling) > 1:
         try:
             # The hybrid path is our source of truth. We sample directly from it via interpolation.
             path_ys = path_points_for_sampling[:, 1]
@@ -1160,29 +1338,30 @@ def detect_lanes_yolop_v2_hybrid_agent(image, save_path_intermediate_dir=None, i
 
     # Visualization for both paths
     final_output_viz = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    # Draw the final calculated polyline or extended lines
-    final_mask_resized = cv2.resize(final_mask, (final_output_viz.shape[1], final_output_viz.shape[0]),
-                                    interpolation=cv2.INTER_NEAREST)
-    final_output_viz[final_mask_resized > 0] = [0, 255, 0]  # Green for final path
 
     # --- SCALING FIX ---
-    # Scale the red dot coordinates from the resized space to the original image space
+    # Scale the coordinates from the resized space back to the original image space
     h_orig, w_orig, _ = final_output_viz.shape
     h_resized, w_resized = final_mask.shape
     w_scale = w_orig / w_resized
     h_scale = h_orig / h_resized
 
+    # Scale the final path points and draw as a green polyline
+    if len(path_points_for_sampling) > 1:
+        scaled_path_points = (path_points_for_sampling * [w_scale, h_scale]).astype(np.int32)
+        cv2.polylines(final_output_viz, [scaled_path_points.reshape((-1, 1, 2))], isClosed=False, color=(0, 255, 0), thickness=2)
+
     # Draw the 10 evenly spaced center points after scaling
     for p in center_lanes:
-        # Apply scaling to each point
         scaled_p = (int(p[0] * w_scale), int(p[1] * h_scale))
-        cv2.circle(final_output_viz, scaled_p, 5, (0, 0, 255), -1)  # Red dots for the 10 points
+        cv2.circle(final_output_viz, scaled_p, 5, (255, 0, 0), -1)  # Red dots for the 10 points
+        
     if save_path_intermediate_dir:
         cv2.imwrite(os.path.join(save_path_intermediate_dir, f"{base_name}_hybrid_3_final_output.png"),
                     final_output_viz)
 
     return (final_mask / 255).astype(
-        np.uint8), distance_to_center, center_lanes, center_lanes, ll_segment, all_extended_lines_mask_from_tracker, all_paths_viz_from_tracker, lines_debug_viz_from_tracker
+        np.uint8), distance_to_center, center_lanes, center_lanes, ll_segment, all_extended_lines_mask_from_tracker, final_output_viz, lines_debug_viz_from_tracker, candidates_viz_from_tracker
 
 
 def detect_lanes_yolop_v2_lines_agent(image, save_path_intermediate_dir=None, img_path=None,
@@ -1320,30 +1499,7 @@ def extract_green_lines(image):
 
 def detect_lines(raw_image, detection_mode, processing_mode, img_path, save_path_intermediate_dir=None,
                  force_drivable_fallback=False, force_classical_fallback=False):
-    if detection_mode == 'carla_perfect':
-
-        green_mask = extract_green_lines(raw_image)
-
-        lines = post_process_hough_programmatic(green_mask)
-
-        gray = cv2.cvtColor(raw_image, cv2.COLOR_BGR2RGB)
-        blur = cv2.GaussianBlur(gray, (5, 5), 0)
-        ll_segment = cv2.Canny(blur, 50, 100)
-        ll_segment = post_process(ll_segment)
-
-    elif detection_mode == 'programmatic':
-        gray = cv2.cvtColor(raw_image, cv2.COLOR_BGR2RGB)
-        # mask_white = cv2.inRange(gray, 200, 255)
-        # mask_image = cv2.bitWiseAnd(gray, mask_white)
-        blur = cv2.GaussianBlur(gray, (5, 5), 0)
-        ll_segment = cv2.Canny(blur, 50, 100)
-        cv2.imshow("raw", ll_segment) if show_images else None
-        processed = post_process(ll_segment)
-        if processing_mode == 'none':
-            lines = processed
-        else:
-            lines = post_process_hough_programmatic(processed if apply_mask else ll_segment)
-    elif detection_mode == 'yolop_v2_lines':
+    if detection_mode == 'yolop_v2_lines':
         detected_lines, distance_to_center, distance_to_center_normalized, centers = detect_lanes_yolop_v2_lines_agent(
             raw_image, save_path_intermediate_dir, img_path, force_classical_fallback)
         x_centers = [point[0] for point in centers]
@@ -1354,96 +1510,11 @@ def detect_lines(raw_image, detection_mode, processing_mode, img_path, save_path
         x_centers = [point[0] for point in centers]
         return detected_lines, distance_to_center, distance_to_center_normalized, np.array(x_centers)
     elif detection_mode == 'yolop_v2_hybrid':
-        detected_lines, distance_to_center, distance_to_center_normalized, centers, raw_image, extended_image, paths_image, points_for_extension = detect_lanes_yolop_v2_hybrid_agent(
+        detected_lines, distance_to_center, distance_to_center_normalized, center_lanes, raw_image_output, extended_image_output, final_hybrid_path_points_from_tracker, lines_debug_viz_output, _ = detect_lanes_yolop_v2_hybrid_agent(
             raw_image, save_path_intermediate_dir, img_path, force_drivable_fallback, force_classical_fallback)
-        x_centers = [point[0] for point in centers]
+        x_centers = [point[0] for point in center_lanes]
         return detected_lines, distance_to_center, distance_to_center_normalized, np.array(
-            x_centers), raw_image, extended_image, paths_image, points_for_extension
-    elif detection_mode == 'yolop':
-        with torch.no_grad():
-            ll_segment = (detect_yolop(raw_image) * 255).astype(np.uint8)
-        cv2.imshow("raw", ll_segment) if show_images else None
-        if processing_mode == 'none':
-            lines = ll_segment
-        else:
-            processed = post_process(ll_segment)
-            lines = post_process_hough_yolop(processed if apply_mask else ll_segment)
-    elif detection_mode == "lane_det_v3":
-        with torch.no_grad():
-            ll_segment, left_mask, right_mask = detect_lane_detector_v3(raw_image)[0]
-        ll_segment = np.zeros_like(raw_image)
-        ll_segment = lane_detection_overlay(ll_segment, left_mask, right_mask)
-        cv2.imshow("raw", ll_segment) if show_images else None
-        # Extract blue and red channels
-        if processing_mode == 'none':
-            lines = ll_segment
-        else:
-            # Display the grayscale image
-            ll_segment = post_process(ll_segment)
-            blue_channel = ll_segment[:, :, 0]  # Blue channel
-            red_channel = ll_segment[:, :, 2]  # Red channel
-
-            lines = []
-            left_line = post_process_hough_lane_det(blue_channel)
-            if left_line is not None:
-                lines.append([left_line])
-            right_line = post_process_hough_lane_det(red_channel)
-            if right_line is not None:
-                lines.append([right_line])
-            ll_segment = 0.5 * blue_channel + 0.5 * red_channel
-            ll_segment = cv2.convertScaleAbs(ll_segment)
-    else:
-        with torch.no_grad():
-            ll_segment, left_mask, right_mask = detect_lane_detector(raw_image)[0]
-        ll_segment = np.zeros_like(raw_image)
-        ll_segment = lane_detection_overlay(ll_segment, left_mask, right_mask)
-        cv2.imshow("raw", ll_segment) if show_images else None
-        # Extract blue and red channels
-        if processing_mode == 'none':
-            lines = ll_segment
-        else:
-            # Display the grayscale image
-            ll_segment = post_process(ll_segment)
-            blue_channel = ll_segment[:, :, 0]  # Blue channel
-            red_channel = ll_segment[:, :, 2]  # Red channel
-
-            lines = []
-            left_line = post_process_hough_lane_det(blue_channel)
-            if left_line is not None:
-                lines.append([left_line])
-            right_line = post_process_hough_lane_det(red_channel)
-            if right_line is not None:
-                lines.append([right_line])
-            ll_segment = 0.5 * blue_channel + 0.5 * red_channel
-            ll_segment = cv2.convertScaleAbs(ll_segment)
-
-    if processing_mode == 'none':
-        detected_lines = ll_segment
-        # detected_lines = (detected_lines // 255).astype(np.uint8)  # Keep the lower one-third of the image
-    else:
-        detected_lines = merge_and_extend_lines(lines, ll_segment)
-        # line_mask = morphological_process(line_mask, kernel_size=15, func_type=cv2.MORPH_CLOSE)
-        # line_mask = morphological_process(line_mask, kernel_size=5, func_type=cv2.MORPH_OPEN)
-        # line_mask = cv2.dilate(line_mask, (15, 15), iterations=15)
-        # line_mask = cv2.erode(line_mask, (5, 5), iterations=20)
-
-        # TODO (Ruben) It is quite hardcoded and unrobust. Fix this to enable all lines and more than
-        # 1 lane detection and cameras in other positions
-        boundary_y = detected_lines.shape[1] * 1 // 3
-        # Copy the lower part of the source image into the target image
-        detected_lines[:boundary_y, :] = 0
-        detected_lines = (detected_lines // 255).astype(np.uint8)  # Keep the lower one-third of the image
-
-    (
-        center_lanes_old,
-        distance_to_center_normalized,
-    ) = calculate_center_v1(detected_lines)
-    right_lane_normalized_distances, right_center_lane = choose_lane_v1(distance_to_center_normalized,
-                                                                        center_lanes_old)
-    centers = np.array(right_lane_normalized_distances)
-    distance_to_center = np.mean(centers)
-
-    return detected_lines, distance_to_center, distance_to_center_normalized, centers
+            x_centers), raw_image_output, extended_image_output, final_hybrid_path_points_from_tracker, lines_debug_viz_output
 
 
 def choose_lane(distance_to_center_normalized, center_points):
@@ -1752,14 +1823,9 @@ def perform_all_benchmarking(dataset, processing_mode, detection_modes=None, sav
                 print(f"Error deleting file {save_results_benchmark_dir}: {e}")
 
     all_modes = {
-        "yolop": "YOLOP",
         "yolop_v2_lines": "yolop_v2_lines",
         "yolop_v2_drivable": "yolop_v2_drivable",
         "yolop_v2_hybrid": "yolop_v2_hybrid",
-        "lane_det_v3": "Lane Detector_v3",
-        "lane_detector": "Lane Detector_v2",
-        "programmatic": "Programmatic",
-        "carla_perfect": "Perfect"
     }
 
     modes_to_run = detection_modes if detection_modes else all_modes.keys()
@@ -1946,8 +2012,8 @@ def benchmark_one(dataset, detection_mode, processing_mode, save_intermediate=Fa
             overlayed_image = cv2.addWeighted(overlay, 1, color_mask, 0.5, 0)
 
             # Draw the 10 center points onto the overlayed image using the correct variable
-            if final_hybrid_path_points_from_tracker is not None and len(final_hybrid_path_points_from_tracker) > 0:
-                for point in final_hybrid_path_points_from_tracker:
+            if center_lanes_normalized is not None and len(center_lanes_normalized) > 0:
+                for point in center_lanes_normalized:
                     center_point = (int(point[0]), int(point[1]))
                     cv2.circle(overlayed_image, center_point, 5, (0, 255, 255), -1)  # Draw yellow dots
 

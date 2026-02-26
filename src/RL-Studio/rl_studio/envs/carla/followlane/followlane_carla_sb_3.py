@@ -147,24 +147,29 @@ def wasDetected(center_lanes):
 
 
 def getTransformFromPoints(points):
-    # print(f"OJO!! {points[0]}")
-    # print(f"{points[1]}")
-    # print(f"{points[2]}")
-    # print(f"{points[3]}")
-    # print(f"{points[4]}")
-    # print(f"{points[5]}")
-    return carla.Transform(
-        carla.Location(
-            x=points[0],
-            y=points[1],
-            z=points[2],
-        ),
-        carla.Rotation(
-            pitch=points[3],
-            yaw=points[4],
-            roll=points[5],
-        ),
-    )
+    try:
+        # print(f"OJO!! {points[0]}")
+        # print(f"{points[1]}")
+        # print(f"{points[2]}")
+        # print(f"{points[3]}")
+        # print(f"{points[4]}")
+        # print(f"{points[5]}")
+        return carla.Transform(
+            carla.Location(
+                x=points[0],
+                y=points[1],
+                z=points[2],
+            ),
+            carla.Rotation(
+                pitch=points[3],
+                yaw=points[4],
+                roll=points[5],
+            ),
+        )
+    except (TypeError, IndexError) as e:
+        # This error typically happens if the spawn_point data is malformed,
+        # e.g., nested in an extra list or with the wrong number of elements.
+        raise ValueError(f"Malformed spawn point data provided: {points}. Error: {e}")
 
 def interpolate_lane_points(lane_points: np.ndarray, num_points: int = 20, start_y: int = 640) -> np.ndarray:
     """
@@ -531,7 +536,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.ema_lane_points = None
         self.EMA_ALPHA = config.get("ema_alpha", 1)
         self.last_detected_point = None
-        self.LANE_JUMP_THRESHOLD = 0.2 # Normalized distance threshold for lane center jump detection
+        self.LANE_JUMP_THRESHOLD = 0.1 # Normalized distance threshold for lane center jump detection
 
         self.update_from_hot_config(config)
 
@@ -704,41 +709,29 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         states = states + y_centers_normalized # Returns a list
         return states, x_centers_normalized, y_centers_normalized
 
-    def calculate_v_goal(self, mean_curvature, center_distance, deviated_points):
-        dist_error = abs(center_distance) * 10
-        close_error = 0
+    def calculate_v_goal(self, cumulative_angle, center_distance, deviated_points):
 
-        mean_curv = max(0, mean_curvature - 1) * 10
+        # --- 1️⃣ Normalize curvature to expected range ---
+        # Assume cumulative_angle normally in [0, 1.8]
+        angle_norm = np.clip(cumulative_angle / 1.8, 0.0, 1.0)
 
-        if deviated_points >= self.appended_states / 2:
-            mean_curv = max(0, mean_curvature - 1) * 30
-            close_error = 9
+        # --- 2️⃣ Base speed reduction from curvature ---
+        v_base = 25.0 - 17.0 * angle_norm  # gives approx 25 → 8 range
 
-        elif deviated_points >= self.appended_states / 3:
-            mean_curv = max(0, mean_curvature - 1) * 20
-            close_error = 6
+        # --- 3️⃣ Smooth deviation penalty ---
+        deviation_ratio = deviated_points / self.appended_states
+        deviation_penalty = 6.0 * deviation_ratio ** 2  # quadratic = smooth
 
-        elif deviated_points >= self.appended_states / 4:
-            mean_curv = max(0, mean_curvature - 1) * 10
-            close_error = 3
+        # --- 4️⃣ Combine ---
+        v_goal = v_base - deviation_penalty
 
-        v_goal = max(8, 25 - (mean_curv + dist_error))
-        v_goal = max(2, v_goal - (close_error))
-
-        # print(f" 1 {v_goal} - {mean_curv} - {dist_error} " )
-        # print(f" 2 {v_goal} - {close_error}" )
-        # print(deviated_points)
-
-        # farther_y = y_normalized[-1]
-
-        # Snap to closest value in the allowed list
-        # allowed_values = [6, 11, 16, 21, 26]
-        # v_goal = min(allowed_values, key=lambda x: abs(x - v_goal))
+        v_goal = np.clip(v_goal, 8.0, 25.0)
 
         if self.step_count % 20 == 0:
             print(f"----------------------------------------")
-            print(f"monitoring last modification bro! dist_minus -> {dist_error}")
-            print(f"monitoring last modification bro! curv_minus -> {mean_curv}")
+            # print(f"monitoring last modification bro! dist_minus -> {dist_error}")
+            # print(f"monitoring last modification bro! deviation_points -> {deviated_points}")
+            print(f"monitoring last modification bro! curv_minus -> {cumulative_angle}")
             print(f"monitoring last modification bro! v_goal -> {v_goal}")
             print(f"----------------------------------------")
         return v_goal
@@ -821,7 +814,12 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.actor_list = []
         self.previous_time = 0
 
-        init_pose = self.set_init_pose()
+        try:
+            init_pose = self.set_init_pose()
+        except Exception as e:
+            logger.warning(f"Could not initialize actor pose due to an error. Retrying reset. Details: {e}")
+            return self.doReset()
+
         if self.sync_mode:
             self.world.tick()
         else:
@@ -858,9 +856,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         #  center_points) = self.detect_center_line_perfect(raw_image, num_points=self.num_points)
 
 
-        ll_segment, distance_to_center, center_lanes_normalized = self.detect_lines(raw_image)
+        ll_segment, distance_to_center, center_lanes_normalized, _ = self.detect_lines(raw_image)
 
-        # final_curvature = calculate_max_curveture_from_centers(center_lanes)
         mean_curvature = average_curvature_from_centers(center_lanes_normalized)
 
         states, x_centers_normalized, y_normalized = self.normalize_centers(center_lanes_normalized)
@@ -1400,7 +1397,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         raw_image = self.get_resized_image(self.front_camera_1_5.front_camera)
 
         # 1. PERCEPTION: Detect lines
-        ll_segment, distance_to_center, detected_center_lanes = self.detect_lines(raw_image)
+        ll_segment, distance_to_center, detected_center_lanes, vis_image = self.detect_lines(raw_image)
             
         final_curvature = calculate_max_curveture_from_centers(detected_center_lanes)
         mean_curvature = average_curvature_from_centers(detected_center_lanes)
@@ -1425,6 +1422,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         deviated_points = np.sum(np.abs(x_normalized - 0.5) > 0.1)
 
         v_goal = self.calculate_v_goal(mean_curvature, abs(distance_to_center), deviated_points)
+        # ojo distance_to_center improve for inference
         self.v_goal_buffer.append(v_goal)
         v_goal = sum(self.v_goal_buffer) / len(self.v_goal_buffer)
 
@@ -1446,15 +1444,27 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.cumulated_reward += reward
         self.episodes_speed.append(params["velocity"])
 
+        speed = params["velocity"]
+        w_angle = params["steering_angle"]
+
+        # print("points")
+        # print(states)
+        #
+        # print("speed")
+        # print(speed)
+        #
+        # print("v_goal")
+        # print(v_goal)
+
         # 6. STATE VECTOR
         if self.normalize:
-            states.append(params["velocity"] / 25)
+            states.append(speed / 25)
             states.append(v_goal / 25)
         else:
-            states.append(params["velocity"])
+            states.append(speed)
             states.append(v_goal)
 
-        states.append(params["steering_angle"])
+        states.append(w_angle)
         states.append(action[0])
         states.append(action[1])
 
@@ -1462,8 +1472,11 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.display_manager.render(vehicle=self.car)
 
         if x_differences is not None and np.any(x_differences > self.LANE_JUMP_THRESHOLD):
-            logger.info(f"Lane center jumped significantly: {x_differences}. Resetting episode.")
-            return np.array(states), 0, True, True, params
+           logger.info(f"Lane center jumped significantly: {x_differences}. Resetting episode.")
+           # if vis_image is not None:
+           #      filename = f"/home/ruben/Desktop/lane_jump_{int(time.time())}.png"
+           #      cv2.imwrite(filename, raw_image)
+           return np.array(states), 0, True, True, params
 
         return np.array(states), reward, done, done, params
 
@@ -1672,12 +1685,49 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         self.car.error = center_distance
 
+        self.monitor_deviation(center_distance, action)
+
         if self.step_count > self.estimated_steps:
             logger.info(f"episode finished, {self.algorithm_trained}")
             return function_reward, True, False
 
         return function_reward, False, False
 
+    def monitor_deviation(self, center_distance, action):
+
+        if center_distance < 0.05:
+            # Step 1: Increase step count first
+            self.step_count_no_curves += 1
+            # --- Throttle action stats using Welford's algorithm ---
+            delta = action[0] - self.throttle_action_avg_no_curves
+            self.throttle_action_avg_no_curves += delta / self.step_count_no_curves
+            delta2 = action[0] - self.throttle_action_avg_no_curves
+            self.throttle_action_variance_no_curves += delta * delta2
+            if self.step_count_no_curves > 1:
+                self.throttle_action_std_dev_no_curves = (
+                                                                 self.throttle_action_variance_no_curves / (
+                                                                     self.step_count_no_curves - 1)
+                                                         ) ** 0.5
+            else:
+                self.throttle_action_std_dev_no_curves = 0.0  # Not enough data yet
+            # --- Absolute angular velocity (action[1]) average ---
+            self.abs_w_no_curves_avg += (
+                                                abs(action[1]) - self.abs_w_no_curves_avg
+                                        ) / self.step_count_no_curves
+
+        else:
+            self.curves_states += 1
+            # Step 1: Increase step count first
+            self.step_count_curves += 1
+            delta = action[0] - self.throttle_action_avg_curves
+            self.throttle_action_avg_curves += delta / self.step_count_curves
+            delta2 = action[0] - self.throttle_action_avg_curves
+            self.throttle_action_variance_curves += delta * delta2
+            if self.step_count_curves > 1:
+                self.throttle_action_std_dev_curves = (self.throttle_action_variance_curves / (
+                            self.step_count_curves - 1)) ** 0.5
+            else:
+                self.throttle_action_std_dev_curves = 0.0  # Not enough data yet
 
     # def backup_old_reward_funct(self, center_distance, action, params, x_centers_normalized, deviated_points, v_goal=None):
     #
@@ -2101,8 +2151,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             carla.Transform(
                 # carla.Location(x=0, z=2.5),
                 # carla.Rotation(pitch=-4.0, yaw=0.0)
-                carla.Location(x=1, y=0, z=3),
-                carla.Rotation(pitch=-1, yaw=0, roll=0.0)
+                carla.Location(x=1.5, y=0, z=2.5),
+                carla.Rotation(pitch=4, yaw=0, roll=0.0)
             ),
             self.car,
             {},
@@ -2416,6 +2466,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def initialize_carla(self):
         while self.clients is None:
+
             try:
                 if isinstance(self.ports, list):
                     self.clients = [
@@ -2423,6 +2474,13 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                         for port in self.ports
                     ]
                 else:
+                    try:
+                        del self.client
+                    except:
+                        pass
+
+                    gc.collect()
+
                     self.client = init_client(self.carla_ip, self.ports)
                     self.clients = [self.client]
                 self.towns = self.config["town"]
@@ -2749,16 +2807,16 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # YOLOPv2 gets a dedicated, simpler, more direct pipeline
         if self.detection_mode == 'yolop_v2':
             with torch.no_grad():
-                ll_segment, distance_to_center, raw_center_lanes_normalized, _,  raw_detection_image, extended_image, paths_image, points_for_extension  = detect_lanes_yolop_v2_hybrid_agent(raw_image) # dont use for now the reference_point=self.last_detected_point
+                ll_segment, distance_to_center, raw_center_lanes_normalized, _,  raw_detection_image, extended_image, paths_image, points_for_extension, _  = detect_lanes_yolop_v2_hybrid_agent(raw_image, reference_point=self.last_detected_point)
 
             if raw_center_lanes_normalized is not None and len(raw_center_lanes_normalized) > 0:
                 self.last_detected_point = raw_center_lanes_normalized[-1]
 
             if self.show_images:
-                self.show_image("raw",  raw_detection_image)
-                # self.show_image("extended_lines",  extended_image)
-                # self.show_image("extended_references",  points_for_extension)
-                self.show_image("paths",  paths_image)
+                self.show_image("raw_mask",  raw_detection_image)
+                self.show_image("lane_boundaries",  points_for_extension)
+                # paths_image is now the final overlay, convert from RGB to BGR for cv2
+                # self.show_image("final_overlay",  cv2.cvtColor(paths_image, cv2.COLOR_RGB2BGR))
 
             # Apply EMA filter to center_lanes_normalized
             if self.ema_lane_points is None:
@@ -2790,17 +2848,28 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             # 2. Create the 'overlayed_image'
             overlay_image = raw_image.copy()
             # Ensure overlay_image is 3-channel before color assignment
-            mask = visible_mask > 128
+            visible_mask_resized = cv2.resize(visible_mask, (overlay_image.shape[1], overlay_image.shape[0]),
+                                            interpolation=cv2.INTER_NEAREST)
+            mask = visible_mask_resized > 128
             if np.any(mask):
                 overlay_image[mask] = [0, 255, 255] # BGR for yellow, thresholded
 
+            # --- FIX: Scale points instead of resizing ---
+            h_orig, w_orig, _ = overlay_image.shape
+            h_resized, w_resized = visible_mask.shape
+            w_scale = w_orig / w_resized
+            h_scale = h_orig / h_resized
+            
+            valid_points_resized = [(int(p[0] * w_scale), int(p[1] * h_scale)) for p in valid_points]
+            # --- END FIX ---
+
             # Draw center points
-            for point in valid_points:
+            for point in valid_points_resized:
                 cv2.circle(overlay_image, (int(point[0]), int(point[1])), 5, (255, 0, 255), -1) # Magenta
 
             # 3. Create the 'Detections with Centers' image
             detections_image = cv2.cvtColor(visible_mask, cv2.COLOR_GRAY2BGR)
-            for pt in valid_points:
+            for pt in valid_points_resized:
                 cv2.circle(detections_image, (int(pt[0]), int(pt[1])), 4, (255, 0, 255), -1) # Magenta
 
             # 4. Render the images
@@ -2808,7 +2877,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                 self.show_image('overlayed_image', overlay_image)
                 # self.show_image('Detections with Centers', detections_image)
 
-            return ll_segment, distance_to_center, center_lanes_normalized
+            return ll_segment, distance_to_center, center_lanes_normalized, paths_image
 
         # --- Legacy pipeline for other detection modes ---
         ll_segment_canvas = None
@@ -2856,7 +2925,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
                                ll_segment) if self.sync_mode and self.show_images else None
         distance_to_center = np.mean(distances_to_center_normalized)
 
-        return ll_segment, distance_to_center, distances_to_center_normalized
+        return ll_segment, distance_to_center, distances_to_center_normalized, None
 
     # def calculate_punish(self, params, action, v_goal, v, center_distance, deviated_points):
     #     punish = 0

@@ -21,7 +21,6 @@ class LoadAlgorithmParams:
             self.episodes_update = config["algorithm"][algorithm]["episodes_update"]
             self.actor_lr = config["algorithm"][algorithm]["actor_lr"]
             self.critic_lr = config["algorithm"][algorithm]["critic_lr"]
-            self.epsilon = config["algorithm"][algorithm]["tau"]
 
         if algorithm in ("ddpg", "ddpg_2", "td3"):
             self.gamma = config["algorithm"][algorithm]["gamma"]
