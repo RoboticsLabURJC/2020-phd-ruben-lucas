@@ -9,4 +9,4 @@ Expected goals:
 - Explore backup strategies for scenarios lacking visible lines
 - Incorporate feedback into the paper's abstract, title, introduction, and related work
 
-More details in [this link](https://docs.google.com/presentation/d/1qkxFU4BOO9sI1jCon0gjTui7pTNb8MBwQhfmirr08y4/edit?slide=id.g37fc31b9e03_0_0#slide=id.g37fc31b9e03_0_0).
+More details in [this link](https://docs.google.com/presentation/d/1ccHjPPNHDe5v4NrZ_lOSpFUpr5_gJ6CvclB1y2t4pqU/edit?slide=id.g3cd08b20d6e_0_5#slide=id.g3cd08b20d6e_0_5).
