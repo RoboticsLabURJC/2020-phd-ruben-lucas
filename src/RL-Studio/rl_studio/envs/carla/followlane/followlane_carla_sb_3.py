@@ -536,6 +536,10 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.ema_lane_points = None
         self.EMA_ALPHA = config.get("ema_alpha", 1)
         self.last_detected_point = None
+        self.prev_left_contour = None
+        self.prev_right_contour = None
+        self.ema_left_contour = None
+        self.ema_right_contour = None
         self.LANE_JUMP_THRESHOLD = 0.1 # Normalized distance threshold for lane center jump detection
 
         self.update_from_hot_config(config)
@@ -694,19 +698,34 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
     def normalize_centers(self, centers):
         centers = np.array(centers)
+        
+        # Get actual camera dimensions for accurate normalization
+        cam_h = self.front_camera_1_5.height
+        cam_w = self.front_camera_1_5.width
+
         if self.detection_mode == "lane_detector_v2":
             flat_centers = [item[0] for item in centers]
             x_centers = np.array(flat_centers)
-        else:
-            x_centers = centers[:, 0]
-        x_centers_normalized = (x_centers / 640).tolist()
-        states = x_centers_normalized
-        if self.detection_mode == "lane_detector_v2":
             y_centers = np.array(self.x_row)
         else:
-            y_centers = centers[:, 1]
-        y_centers_normalized = (y_centers / 512).tolist()
-        states = states + y_centers_normalized # Returns a list
+            x_centers = centers[:, 0].astype(float)
+            y_centers = centers[:, 1].astype(float)
+            
+        # Protect NON_DETECTED (-1) and pure 0 flags from being mathematically normalized
+        # so the RL agent can still recognize them as distinct failure states.
+        x_mask = (x_centers != self.NON_DETECTED) & (x_centers != 0)
+        y_mask = (y_centers != self.NON_DETECTED) & (y_centers != 0)
+        
+        x_centers_normalized = x_centers.copy()
+        x_centers_normalized[x_mask] = x_centers_normalized[x_mask] / cam_w
+        
+        y_centers_normalized = y_centers.copy()
+        y_centers_normalized[y_mask] = y_centers_normalized[y_mask] / cam_h
+
+        x_centers_normalized = x_centers_normalized.tolist()
+        y_centers_normalized = y_centers_normalized.tolist()
+
+        states = x_centers_normalized + y_centers_normalized # Returns a list
         return states, x_centers_normalized, y_centers_normalized
 
     def calculate_v_goal(self, cumulative_angle, center_distance, deviated_points):
@@ -804,6 +823,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.lane_points = None
         self.ema_lane_points = None
         self.last_detected_point = None
+        self.prev_left_contour = None
+        self.prev_right_contour = None
 
         # if self.episode % 20 == 0:
         #     self.tensorboard.save_location_stats(self.location_stats)
@@ -848,20 +869,19 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # segmentated_image = self.front_camera_1_5_segmentated.front_camera
         # segmentated_raw_data = self.front_camera_1_5_segmentated.raw_data
 
-        raw_image = self.get_resized_image(self.front_camera_1_5.front_camera)
+        raw_image = self.extract_image_from_sensor(self.front_camera_1_5.front_camera)
 
-        # (ll_segment,
-        #  misalignment,
-        #  center_distance,
-        #  center_points) = self.detect_center_line_perfect(raw_image, num_points=self.num_points)
+        # Initialize tracking contours as None for stateless processing
+        self.prev_left_contour, self.prev_right_contour = None, None
+        ll_segment, distance_to_center, detected_center_lanes, _, _, _, _, _, self.prev_left_contour, self.prev_right_contour = self.detect_lines(
+            raw_image, prev_left_contour=None, prev_right_contour=None
+        )
+        # Force stateless
+        self.prev_left_contour, self.prev_right_contour = None, None
 
-
-        ll_segment, distance_to_center, center_lanes_normalized, _ = self.detect_lines(raw_image)
-
-        mean_curvature = average_curvature_from_centers(center_lanes_normalized)
-
-        states, x_centers_normalized, y_normalized = self.normalize_centers(center_lanes_normalized)
-
+        mean_curvature = average_curvature_from_centers(detected_center_lanes)
+        states, x_centers_normalized, y_normalized = self.normalize_centers(detected_center_lanes)
+        
         x_normalized = np.array(x_centers_normalized)
         deviated_points = np.sum(np.abs(x_normalized - 0.5) > 0.1)
 
@@ -1116,7 +1136,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             #     location = getTransformFromPoints(spawn_point)
             # else:
             #     location = random.choice(self.world.get_map().get_spawn_points())
-            logger.info("Created car in position " + str(spawn_point))
 
             vehicle = self.world.spawn_actor(car_bp, location)
             while vehicle is None:
@@ -1127,6 +1146,7 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
             vehicle = self.world.try_spawn_actor(car_bp, location)
             while vehicle is None:
                 vehicle = self.world.try_spawn_actor(car_bp, location)
+        logger.info("Created car in position " + str(location))
         self.actor_list.append(vehicle)
         vehicle.reward = 0
         vehicle.error = 0
@@ -1394,14 +1414,29 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.previous_time = now
 
         # Image acquisition and basic dims
-        raw_image = self.get_resized_image(self.front_camera_1_5.front_camera)
+        raw_image = self.extract_image_from_sensor(self.front_camera_1_5.front_camera)
 
-        # 1. PERCEPTION: Detect lines
-        ll_segment, distance_to_center, detected_center_lanes, vis_image = self.detect_lines(raw_image)
+        # 1. PERCEPTION: Detect lines (STATELESS - mimicking offline reliability while keeping 1280x720 quality)
+        (ll_segment, distance_to_center, detected_center_lanes, vis_image,
+         candidates_viz, _, _, _, extended_left, extended_right) = self.detect_lines(
+            raw_image,
+            prev_left_contour=None,  # Disabled tracking memory
+            prev_right_contour=None  # Disabled tracking memory
+        )
+        # Tracking memory remains None for now to avoid "noise"
+        self.prev_left_contour = None
+        self.prev_right_contour = None
             
         final_curvature = calculate_max_curveture_from_centers(detected_center_lanes)
         mean_curvature = average_curvature_from_centers(detected_center_lanes)
         states, x_centers_normalized, y_normalized = self.normalize_centers(detected_center_lanes)
+
+        # DEBUG: Monitor the exact state vector being sent to the RL agent
+        if self.step_count % 10 == 0:
+            print(f"--- Full State Vector Verification (Step {self.step_count}) ---")
+            print(f"States: {[round(s, 4) for s in states]}")
+            print(f"Global Min: {min(states):.4f}, Global Max: {max(states):.4f}")
+            print(f"-------------------------------------------------------")
 
         # Check for sudden jumps in lane center detection
         x_differences = None
@@ -1471,11 +1506,21 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         self.previous_action = action
         self.display_manager.render(vehicle=self.car)
 
+        # if x_differences is not None and np.any(x_differences > self.LANE_JUMP_THRESHOLD):
+        # if self.step_count % 2 == 0:
+        #    logger.info(f"Lane center jumped significantly. Resetting episode.")
+        #    img_path = f"/home/ruben/Desktop/lane_detection_labels/broken_perc_curated/jump_{int(time.time()*1000)}.png"
+        #    os.makedirs(os.path.dirname(img_path), exist_ok=True)
+        #    cv2.imwrite(img_path, raw_image)
+        #    if candidates_viz is not None:
+        #      cv2.imwrite(img_path.replace('.png', '_candidates.png'), candidates_viz)
         if x_differences is not None and np.any(x_differences > self.LANE_JUMP_THRESHOLD):
-           logger.info(f"Lane center jumped significantly: {x_differences}. Resetting episode.")
-           # if vis_image is not None:
-           #      filename = f"/home/ruben/Desktop/lane_jump_{int(time.time())}.png"
-           #      cv2.imwrite(filename, raw_image)
+           logger.info(f"Lane center jumped significantly. Resetting episode.")
+           # img_path = f"/home/ruben/Desktop/lane_detection_labels/broken_perc_curated/jump_{int(time.time()*1000)}.png"
+           # os.makedirs(os.path.dirname(img_path), exist_ok=True)
+           # cv2.imwrite(img_path, raw_image)
+           # if candidates_viz is not None:
+           #   cv2.imwrite(img_path.replace('.png', '_candidates.png'), candidates_viz)
            return np.array(states), 0, True, True, params
 
         return np.array(states), reward, done, done, params
@@ -1796,24 +1841,24 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         img_sliced = red_mask[image_middle_line:]
         return img_sliced.copy()
 
-    def get_resized_image(self, sensor_data, target_w=640, target_h=384):
-        # Check if it's a CARLA raw sensor object or already a numpy array
+    def extract_image_from_sensor(self, sensor_data):
+        """
+        Converts raw CARLA sensor data into a 3-channel RGB numpy array.
+        Maintains original resolution (e.g., 1280x720).
+        """
         if hasattr(sensor_data, 'raw_data'):
-            # Case: Raw CARLA sensor data
+            # Extract from CARLA raw buffer
             array = np.frombuffer(sensor_data.raw_data, dtype=np.dtype("uint8"))
             array = np.reshape(array, (sensor_data.height, sensor_data.width, 4))
-            rgb_image = array[:, :, :3]
-        else:
-            # Case: It's already a numpy array (e.g. from a previous cv2 step)
-            rgb_image = sensor_data
-            # If it has 4 channels (BGRA), drop the 4th
-            if rgb_image.shape[-1] == 4:
-                rgb_image = rgb_image[:, :, :3]
+            # Convert BGRA to RGB (BGR actually, as CARLA is BGRA)
+            # return a .copy() to ensure the memory is contiguous, avoiding silent OpenCV bugs
+            return array[:, :, :3].copy()
 
-        # Optimized Resize using OpenCV
-        resized_img = cv2.resize(rgb_image, (target_w, target_h), interpolation=cv2.INTER_LINEAR)
-
-        return resized_img
+        # If it's already an array (e.g., from a file)
+        rgb_image = sensor_data
+        if rgb_image.shape[-1] == 4:
+            rgb_image = rgb_image[:, :, :3].copy()
+        return rgb_image
 
     def extract_green_lines(self, image):
         # Convert the image to HSV color space
@@ -2061,12 +2106,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         return lane_side, lane_offset, lane_alignment
 
 
-
-    def show_ll_seg_image(self, centers, ll_segment, suffix="", name='ll_seg'):
-        ll_segment_stacked = self.get_stacked_image(centers, ll_segment)
-        # We now show the segmentation and center lane postprocessing
-        self.show_image(name + suffix, ll_segment_stacked)
-
     def has_crashed(self):
         if len(self.collision_hist) > 0:  # te has chocado, baby
             logger.info("crash!")
@@ -2203,77 +2242,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # )
 
         return init_pose
-
-    def merge_and_extend_lines(self, lines, ll_segment):
-        # Merge parallel lines
-        merged_lines = []
-        for line in lines if lines is not None else []:
-            x1, y1, x2, y2 = line[0]
-            angle = np.arctan2(y2 - y1, x2 - x1) * 180 / np.pi  # Compute the angle of the line
-
-            # Check if there is a similar line in the merged lines
-            found = False
-            for merged_line in merged_lines:
-                m_x1, m_y1, m_x2, m_y2 = merged_line[0]
-                m_angle = np.arctan2(m_y2 - m_y1, m_x2 - m_x1) * 180 / np.pi
-                angle_diff = abs(m_angle - angle)
-                dist = np.mean([abs(x1 - m_x1), abs(y1 - m_y1), abs(x2 - m_x2), abs(y2 - m_y2)])
-
-                if angle_diff < 10 and dist < 50:  # Adjust this threshold based on your requirement
-                    # Merge the lines by averaging their coordinates
-                    merged_line[0] = [(m_x1 + x1) // 2, (m_y1 + y1) // 2, (m_x2 + x2) // 2, (m_y2 + y2) // 2]
-                    found = True
-                    break
-
-            if not found:
-                merged_lines.append(line)
-
-        # Draw the merged lines on the original image
-        merged_image = np.zeros_like(ll_segment, dtype=np.uint8)  # Ensure dtype is uint8
-        for line in merged_lines:
-            x1, y1, x2, y2 = line[0]
-            cv2.line(merged_image, (x1, y1), (x2, y2), (255, 0, 0), 2)
-
-        # Display the original image with merged lines
-        cv2.imshow('Merged Lines', merged_image) if self.sync_mode and self.show_images else None
-
-        line_mask = np.zeros_like(ll_segment, dtype=np.uint8)  # Ensure dtype is uint8
-
-        # Step 5: Perform linear regression on detected lines
-        # Iterate over detected lines
-        for line in merged_lines if lines is not None else []:
-            # Extract endpoints of the line
-            x1, y1, x2, y2 = line[0]
-
-            # Fit a line to the detected points
-            vx, vy, x0, y0 = cv2.fitLine(np.array([[x1, y1], [x2, y2]], dtype=np.float32), cv2.DIST_L2, 0, 0.01, 0.01)
-
-            # Calculate the slope and intercept of the line
-            slope = vy / vx
-
-            # Extend the line if needed (e.g., to cover the entire image width)
-            extended_y1 = ll_segment.shape[0] - 1  # Bottom of the image
-            extended_x1 = x0 + (extended_y1 - y0) / slope
-            extended_y2 = 0  # Upper part of the image
-            extended_x2 = x0 + (extended_y2 - y0) / slope
-
-            if extended_x1 > 2147483647 or extended_x2 > 2147483647 or extended_y1 > 2147483647 or extended_y2 > 2147483647:
-                cv2.line(line_mask, (int(x0), 0), (int(x0), ll_segment.shape[0] - 1), (255, 0, 0), 2)
-                continue
-            # Draw the extended line on the image
-            cv2.line(line_mask, (int(extended_x1), extended_y1), (int(extended_x2), extended_y2), (255, 0, 0), 2)
-        return line_mask
-
-    # def has_bad_perception(self, distances_error, threshold=0.3, max_bad_real_states=1):
-    #     done = False
-    #     states_above_threshold = sum(1 for state_value in distances_error if state_value > threshold)
-    #
-    #     if states_above_threshold is None:
-    #         states_above_threshold = 0
-    #
-    #     if states_above_threshold > max_bad_real_states:  # salimos porque no detecta linea a la derecha
-    #         done = True
-    #     return done, states_above_threshold
 
     def has_bad_perception(self, detected_points, max_bad_real_states=1):
         states_above_threshold = sum(1 for state_value in detected_points if state_value == 0)
@@ -2415,6 +2383,18 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         # else:
         # traffic_manager.set_synchronous_mode(False)
         world.apply_settings(settings)
+        clear_noon = carla.WeatherParameters(
+            sun_azimuth_angle=0.0,
+            cloudiness=60.0,  # Clouds scatter light, making shadows softer/weaker
+            precipitation=0.0,
+            precipitation_deposits=0.0,
+            wind_intensity=0.0,
+            fog_density=0.0,  # Keep it clear for lane detection
+            wetness=0.0,
+            sun_altitude_angle=45.0,  # Directly overhead = minimal shadows
+        )
+
+        world.set_weather(clear_noon)
 
     def update_from_hot_config(self, config):
         self.debug_waypoints = config.get("debug_waypoints")
@@ -2461,6 +2441,8 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         )
 
     def show_image(self, name, image):
+        cv2.namedWindow(name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(name, 640, 360)
         cv2.imshow(name, image)
         cv2.waitKey(1)  # 1 millisecond
 
@@ -2587,61 +2569,6 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
         return merged_lines
 
-    def post_process_hough_yolop(self, ll_segment):
-        # Step 1: Initial Hough Transform to find prominent lines
-        lines = cv2.HoughLinesP(
-            ll_segment, 1, np.pi/180, threshold=30, minLineLength=50, maxLineGap=20
-        )
-
-        if lines is None:
-            return None
-
-        # Step 2: Create a dynamic ROI mask from the detected lines
-        mask = np.zeros_like(ll_segment)
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            cv2.line(mask, (x1, y1), (x2, y2), (255, 255, 255), 10) # Thicker lines for ROI
-
-        # Step 3: Apply the dynamic ROI to the original segmentation
-        ll_segment = cv2.bitwise_and(ll_segment, mask)
-        cv2.imshow("dynamic_roi", ll_segment) if self.sync_mode and self.show_images else None
-
-        # Step 4: Final Hough Transform on the masked image
-        lines = cv2.HoughLinesP(
-            ll_segment, 1, np.pi/180, threshold=30, minLineLength=50, maxLineGap=20
-        )
-
-        merged_lines = self._filter_and_merge_lines(lines)
-
-        # Step 5: Draw the final lines and calculate centerline
-        line_mask = np.zeros_like(ll_segment, dtype=np.uint8)
-        if merged_lines:
-            for line in merged_lines:
-                x1, y1, x2, y2 = line[0]
-                cv2.line(line_mask, (x1, y1), (x2, y2), (255, 255, 255), 2)
-
-        cv2.imshow("hough", line_mask) if self.sync_mode and self.show_images else None
-
-        return merged_lines
-
-    def detect_yolop(self, raw_image):
-        # Apply bilateral filter to smooth the image while keeping edges sharp
-        raw_image = cv2.bilateralFilter(raw_image, 9, 75, 75)
-
-        # Run inference
-        img = self.transform(raw_image).to(self.device)
-        img = img.float()  # uint8 to fp16/32
-        if img.ndimension() == 3:
-            img = img.unsqueeze(0)
-        # Inference
-        det_out, da_seg_out, ll_seg_out = self.yolop_model(img)
-
-        ll_seg_mask = torch.nn.functional.interpolate(ll_seg_out, scale_factor=int(1), mode='bilinear')
-        _, ll_seg_mask = torch.max(ll_seg_mask, 1)
-        ll_seg_mask = ll_seg_mask.int().squeeze().cpu().numpy()
-
-        return ll_seg_mask
-
     def detect_yolop_v2(self, raw_image):
         # Standard resize to the native resolution YOLOPv2 expects
         # Ensure this matches the 640x384 or 640x640 your model was trained on
@@ -2704,119 +2631,33 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
         res[right_mask > 0.5,:] = [0, 0, 255]
         return res
 
-    def post_process_hough_lane_det(self, ll_segment):
-        # ll_segment = cv2.dilate(ll_segment, (3, 3), iterations=4)
-        # ll_segment = cv2.erode(ll_segment, (3, 3), iterations=2)
-        cv2.imshow("preprocess", ll_segment) if self.show_images else None
-        # edges = cv2.Canny(ll_segment, 50, 100)
-        # Extract coordinates of non-zero points
-        nonzero_points = np.argwhere(ll_segment == 255)
-        if len(nonzero_points) == 0:
-            return None
-
-        # Extract x and y coordinates
-        x = nonzero_points[:, 1].reshape(-1, 1)  # Reshape for scikit-learn input
-        y = nonzero_points[:, 0]
-
-        # Fit linear regression model
-        model = LinearRegression()
-        model.fit(x, y)
-
-        # Predict y values based on x
-        y_pred = model.predict(x)
-
-        line_mask = np.zeros_like(ll_segment, dtype=np.uint8)  # Ensure dtype is uint8
-
-        # Draw the linear regression line
-        for i in range(len(x)):
-            cv2.circle(line_mask, (x[i][0], int(y_pred[i])), 2, (255, 0, 0), -1)
-
-        cv2.imshow("result", line_mask) if self.show_images else None
-
-        # Find the minimum and maximum x coordinates
-        min_x = np.min(x)
-        max_x = np.max(x)
-
-        # Find the corresponding predicted y-values for the minimum and maximum x coordinates
-        y1 = int(model.predict([[min_x]]))
-        y2 = int(model.predict([[max_x]]))
-
-        # Define the line segment
-        line_segment = (min_x, y1, max_x, y2)
-
-        return line_segment
-
-    def post_process_hough_programmatic(self, ll_segment):
-        # Step 4: Perform Hough transform to detect lines
-        lines = cv2.HoughLinesP(
-            ll_segment,  # Input edge image
-            1,  # Distance resolution in pixels
-            np.pi / 60,  # Angle resolution in radians
-            threshold=20,  # Min number of votes for valid line
-            minLineLength=10,  # Min allowed length of line
-            maxLineGap=50  # Max allowed gap between line for joining them
-        )
-
-        line_mask = np.zeros_like(ll_segment, dtype=np.uint8)  # Ensure dtype is uint8
-
-        # Draw the detected lines on the blank image
-        if lines is not None:
-            for line in lines:
-                x1, y1, x2, y2 = line[0]
-                cv2.line(line_mask, (x1, y1), (x2, y2), (255, 255, 255), 2)  # Draw lines in white (255, 255, 255)
-
-        # Apply dilation to the line image
-
-        edges = cv2.Canny(line_mask, 50, 100)
-
-        cv2.imshow("intermediate_hough", edges)
-
-        # Reapply HoughLines on the dilated image
-        lines = cv2.HoughLinesP(
-            edges,  # Input edge image
-            1,  # Distance resolution in pixels
-            np.pi / 60,  # Angle resolution in radians
-            threshold=20,  # Min number of votes for valid line
-            minLineLength=13,  # Min allowed length of line
-            maxLineGap=50  # Max allowed gap between line for joining them
-        )
-        # Sort lines by their length
-        # lines = sorted(lines, key=lambda x: x[0][0] * np.sin(x[0][1]), reverse=True)[:5]
-
-        # Create a blank image to draw lines
-        line_mask = np.zeros_like(ll_segment, dtype=np.uint8)  # Ensure dtype is uint8
-
-        # Iterate over points
-        for points in lines if lines is not None else []:
-            # Extracted points nested in the list
-            x1, y1, x2, y2 = points[0]
-            # Draw the lines joing the points
-            # On the original image
-            cv2.line(line_mask, (x1, y1), (x2, y2), (255, 255, 255), 2)
-
-        # Postprocess the detected lines
-        # line_mask = morphological_process(line_mask, kernel_size=5, func_type=cv2.MORPH_OPEN)
-        # line_mask = morphological_process(line_mask, kernel_size=5, func_type=cv2.MORPH_CLOSE)
-        # kernel = np.ones((3, 3), np.uint8)  # Adjust the size as needed
-        # eroded_image = cv2.erode(line_mask, kernel, iterations=1)
-        cv2.imshow("hough", line_mask)
-
-        return lines
-
-    def detect_lines(self, raw_image):
+    def detect_lines(self, raw_image, prev_left_contour=None, prev_right_contour=None):
         # YOLOPv2 gets a dedicated, simpler, more direct pipeline
         if self.detection_mode == 'yolop_v2':
             with torch.no_grad():
-                ll_segment, distance_to_center, raw_center_lanes_normalized, _,  raw_detection_image, extended_image, paths_image, points_for_extension, _  = detect_lanes_yolop_v2_hybrid_agent(raw_image, reference_point=self.last_detected_point)
-
+                (ll_segment, distance_to_center, raw_center_lanes_normalized, _,
+                 raw_detection_image, extended_image, paths_image, points_for_extension, candidates_viz_from_tracker,
+                 best_left_raw, best_right_raw) = detect_lanes_yolop_v2_hybrid_agent(
+                    raw_image,
+                    reference_point=self.last_detected_point,
+                    prev_left_contour=prev_left_contour,
+                    prev_right_contour=prev_right_contour
+                )
             if raw_center_lanes_normalized is not None and len(raw_center_lanes_normalized) > 0:
                 self.last_detected_point = raw_center_lanes_normalized[-1]
 
             if self.show_images:
-                self.show_image("raw_mask",  raw_detection_image)
+                # start_point = (50, 250)  # (x1, y)
+                # end_point = (550, 250)  # (x2, same y value)
+                #
+                # # Define color (B, G, R) and thickness
+                # color = 255  # Green
+                # thickness = 3
+                #
+                # # Draw the line
+                # cv2.line(raw_detection_image, start_point, end_point, color, thickness)
+                # self.show_image("raw_mask",  raw_detection_image)
                 self.show_image("lane_boundaries",  points_for_extension)
-                # paths_image is now the final overlay, convert from RGB to BGR for cv2
-                # self.show_image("final_overlay",  cv2.cvtColor(paths_image, cv2.COLOR_RGB2BGR))
 
             # Apply EMA filter to center_lanes_normalized
             if self.ema_lane_points is None:
@@ -2832,129 +2673,56 @@ class FollowLaneStaticWeatherNoTraffic(FollowLaneEnv):
 
             center_lanes_normalized = self.ema_lane_points
 
-            # --- REVISED VISUALIZATION LOGIC 2.0 ---
-            self.masked_ll_segment = ll_segment.copy() # Store original
+            self.masked_ll_segment = ll_segment.copy()
 
-            # 1. Prepare a visible mask from ll_segment
-            # This handles cases where ll_segment is float, bool, or int but not scaled to 0-255
             visible_mask = cv2.normalize(ll_segment, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-
-            # Show the reconstructed lane lines in the "raw" window
-            # cv2.imshow("raw", visible_mask) if self.sync_mode and self.show_images else None
-
-            # Filter out invalid points for drawing centers
             valid_points = [p for p in center_lanes_normalized if p[0] != self.NON_DETECTED and p[0] != 0]
-
-            # 2. Create the 'overlayed_image'
             overlay_image = raw_image.copy()
-            # Ensure overlay_image is 3-channel before color assignment
-            visible_mask_resized = cv2.resize(visible_mask, (overlay_image.shape[1], overlay_image.shape[0]),
-                                            interpolation=cv2.INTER_NEAREST)
+            
+            # --- LETTERBOX UN-PADDING FOR MASK ---
+            # Replicate the letterbox math to accurately un-pad the square/padded mask back to the original 16:9 image
+            h_orig, w_orig = overlay_image.shape[:2]
+            h_padded, w_padded = visible_mask.shape[:2]
+            
+            scale = min(w_padded / w_orig, h_padded / h_orig)
+            new_w = int(w_orig * scale)
+            new_h = int(h_orig * scale)
+            x_offset = (w_padded - new_w) // 2
+            y_offset = (h_padded - new_h) // 2
+            
+            # 1. Crop the padding out of the padded mask
+            cropped_mask = visible_mask[y_offset:y_offset + new_h, x_offset:x_offset + new_w]
+            
+            # 2. Resize the cropped mask back to the EXACT original raw image dimensions
+            visible_mask_resized = cv2.resize(cropped_mask, (w_orig, h_orig), interpolation=cv2.INTER_NEAREST)
+            
             mask = visible_mask_resized > 128
             if np.any(mask):
-                overlay_image[mask] = [0, 255, 255] # BGR for yellow, thresholded
+                overlay_image[mask] = [0, 255, 255]
 
-            # --- FIX: Scale points instead of resizing ---
-            h_orig, w_orig, _ = overlay_image.shape
-            h_resized, w_resized = visible_mask.shape
-            w_scale = w_orig / w_resized
-            h_scale = h_orig / h_resized
-            
-            valid_points_resized = [(int(p[0] * w_scale), int(p[1] * h_scale)) for p in valid_points]
-            # --- END FIX ---
+            # The points returned from the perception script are already scaled back to the original image space.
+            # We no longer need to apply w_scale or h_scale here.
+            valid_points_resized = [(int(p[0]), int(p[1])) for p in valid_points]
 
-            # Draw center points
             for point in valid_points_resized:
-                cv2.circle(overlay_image, (int(point[0]), int(point[1])), 5, (255, 0, 255), -1) # Magenta
+                cv2.circle(overlay_image, (int(point[0]), int(point[1])), 5, (255, 0, 255), -1)
 
-            # 3. Create the 'Detections with Centers' image
             detections_image = cv2.cvtColor(visible_mask, cv2.COLOR_GRAY2BGR)
-            for pt in valid_points_resized:
-                cv2.circle(detections_image, (int(pt[0]), int(pt[1])), 4, (255, 0, 255), -1) # Magenta
+            # For the resized detections_image (640x384), we DO need to scale them DOWN if they are in original resolution
+            h_orig, w_orig, _ = raw_image.shape
+            h_resized, w_resized = visible_mask.shape
+            w_scale_down = w_resized / w_orig
+            h_scale_down = h_resized / h_orig
+            
+            for pt in valid_points:
+                scaled_down_pt = (int(pt[0] * w_scale_down), int(pt[1] * h_scale_down))
+                cv2.circle(detections_image, scaled_down_pt, 4, (255, 0, 255), -1)
 
-            # 4. Render the images
             if self.visualize:
                 self.show_image('overlayed_image', overlay_image)
-                # self.show_image('Detections with Centers', detections_image)
 
-            return ll_segment, distance_to_center, center_lanes_normalized, paths_image
+            return ll_segment, distance_to_center, center_lanes_normalized, paths_image, candidates_viz_from_tracker, None, None, None, best_left_raw, best_right_raw
 
-        # --- Legacy pipeline for other detection modes ---
-        ll_segment_canvas = None
-        if self.detection_mode == 'programmatic':
-            gray = cv2.cvtColor(raw_image, cv2.COLOR_BGR2RGB)
-            blur = cv2.GaussianBlur(gray, (5, 5), 0)
-            ll_segment_canvas = cv2.Canny(blur, 50, 100)
-            cv2.imshow("raw", ll_segment_canvas) if self.sync_mode and self.show_images else None
-            processed = self.post_process(ll_segment_canvas)
-            lines = self.post_process_hough_programmatic(processed)
-        elif self.detection_mode == 'yolop':
-            with torch.no_grad():
-                ll_segment_canvas = (self.detect_yolop(raw_image) * 255).astype(np.uint8)
-            cv2.imshow("raw", ll_segment_canvas) if self.sync_mode and self.show_images else None
-            lines = self.post_process_hough_yolop(ll_segment_canvas)
-        else: # lane_detector
-            with torch.no_grad():
-                _ , left_mask, right_mask = self.detect_lane_detector(raw_image)[0]
-            overlay = np.zeros_like(raw_image)
-            overlay = self.lane_detection_overlay(overlay, left_mask, right_mask)
-            cv2.imshow("raw", overlay) if self.sync_mode and self.show_images else None
-            blue_channel, red_channel = overlay[:, :, 0], overlay[:, :, 2]
-            lines = []
-            left_line = self.post_process_hough_lane_det(blue_channel)
-            if left_line is not None: lines.append([left_line])
-            right_line = self.post_process_hough_lane_det(red_channel)
-            if right_line is not None: lines.append([right_line])
-            ll_segment_canvas = cv2.convertScaleAbs(0.5 * blue_channel + 0.5 * red_channel)
-
-        # Common post-processing for line-based methods
-        detected_lines = self.merge_and_extend_lines(lines, ll_segment_canvas)
-
-        boundary_y = ll_segment_canvas.shape[1] * 2 // 5
-        ll_segment_canvas[boundary_y:, :] = detected_lines[boundary_y:, :]
-        ll_segment = (ll_segment_canvas // 255).astype(np.uint8)
-
-        (
-            center_lanes,
-            distances_to_center_normalized,
-        ) = self.calculate_center(ll_segment)
-
-        right_lane_normalized_distances, right_center_lane = choose_lane(distances_to_center_normalized, center_lanes)
-
-        self.show_ll_seg_image(right_center_lane,
-                               ll_segment) if self.sync_mode and self.show_images else None
-        distance_to_center = np.mean(distances_to_center_normalized)
-
-        return ll_segment, distance_to_center, distances_to_center_normalized, None
-
-    # def calculate_punish(self, params, action, v_goal, v, center_distance, deviated_points):
-    #     punish = 0
-    #
-    #     # if deviated_points >= self.appended_states - 2:
-    #     #     punish += 10
-    #
-    #     # if params["final_curvature"] < 0.02 or is_centered:
-    #     # if is_centered:
-    #     punish += self.punish_zig_zag_value * abs(action[1])
-    #     self.car.zig_zag_punish = punish
-    #     # punish += self.car.zig_zag_punish * abs(action[1] - self.previous_action[1]) * 10
-    #
-    #     if abs(center_distance) > 0.2 and v > 15:
-    #         punish += (v - 15) * 0.5
-    #         self.car.v_punish = (v - 15) * 0.5
-    #
-    #     if v_goal > v + 3 and action[0] < 0.4:
-    #         punish += 1
-    #         self.car.v_punish += 1
-    #
-    #     if v_goal < v + 3 and action[0] > 0.7:
-    #         punish += 1
-    #         self.car.v_punish += 1
-    #
-    #     if self.stage in ("v", "r"):
-    #         punish += 1 if action[0] > 0.95 else 0
-    #
-    #     return punish
 
     def monitor_center_distance(self, action, center_distance):
         if center_distance < 0.05:

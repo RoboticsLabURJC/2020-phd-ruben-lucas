@@ -1,5 +1,5 @@
 settings:
-  mode: inference # training, retraining, inference
+  mode: training # training, retraining, inference
   task: follow_lane_carla # follow_line_gazebo, follow_lane_gazebo, autoparking_gazebo
   algorithm: sac # qlearn, dqn, ddpg, sac
   simulator: carla # openai, carla, gazebo, sumo
@@ -18,7 +18,7 @@ settings:
   recorder_carla_dir: "./recorders"
   logs_dir: "./logs"
   metrics_dir: "./metrics"
-  steps_to_decrease: 2000
+  steps_to_decrease: 1000
   entropy_factor: 0
   net_arch: [ 128, 128, 128, 128, 128 ]
   normalize: true
@@ -47,7 +47,8 @@ ros:
 
 retraining:
   sac:
-    retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20260225-003252/model_1340000_steps_20260226-085044.zip
+    retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20260305-221805/best_model.zip
+    retrain_sac_tf_model_name: /home/ruben/Desktop/2020-phd-ruben-lucas/src/RL-Studio/rl_studio/checkpoints/follow_lane_carla_sac_auto_carla_baselines/20260305-221805/best_model.zip
 
 inference:
   sac:
@@ -141,12 +142,12 @@ carla_environments:
       Town04:
         [
 #          [-320.872070, 15.83397, 0.416225, 0.118217, 176.971695, 0.924344], # sharp to left
-#          [278.050293, -368.798950, 0.357949, 0.095828, 16.101439, -2.257110], #slight to right
-#          [ -475.506342, 352.208710, 0.357793, 0.051254, 55.662395, 0.072115 ], #slight to left
+          [278.050293, -368.798950, 0.357949, 0.095828, 16.101439, -2.257110], #slight to right
+          [ -475.506342, 352.208710, 0.357793, 0.051254, 55.662395, 0.072115 ], #slight to left
 #          [12.93741, 157.040146, 0.09260, 0.051254, -90.375160, 0.1006703], # straight
           [384.381470, -116.060329, 0.507339, 0.031453, 90.310402, 0.008101], # sharp to right
 #          [199.221252, -367.893829, 0.509260, 0.248796, 0.152361, -0.002625], # straight
-#          [ 334.204407,  13.815439, 0.608849, 1.506945, -179.198761, -1.299316] # long straight
+          [ 334.204407,  13.815439, 0.608849, 1.506945, -179.198761, -1.299316] # long straight
           #   [235.603699, 12.395636, 5.228042, 3.577455, 0.124573, -0.008118], # straight reverse
     #      [389.385938, -179.152158, 0.457793, 0.082516, 270.889893, 0.078263] # straight reverse
         ]
@@ -159,9 +160,15 @@ carla_environments:
 
           [ 227.506790, 59.392529, 0.3, 0.063309, 179.985626, 0.007553 ], # To left from right lane, then right
 
-          [ 152.093750, 326.573151, 0.3, 0.093799, -179.874603, -0.080688 ], # To right from right, intersection
+            [ 152.093750, 326.573151, 0.3, 0.093799, -179.874603, -0.080688 ], # To right from right, intersection
           [ 107.057098, 55.511978, 0.3, 0.090930, -179.793869, -0.060181 ], # To right from right, intersection
           [ -2.114511, 28.115679, 0.3, 0.173569, -85.910088, 0.153735 ], # to right from left line, smooth
+        ]
+      Town06:
+        [
+#            [-113.622208, -22.411051, 0.3, 0.0, 179.791321, 0.0],
+#            [181.017105, 251.587372, 1.0, 0.0, 0.019546, 0.0],
+#            [441.017090, 251.676071, 1.0, 0.0, 0.019546, 0.0]
         ]
     front_car: none # none, fixed, stopped, driving, incoming, outgoing
 #    front_car_spawn_points: [
@@ -175,6 +182,6 @@ carla_environments:
 
 carla:
   carla_server: localhost
-  carla_client: 2000
+  carla_client: 5013
 #  carla_client: [4013, 4015]
   manager_port: 8049
