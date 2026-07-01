@@ -11,4 +11,4 @@ Expected goals:
 - Streamline both training and inference routines in diverse urban setups using the SAC reinforcement learning algorithm.
 - Persistent tuning of the YOLOP-driven lane detection framework to elevate testing accuracy in simulated environments.
 
-More details in [this link](https://docs.google.com/presentation/d/1rVrtWlHbz-5_LbWybgipJmURR0scwYy_-fPbqJqZJaA/edit?slide=id.g37fc31b9e03_0_0#slide=id.g37fc31b9e03_0_0).
+More details in [this link](https://docs.google.com/presentation/d/1Hj_PEJ7YM92iaUMTY_2W5xXYBr85KmAE9Zn9CFOsRe8/edit?slide=id.g3ed2f38251b_0_15#slide=id.g3ed2f38251b_0_15).
