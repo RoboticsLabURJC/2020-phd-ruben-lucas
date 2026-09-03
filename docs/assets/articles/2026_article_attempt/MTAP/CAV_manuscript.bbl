@@ -1,0 +1,921 @@
+%% BioMed_Central_Bib_Style_v1.01
+
+\begin{thebibliography}{52}
+% BibTex style file: bmc-mathphys.bst (version 2.1), 2014-07-24
+\ifx \bisbn   \undefined \def \bisbn  #1{ISBN #1}\fi
+\ifx \binits  \undefined \def \binits#1{#1}\fi
+\ifx \bauthor  \undefined \def \bauthor#1{#1}\fi
+\ifx \batitle  \undefined \def \batitle#1{#1}\fi
+\ifx \bjtitle  \undefined \def \bjtitle#1{#1}\fi
+\ifx \bvolume  \undefined \def \bvolume#1{\textbf{#1}}\fi
+\ifx \byear  \undefined \def \byear#1{#1}\fi
+\ifx \bissue  \undefined \def \bissue#1{#1}\fi
+\ifx \bfpage  \undefined \def \bfpage#1{#1}\fi
+\ifx \blpage  \undefined \def \blpage #1{#1}\fi
+\ifx \burl  \undefined \def \burl#1{\textsf{#1}}\fi
+\ifx \doiurl  \undefined \def \doiurl#1{\url{https://doi.org/#1}}\fi
+\ifx \betal  \undefined \def \betal{\textit{et al.}}\fi
+\ifx \binstitute  \undefined \def \binstitute#1{#1}\fi
+\ifx \binstitutionaled  \undefined \def \binstitutionaled#1{#1}\fi
+\ifx \bctitle  \undefined \def \bctitle#1{#1}\fi
+\ifx \beditor  \undefined \def \beditor#1{#1}\fi
+\ifx \bpublisher  \undefined \def \bpublisher#1{#1}\fi
+\ifx \bbtitle  \undefined \def \bbtitle#1{#1}\fi
+\ifx \bedition  \undefined \def \bedition#1{#1}\fi
+\ifx \bseriesno  \undefined \def \bseriesno#1{#1}\fi
+\ifx \blocation  \undefined \def \blocation#1{#1}\fi
+\ifx \bsertitle  \undefined \def \bsertitle#1{#1}\fi
+\ifx \bsnm \undefined \def \bsnm#1{#1}\fi
+\ifx \bsuffix \undefined \def \bsuffix#1{#1}\fi
+\ifx \bparticle \undefined \def \bparticle#1{#1}\fi
+\ifx \barticle \undefined \def \barticle#1{#1}\fi
+\bibcommenthead
+\ifx \bconfdate \undefined \def \bconfdate #1{#1}\fi
+\ifx \botherref \undefined \def \botherref #1{#1}\fi
+\ifx \url \undefined \def \url#1{\textsf{#1}}\fi
+\ifx \bchapter \undefined \def \bchapter#1{#1}\fi
+\ifx \bbook \undefined \def \bbook#1{#1}\fi
+\ifx \bcomment \undefined \def \bcomment#1{#1}\fi
+\ifx \oauthor \undefined \def \oauthor#1{#1}\fi
+\ifx \citeauthoryear \undefined \def \citeauthoryear#1{#1}\fi
+\ifx \endbibitem  \undefined \def \endbibitem {}\fi
+\ifx \bconflocation  \undefined \def \bconflocation#1{#1}\fi
+\ifx \arxivurl  \undefined \def \arxivurl#1{\textsf{#1}}\fi
+\csname PreBibitemsHook\endcsname
+
+%%% 1
+\bibitem[\protect\citeauthoryear{Dosovitskiy
+  et~al.}{2017}]{dosovitskiy2017carla}
+\begin{bchapter}
+\bauthor{\bsnm{Dosovitskiy}, \binits{A.}},
+\bauthor{\bsnm{Ros}, \binits{G.}},
+\bauthor{\bsnm{Codevilla}, \binits{F.}},
+\bauthor{\bsnm{López}, \binits{A.}},
+\bauthor{\bsnm{Koltun}, \binits{V.}}:
+\bctitle{Carla: An open urban driving simulator}.
+In: \bbtitle{Proceedings of the 1st Annual Conference on Robot Learning
+  (CoRL)},
+vol. \bseriesno{78},
+pp. \bfpage{1}--\blpage{16}.
+\bpublisher{PMLR},
+\blocation{Mountain View, CA, USA}
+(\byear{2017})
+\end{bchapter}
+\endbibitem
+
+%%% 2
+\bibitem[\protect\citeauthoryear{Paniego
+  et~al.}{2024}]{paniego2024behaviormetrics}
+\begin{barticle}
+\bauthor{\bsnm{Paniego}, \binits{S.}},
+\bauthor{\bsnm{Calvo-Palomino}, \binits{R.}},
+\bauthor{\bsnm{Cañas}, \binits{J.M.}}:
+\batitle{Behavior metrics: An open-source assessment tool for autonomous
+  driving tasks}.
+\bjtitle{SoftwareX}
+\bvolume{26},
+\bfpage{101702}
+(\byear{2024})
+\end{barticle}
+\endbibitem
+
+%%% 3
+\bibitem[\protect\citeauthoryear{Bouchard et~al.}{2015}]{bouchard2015rulebased}
+\begin{bchapter}
+\bauthor{\bsnm{Bouchard}, \binits{F.}},
+\bauthor{\bsnm{Sedwards}, \binits{S.}},
+\bauthor{\bsnm{Czarnecki}, \binits{K.}}:
+\bctitle{A rule-based behavior planner for autonomous driving}.
+In: \bbtitle{IEEE Intelligent Vehicles Symposium (IV)},
+pp. \bfpage{611}--\blpage{616}
+(\byear{2015})
+\end{bchapter}
+\endbibitem
+
+%%% 4
+\bibitem[\protect\citeauthoryear{Bae et~al.}{2020}]{bae2020fsm}
+\begin{bchapter}
+\bauthor{\bsnm{Bae}, \binits{S.-H.}},
+\bauthor{\bsnm{Joo}, \binits{S.-H.}},
+\bauthor{\bsnm{Pyo}, \binits{J.-W.}},
+\bauthor{\bsnm{Yoon}, \binits{J.-S.}},
+\bauthor{\bsnm{Lee}, \binits{K.}},
+\bauthor{\bsnm{Kuc}, \binits{T.-Y.}}:
+\bctitle{Finite state machine based vehicle system for autonomous driving in
+  urban environments}.
+In: \bbtitle{2020 20th International Conference on Control, Automation and
+  Systems (ICCAS)},
+pp. \bfpage{1181}--\blpage{1186}
+(\byear{2020})
+\end{bchapter}
+\endbibitem
+
+%%% 5
+\bibitem[\protect\citeauthoryear{Codevilla et~al.}{2018}]{codevilla2018il}
+\begin{bchapter}
+\bauthor{\bsnm{Codevilla}, \binits{F.}},
+\bauthor{\bsnm{Müller}, \binits{M.}},
+\bauthor{\bsnm{López}, \binits{A.}},
+\bauthor{\bsnm{Koltun}, \binits{V.}},
+\bauthor{\bsnm{Dosovitskiy}, \binits{A.}}:
+\bctitle{End-to-end driving via conditional imitation learning}.
+In: \bbtitle{2018 IEEE International Conference on Robotics and Automation
+  (ICRA)},
+\bconflocation{Brisbane, QLD, Australia},
+pp. \bfpage{4693}--\blpage{4700}
+(\byear{2018}).
+\doiurl{10.1109/ICRA.2018.8460487}
+\end{bchapter}
+\endbibitem
+
+%%% 6
+\bibitem[\protect\citeauthoryear{Cheng et~al.}{2023}]{cheng2023pluto}
+\begin{botherref}
+\oauthor{\bsnm{Cheng}, \binits{J.}},
+\oauthor{\bsnm{Chen}, \binits{Y.}},
+\oauthor{\bsnm{Chen}, \binits{Q.}}:
+Pluto: Pushing the limit of imitation learning-based planning for autonomous
+  driving.
+arXiv preprint arXiv:2310.00960
+(2023)
+\end{botherref}
+\endbibitem
+
+%%% 7
+\bibitem[\protect\citeauthoryear{Moncalvillo~Gonz{\'a}lez
+  et~al.}{2024}]{moncalvillo2024ackermann}
+\begin{bchapter}
+\bauthor{\bsnm{Moncalvillo~Gonz{\'a}lez}, \binits{A.}},
+\bauthor{\bsnm{Ca{\~n}as~Plaza}, \binits{J.M.}},
+\bauthor{\bsnm{Paniego~Blanco}, \binits{S.}},
+\bauthor{\bsnm{Calvo~Palomino}, \binits{R.}},
+\bauthor{\bsnm{Al-Kaff}, \binits{A.}}:
+\bctitle{Imitation learning for vision based autonomous driving with ackermann
+  cars}.
+In: \beditor{\bsnm{Cazorla}, \binits{M.}},
+\beditor{\bsnm{Gomez-Donoso}, \binits{F.}},
+\beditor{\bsnm{Escalona}, \binits{F.}} (eds.)
+\bbtitle{Proceedings of the XXIV Workshop of Physical Agents},
+pp. \bfpage{206}--\blpage{219}.
+\bpublisher{Universidad de Alicante},
+\blocation{Alicante}
+(\byear{2024})
+\end{bchapter}
+\endbibitem
+
+%%% 8
+\bibitem[\protect\citeauthoryear{Zhao et~al.}{2024}]{zhao2024survey}
+\begin{barticle}
+\bauthor{\bsnm{Zhao}, \binits{R.}},
+\bauthor{\bsnm{Li}, \binits{Y.}},
+\bauthor{\bsnm{Fan}, \binits{Y.}},
+\bauthor{\bsnm{Gao}, \binits{F.}},
+\bauthor{\bsnm{Tsukada}, \binits{M.}},
+\bauthor{\bsnm{Gao}, \binits{Z.}}:
+\batitle{A survey on recent advancements in autonomous driving using deep
+  reinforcement learning: Applications, challenges, and solutions}.
+\bjtitle{IEEE Transactions on Intelligent Transportation Systems}
+\bvolume{25}(\bissue{12}),
+\bfpage{19365}--\blpage{19398}
+(\byear{2024})
+\doiurl{10.1109/TITS.2024.3452480}
+\end{barticle}
+\endbibitem
+
+%%% 9
+\bibitem[\protect\citeauthoryear{Wu et~al.}{2024}]{wu2024survey}
+\begin{barticle}
+\bauthor{\bsnm{Wu}, \binits{J.}},
+\bauthor{\bsnm{Huang}, \binits{C.}},
+\bauthor{\bsnm{Huang}, \binits{H.}},
+\bauthor{\bsnm{Lv}, \binits{C.}},
+\bauthor{\bsnm{Wang}, \binits{Y.}},
+\bauthor{\bsnm{Wang}, \binits{F.-Y.}}:
+\batitle{Recent advances in reinforcement learning-based autonomous driving
+  behavior planning: A survey}.
+\bjtitle{Transportation Research Part C: Emerging Technologies}
+\bvolume{164},
+\bfpage{104654}
+(\byear{2024})
+\end{barticle}
+\endbibitem
+
+%%% 10
+\bibitem[\protect\citeauthoryear{Lavington
+  et~al.}{2024}]{lavington2024torchdriveenv}
+\begin{botherref}
+\oauthor{\bsnm{Lavington}, \binits{J.W.}},
+\oauthor{\bsnm{Zhang}, \binits{K.}},
+\oauthor{\bsnm{Lioutas}, \binits{V.}},
+\oauthor{\bsnm{Niedoba}, \binits{M.}},
+\oauthor{\bsnm{Liu}, \binits{Y.}},
+\oauthor{\bsnm{Green}, \binits{D.}},
+\oauthor{\bsnm{Naderiparizi}, \binits{S.}},
+\oauthor{\bsnm{Liang}, \binits{X.}},
+\oauthor{\bsnm{Dabiri}, \binits{S.}},
+\oauthor{\bsnm{Ścibior}, \binits{A.}},
+\oauthor{\bsnm{Zwartsenberg}, \binits{B.}},
+\oauthor{\bsnm{Wood}, \binits{F.}}:
+Torchdriveenv: A reinforcement learning benchmark for autonomous driving with
+  reactive, realistic, and diverse non-playable characters.
+arXiv preprint arXiv:2405.04491
+(2024)
+\end{botherref}
+\endbibitem
+
+%%% 11
+\bibitem[\protect\citeauthoryear{Liu et~al.}{2021}]{liu2021rlbenchmark}
+\begin{botherref}
+\oauthor{\bsnm{Liu}, \binits{Y.}},
+\oauthor{\bsnm{Zhang}, \binits{Q.}},
+\oauthor{\bsnm{Zhao}, \binits{D.}}:
+A reinforcement learning benchmark for autonomous driving in intersection
+  scenarios.
+arXiv preprint arXiv:2109.10557
+(2021)
+\end{botherref}
+\endbibitem
+
+%%% 12
+\bibitem[\protect\citeauthoryear{Kiran et~al.}{2022}]{kiran2022deep}
+\begin{barticle}
+\bauthor{\bsnm{Kiran}, \binits{B.R.}},
+\bauthor{\bsnm{Sobh}, \binits{I.}},
+\bauthor{\bsnm{Talpaert}, \binits{V.}},
+\bauthor{\bsnm{Mannion}, \binits{P.}},
+\bauthor{\bsnm{Al~Sallab}, \binits{A.A.}},
+\bauthor{\bsnm{Yogamani}, \binits{S.}},
+\bauthor{\bsnm{P{\'e}rez}, \binits{P.}}:
+\batitle{Deep reinforcement learning for autonomous driving: A survey}.
+\bjtitle{IEEE Transactions on Intelligent Transportation Systems}
+\bvolume{23}(\bissue{6}),
+\bfpage{4909}--\blpage{4926}
+(\byear{2022})
+\doiurl{10.1109/TITS.2021.3054625}
+\end{barticle}
+\endbibitem
+
+%%% 13
+\bibitem[\protect\citeauthoryear{Prasuna and Potturu}{2024}]{prasuna2024deep}
+\begin{barticle}
+\bauthor{\bsnm{Prasuna}, \binits{R.G.}},
+\bauthor{\bsnm{Potturu}, \binits{S.R.}}:
+\batitle{Deep reinforcement learning in mobile robotics – a concise review}.
+\bjtitle{Multimed Tools Appl}
+\bvolume{83},
+\bfpage{70815}--\blpage{70836}
+(\byear{2024})
+\end{barticle}
+\endbibitem
+
+%%% 14
+\bibitem[\protect\citeauthoryear{Singh et~al.}{2025}]{singh2025improvised}
+\begin{barticle}
+\bauthor{\bsnm{Singh}, \binits{K.J.}},
+\bauthor{\bsnm{Kapoor}, \binits{D.S.}},
+\bauthor{\bsnm{Thakur}, \binits{K.}},
+\bauthor{\bsnm{Kaushik}, \binits{N.}}:
+\batitle{Improvised robotic navigation using deep reinforcement learning (drl)
+  towards safer integration in real-time complex environments}.
+\bjtitle{Multimed Tools Appl}
+\bvolume{84},
+\bfpage{34349}--\blpage{34375}
+(\byear{2025})
+\end{barticle}
+\endbibitem
+
+%%% 15
+\bibitem[\protect\citeauthoryear{Elallid
+  et~al.}{2023}]{benelallid2023intersection}
+\begin{bchapter}
+\bauthor{\bsnm{Elallid}, \binits{B.B.}},
+\bauthor{\bsnm{Alaoui}, \binits{H.E.}},
+\bauthor{\bsnm{Benamar}, \binits{N.}}:
+\bctitle{Deep reinforcement learning for autonomous vehicle intersection
+  navigation}.
+In: \bbtitle{2023 International Conference on Innovation and Intelligence for
+  Informatics, Computing, and Technologies (3ICT)},
+\bconflocation{Sakheer, Bahrain},
+pp. \bfpage{308}--\blpage{313}
+(\byear{2023}).
+\doiurl{10.1109/3ICT60104.2023.10391453}
+\end{bchapter}
+\endbibitem
+
+%%% 16
+\bibitem[\protect\citeauthoryear{Shankar et~al.}{2025}]{shankar2025deep}
+\begin{barticle}
+\bauthor{\bsnm{Shankar}, \binits{A.R.}},
+\bauthor{\bsnm{Mittur}, \binits{A.}},
+\bauthor{\bsnm{Narasimhan}, \binits{A.}},
+\bauthor{\bsnm{Aravind}, \binits{A.R.G.}}:
+\batitle{Deep reinforcement learning for autonomous driving in uncontrolled
+  intersections of indian roads}.
+\bjtitle{Multimed Tools Appl}
+\bvolume{84},
+\bfpage{23775}--\blpage{23792}
+(\byear{2025})
+\end{barticle}
+\endbibitem
+
+%%% 17
+\bibitem[\protect\citeauthoryear{Spatharis and
+  Blekas}{2024}]{Spatharis02012024}
+\begin{barticle}
+\bauthor{\bsnm{Spatharis}, \binits{C.}},
+\bauthor{\bsnm{Blekas}, \binits{K.}}:
+\batitle{Multiagent reinforcement learning for autonomous driving in traffic
+  zones with unsignalized intersections}.
+\bjtitle{Journal of Intelligent Transportation Systems}
+\bvolume{28}(\bissue{1}),
+\bfpage{103}--\blpage{119}
+(\byear{2024})
+\doiurl{10.1080/15472450.2022.2109416}
+{\href{https://arxiv.org/abs/https://doi.org/10.1080/15472450.2022.2109416}{{https://doi.org/10.1080/15472450.2022.2109416}}}
+\end{barticle}
+\endbibitem
+
+%%% 18
+\bibitem[\protect\citeauthoryear{Jayawardana et~al.}{2023}]{jayawardana2023}
+\begin{bchapter}
+\bauthor{\bsnm{Jayawardana}, \binits{V.}},
+\bauthor{\bsnm{Freydt}, \binits{B.}},
+\bauthor{\bsnm{Qu}, \binits{A.}},
+\bauthor{\bsnm{Hickert}, \binits{C.}},
+\bauthor{\bsnm{Yan}, \binits{Z.}},
+\bauthor{\bsnm{Wu}, \binits{C.}}:
+\bctitle{Intersectionzoo: Eco-driving for benchmarking multi-agent contextual
+  reinforcement learning}.
+In: \bbtitle{Proceedings of the Conference on Robot Learning (CoRL)},
+pp. \bfpage{1}--\blpage{12}
+(\byear{2023})
+\end{bchapter}
+\endbibitem
+
+%%% 19
+\bibitem[\protect\citeauthoryear{Cederle et~al.}{2024}]{cederle2024distributed}
+\begin{botherref}
+\oauthor{\bsnm{Cederle}, \binits{M.}},
+\oauthor{\bsnm{Fabris}, \binits{M.}},
+\oauthor{\bsnm{Susto}, \binits{G.A.}}:
+A distributed approach to autonomous intersection management via multi-agent
+  reinforcement learning.
+arXiv preprint arXiv:2405.08655
+(2024)
+\end{botherref}
+\endbibitem
+
+%%% 20
+\bibitem[\protect\citeauthoryear{Wang et~al.}{2022}]{wang2024benchmarking}
+\begin{bchapter}
+\bauthor{\bsnm{Wang}, \binits{J.}},
+\bauthor{\bsnm{Zhang}, \binits{Q.}},
+\bauthor{\bsnm{Zhao}, \binits{D.}}:
+\bctitle{Benchmarking lane-changing decision-making for deep reinforcement
+  learning}.
+In: \bbtitle{Proceedings of the 7th International Conference on Robotics and
+  Artificial Intelligence (ICRAI '21)},
+pp. \bfpage{26}--\blpage{32}.
+\bpublisher{Association for Computing Machinery},
+\blocation{New York, NY, USA}
+(\byear{2022}).
+\doiurl{10.1145/3505688.3505693}
+\end{bchapter}
+\endbibitem
+
+%%% 21
+\bibitem[\protect\citeauthoryear{Liu et~al.}{2024}]{liu2024comparative}
+\begin{botherref}
+\oauthor{\bsnm{Liu}, \binits{T.}},
+\oauthor{\bsnm{Yang}, \binits{Y.}},
+\oauthor{\bsnm{Xiao}, \binits{W.}},
+\oauthor{\bsnm{Yin}, \binits{M.}}:
+A comparative analysis of deep reinforcement learning-enabled freeway
+  decision-making for automated vehicles.
+IEEE Access
+(2024)
+\end{botherref}
+\endbibitem
+
+%%% 22
+\bibitem[\protect\citeauthoryear{Chen et~al.}{2023}]{chen2023follownet}
+\begin{botherref}
+\oauthor{\bsnm{Chen}, \binits{X.}},
+\oauthor{\bsnm{Zhu}, \binits{M.}},
+\oauthor{\bsnm{Chen}, \binits{K.}},
+\oauthor{\bsnm{Wang}, \binits{P.}},
+\oauthor{\bsnm{Lu}, \binits{H.}},
+\oauthor{\bsnm{Zhong}, \binits{H.}},
+\oauthor{\bsnm{Han}, \binits{X.}},
+\oauthor{\bsnm{Wang}, \binits{X.}},
+\oauthor{\bsnm{Wang}, \binits{Y.}}:
+Follownet: A comprehensive benchmark for car-following behavior modeling.
+Scientific Data
+\textbf{10}(828)
+(2023)
+\end{botherref}
+\endbibitem
+
+%%% 23
+\bibitem[\protect\citeauthoryear{Marin et~al.}{2025}]{Marin04122025}
+\begin{barticle}
+\bauthor{\bsnm{Marin}, \binits{A.L.}},
+\bauthor{\bsnm{Martínez-Plumed}, \binits{F.}},
+\bauthor{\bsnm{Makridis}, \binits{M.A.}},
+\bauthor{\bsnm{Tansini}, \binits{A.}},
+\bauthor{\bsnm{Pulvirenti}, \binits{L.}},
+\bauthor{\bsnm{Corujo}, \binits{J.S.}},
+\bauthor{\bsnm{Komnos}, \binits{D.}},
+\bauthor{\bsnm{Ramírez-Quintana}, \binits{M.J.}},
+\bauthor{\bsnm{Monserrat}, \binits{C.}},
+\bauthor{\bsnm{Fontaras}, \binits{G.}}:
+\batitle{Follow the leader: a deep reinforcement learning framework for safe
+  and efficient autonomous car-following}.
+\bjtitle{Journal of Intelligent Transportation Systems}
+\bvolume{0}(\bissue{0}),
+\bfpage{1}--\blpage{22}
+(\byear{2025})
+\doiurl{10.1080/15472450.2025.2576907}
+{\href{https://arxiv.org/abs/https://doi.org/10.1080/15472450.2025.2576907}{{https://doi.org/10.1080/15472450.2025.2576907}}}
+\end{barticle}
+\endbibitem
+
+%%% 24
+\bibitem[\protect\citeauthoryear{Kim et~al.}{2023}]{kim2023empirical}
+\begin{barticle}
+\bauthor{\bsnm{Kim}, \binits{J.}},
+\bauthor{\bsnm{Park}, \binits{B.-j.}},
+\bauthor{\bsnm{Kim}, \binits{J.}}:
+\batitle{Empirical analysis of autonomous vehicle’s lidar detection
+  performance degradation for actual road driving in rain and fog}.
+\bjtitle{Sensors}
+\bvolume{23}(\bissue{6}),
+\bfpage{2972}
+(\byear{2023})
+\doiurl{10.3390/s23062972}
+\end{barticle}
+\endbibitem
+
+%%% 25
+\bibitem[\protect\citeauthoryear{Almalioglu et~al.}{2022}]{almalioglu2022}
+\begin{barticle}
+\bauthor{\bsnm{Almalioglu}, \binits{Y.}},
+\bauthor{\bsnm{Saputra}, \binits{M.R.U.}},
+\bauthor{\bsnm{Gusmao}, \binits{P.P.B.D.}},
+\bauthor{\bsnm{Markham}, \binits{A.}},
+\bauthor{\bsnm{Trigoni}, \binits{N.}}:
+\batitle{Deep learning-based robust positioning for all-weather autonomous
+  driving}.
+\bjtitle{Nature Machine Intelligence}
+\bvolume{4}(\bissue{3}),
+\bfpage{246}--\blpage{256}
+(\byear{2022})
+\end{barticle}
+\endbibitem
+
+%%% 26
+\bibitem[\protect\citeauthoryear{Elallid et~al.}{2025}]{BenElallid02112025}
+\begin{barticle}
+\bauthor{\bsnm{Elallid}, \binits{B.B.}},
+\bauthor{\bsnm{Bagaa}, \binits{M.}},
+\bauthor{\bsnm{Benamar}, \binits{N.}},
+\bauthor{\bsnm{Mrani}, \binits{N.}}:
+\batitle{A reinforcement learning based autonomous vehicle control in diverse
+  daytime and weather scenarios}.
+\bjtitle{Journal of Intelligent Transportation Systems}
+\bvolume{29}(\bissue{6}),
+\bfpage{626}--\blpage{639}
+(\byear{2025})
+\doiurl{10.1080/15472450.2024.2370010}
+{\href{https://arxiv.org/abs/https://doi.org/10.1080/15472450.2024.2370010}{{https://doi.org/10.1080/15472450.2024.2370010}}}
+\end{barticle}
+\endbibitem
+
+%%% 27
+\bibitem[\protect\citeauthoryear{Qiao et~al.}{2020}]{qiao2020hierarchical}
+\begin{bchapter}
+\bauthor{\bsnm{Qiao}, \binits{Z.}},
+\bauthor{\bsnm{Tyree}, \binits{Z.}},
+\bauthor{\bsnm{Mudalige}, \binits{P.}},
+\bauthor{\bsnm{Schneider}, \binits{J.}},
+\bauthor{\bsnm{Dolan}, \binits{J.M.}}:
+\bctitle{Hierarchical reinforcement learning method for autonomous vehicle
+  behavior planning}.
+In: \bbtitle{2020 IEEE/RSJ International Conference on Intelligent Robots and
+  Systems (IROS)},
+\bconflocation{Las Vegas, NV, USA},
+pp. \bfpage{6084}--\blpage{6089}
+(\byear{2020}).
+\doiurl{10.1109/IROS45743.2020.9341496}
+\end{bchapter}
+\endbibitem
+
+%%% 28
+\bibitem[\protect\citeauthoryear{Geiger et~al.}{2012}]{geiger2012kitti}
+\begin{bchapter}
+\bauthor{\bsnm{Geiger}, \binits{A.}},
+\bauthor{\bsnm{Lenz}, \binits{P.}},
+\bauthor{\bsnm{Urtasun}, \binits{R.}}:
+\bctitle{Are we ready for autonomous driving? the kitti vision benchmark
+  suite}.
+In: \bbtitle{Proceedings of the IEEE Conference on Computer Vision and Pattern
+  Recognition (CVPR)},
+pp. \bfpage{3386}--\blpage{3393}
+(\byear{2012})
+\end{bchapter}
+\endbibitem
+
+%%% 29
+\bibitem[\protect\citeauthoryear{Busch et~al.}{2024}]{busch2023improved}
+\begin{bchapter}
+\bauthor{\bsnm{Busch}, \binits{D.}},
+\bauthor{\bsnm{Freeman}, \binits{I.}},
+\bauthor{\bsnm{Meyes}, \binits{R.}},
+\bauthor{\bsnm{Meisen}, \binits{T.}}:
+\bctitle{Improved single camera bev perception using multi-camera training}.
+In: \bbtitle{2024 IEEE 27th International Conference on Intelligent
+  Transportation Systems (ITSC)},
+\bconflocation{Edmonton, AB, Canada},
+pp. \bfpage{3982}--\blpage{3988}
+(\byear{2024}).
+\doiurl{10.1109/ITSC58415.2024.10920077}
+\end{bchapter}
+\endbibitem
+
+%%% 30
+\bibitem[\protect\citeauthoryear{Unger et~al.}{2023}]{unger2023multicamera}
+\begin{botherref}
+\oauthor{\bsnm{Unger}, \binits{D.}},
+\oauthor{\bsnm{Gosala}, \binits{N.}},
+\oauthor{\bsnm{Kumar}, \binits{V.R.}},
+\oauthor{\bsnm{Borse}, \binits{S.}},
+\oauthor{\bsnm{Valada}, \binits{A.}},
+\oauthor{\bsnm{Yogamani}, \binits{S.}}:
+Multi-camera bird’s eye view perception for autonomous driving.
+arXiv preprint arXiv:2309.09080
+(2023)
+\end{botherref}
+\endbibitem
+
+%%% 31
+\bibitem[\protect\citeauthoryear{Wu et~al.}{2022}]{wu2022yolop}
+\begin{barticle}
+\bauthor{\bsnm{Wu}, \binits{D.}},
+\bauthor{\bsnm{Liao}, \binits{M.}},
+\bauthor{\bsnm{Zhang}, \binits{W.}},
+\bauthor{\bsnm{Wang}, \binits{X.}},
+\bauthor{\bsnm{Bai}, \binits{X.}},
+\bauthor{\bsnm{Cheng}, \binits{W.}},
+\bauthor{\bsnm{Liu}, \binits{W.}}:
+\batitle{Yolop: You only look once for panoptic driving perception}.
+\bjtitle{Machine Intelligence Research}
+\bvolume{19}(\bissue{6}),
+\bfpage{550}--\blpage{562}
+(\byear{2022})
+\doiurl{10.1007/s11633-022-1339-y}
+\end{barticle}
+\endbibitem
+
+%%% 32
+\bibitem[\protect\citeauthoryear{Howard et~al.}{2017}]{howard2017mobilenets}
+\begin{botherref}
+\oauthor{\bsnm{Howard}, \binits{A.G.}},
+\oauthor{\bsnm{Zhu}, \binits{M.}},
+\oauthor{\bsnm{Chen}, \binits{B.}},
+\oauthor{\bsnm{Kalenichenko}, \binits{D.}},
+\oauthor{\bsnm{Wang}, \binits{W.}},
+\oauthor{\bsnm{Weyand}, \binits{T.}},
+\oauthor{\bsnm{Adam}, \binits{H.}}:
+Mobilenets: Efficient convolutional neural networks for mobile vision
+  applications.
+arXiv preprint arXiv:1704.04861
+(2017)
+\end{botherref}
+\endbibitem
+
+%%% 33
+\bibitem[\protect\citeauthoryear{Liu et~al.}{2016}]{liu2016ssd}
+\begin{bchapter}
+\bauthor{\bsnm{Liu}, \binits{W.}},
+\bauthor{\bsnm{Anguelov}, \binits{D.}},
+\bauthor{\bsnm{Erhan}, \binits{D.}},
+\bauthor{\bsnm{Szegedy}, \binits{C.}},
+\bauthor{\bsnm{Reed}, \binits{S.}},
+\bauthor{\bsnm{Fu}, \binits{C.-Y.}},
+\bauthor{\bsnm{Berg}, \binits{A.C.}}:
+\bctitle{Ssd: Single shot multibox detector}.
+In: \bbtitle{European Conference on Computer Vision (ECCV)},
+pp. \bfpage{16561}--\blpage{16570}
+(\byear{2016})
+\end{bchapter}
+\endbibitem
+
+%%% 34
+\bibitem[\protect\citeauthoryear{Hua et~al.}{2022}]{hua2022exploration}
+\begin{barticle}
+\bauthor{\bsnm{Hua}, \binits{G.}},
+\bauthor{\bsnm{Huang}, \binits{Z.}},
+\bauthor{\bsnm{Wang}, \binits{J.}},
+\bauthor{\bsnm{Xie}, \binits{J.}},
+\bauthor{\bsnm{Shen}, \binits{G.}}:
+\batitle{Exploration strategy improved ddpg for lane keeping tasks in
+  autonomous driving}.
+\bjtitle{Journal of Physics: Conference Series}
+\bvolume{2347}(\bissue{1}),
+\bfpage{012020}
+(\byear{2022})
+\end{barticle}
+\endbibitem
+
+%%% 35
+\bibitem[\protect\citeauthoryear{Liu et~al.}{2024}]{liu2024highspeed}
+\begin{barticle}
+\bauthor{\bsnm{Liu}, \binits{J.}},
+\bauthor{\bsnm{Cui}, \binits{Y.}},
+\bauthor{\bsnm{Duan}, \binits{J.}},
+\bauthor{\bsnm{Li}, \binits{H.}}:
+\batitle{Reinforcement learning-based high-speed path following control for
+  autonomous vehicles}.
+\bjtitle{IEEE Transactions on Vehicular Technology}
+\bvolume{PP}(\bissue{99}),
+\bfpage{1}--\blpage{14}
+(\byear{2024})
+\doiurl{10.1109/TVT.2024.3352543}
+\end{barticle}
+\endbibitem
+
+%%% 36
+\bibitem[\protect\citeauthoryear{Sabbir}{2025}]{sabbir2025comparative}
+\begin{botherref}
+\oauthor{\bsnm{Sabbir}, \binits{A.I.}}:
+Comparative analysis of double deep q-network and proximal policy optimization
+  for lane-keeping in autonomous driving.
+Problems of Information Society,
+12--25
+(2025)
+\end{botherref}
+\endbibitem
+
+%%% 37
+\bibitem[\protect\citeauthoryear{Schulman et~al.}{2017}]{schulman2017proximal}
+\begin{botherref}
+\oauthor{\bsnm{Schulman}, \binits{J.}},
+\oauthor{\bsnm{Wolski}, \binits{F.}},
+\oauthor{\bsnm{Dhariwal}, \binits{P.}},
+\oauthor{\bsnm{Radford}, \binits{A.}},
+\oauthor{\bsnm{Klimov}, \binits{O.}}:
+Proximal policy optimization algorithms.
+arXiv preprint arXiv:1707.06347
+(2017)
+\end{botherref}
+\endbibitem
+
+%%% 38
+\bibitem[\protect\citeauthoryear{Lillicrap
+  et~al.}{2015}]{lillicrap2015continuous}
+\begin{botherref}
+\oauthor{\bsnm{Lillicrap}, \binits{T.P.}},
+\oauthor{\bsnm{Hunt}, \binits{J.J.}},
+\oauthor{\bsnm{Pritzel}, \binits{A.}},
+\oauthor{\bsnm{Heess}, \binits{N.}},
+\oauthor{\bsnm{Chen}, \binits{T.}},
+\oauthor{\bsnm{Springenberg}, \binits{D.}},
+\oauthor{\bsnm{Valko}, \binits{A.W.T.}},
+\oauthor{\bsnm{Veness}, \binits{V.}}:
+Continuous control with deep reinforcement learning.
+arXiv preprint arXiv:1509.02971
+(2015)
+\end{botherref}
+\endbibitem
+
+%%% 39
+\bibitem[\protect\citeauthoryear{Fujimoto
+  et~al.}{2018}]{fujimoto2018addressing}
+\begin{botherref}
+\oauthor{\bsnm{Fujimoto}, \binits{S.}},
+\oauthor{\bsnm{Hoof}, \binits{H.}},
+\oauthor{\bsnm{Keren}, \binits{D.}}:
+Addressing function approximation error in actor-critic methods.
+arXiv preprint arXiv:1802.09477
+(2018)
+\end{botherref}
+\endbibitem
+
+%%% 40
+\bibitem[\protect\citeauthoryear{Haarnoja et~al.}{2019}]{haarnoja2019sac}
+\begin{botherref}
+\oauthor{\bsnm{Haarnoja}, \binits{T.}},
+\oauthor{\bsnm{Zhou}, \binits{A.}},
+\oauthor{\bsnm{Hartikainen}, \binits{K.}},
+\oauthor{\bsnm{Tucker}, \binits{G.}},
+\oauthor{\bsnm{Ha}, \binits{S.}},
+\oauthor{\bsnm{Tan}, \binits{J.}},
+\oauthor{\bsnm{Kumar}, \binits{V.}},
+\oauthor{\bsnm{Zhu}, \binits{H.}},
+\oauthor{\bsnm{Gupta}, \binits{A.}},
+\oauthor{\bsnm{Abbeel}, \binits{P.}},
+\oauthor{\bsnm{Levine}, \binits{S.}}:
+Soft actor-critic algorithms and applications.
+arXiv preprint arXiv:1812.05905
+(2019)
+\end{botherref}
+\endbibitem
+
+%%% 41
+\bibitem[\protect\citeauthoryear{Evans et~al.}{2023}]{evans2023comparing}
+\begin{barticle}
+\bauthor{\bsnm{Evans}, \binits{B.D.}},
+\bauthor{\bsnm{Jordaan}, \binits{H.W.}},
+\bauthor{\bsnm{Engelbrecht}, \binits{H.A.}}:
+\batitle{Comparing deep reinforcement learning architectures for autonomous
+  racing}.
+\bjtitle{Machine Learning with Applications}
+\bvolume{14},
+\bfpage{100496}
+(\byear{2023})
+\doiurl{10.1016/j.mlwa.2023.100496}
+\end{barticle}
+\endbibitem
+
+%%% 42
+\bibitem[\protect\citeauthoryear{Li et~al.}{2025}]{li2025sharpturns}
+\begin{barticle}
+\bauthor{\bsnm{Li}, \binits{T.}},
+\bauthor{\bsnm{Ruan}, \binits{J.}},
+\bauthor{\bsnm{Zhang}, \binits{K.}}:
+\batitle{The investigation of reinforcement learning-based end-to-end
+  decision-making algorithms for autonomous driving on the road with
+  consecutive sharp turns}.
+\bjtitle{Green Energy and Intelligent Transportation}
+\bvolume{4}(\bissue{3}),
+\bfpage{100288}
+(\byear{2025})
+\end{barticle}
+\endbibitem
+
+%%% 43
+\bibitem[\protect\citeauthoryear{Liu}{2024}]{liu2024evaluation}
+\begin{botherref}
+\oauthor{\bsnm{Liu}, \binits{S.}}:
+An evaluation of ddpg, td3, sac, and ppo: Deep reinforcement learning
+  algorithms for controlling continuous system.
+Proceedings of the 2023 International Conference on Data Science, Advanced
+  Algorithm and Intelligent Computing (DAI 2023),
+15--24
+(2024)
+\end{botherref}
+\endbibitem
+
+%%% 44
+\bibitem[\protect\citeauthoryear{Yao et~al.}{2024}]{yao2024performance}
+\begin{botherref}
+\oauthor{\bsnm{Yao}, \binits{X.}},
+\oauthor{\bsnm{Hou}, \binits{S.}},
+\oauthor{\bsnm{Hoogendoorn}, \binits{S.P.}},
+\oauthor{\bsnm{Calvert}, \binits{S.C.}}:
+Performance comparison of deep rl algorithms for mixed traffic cooperative
+  lane-changing.
+arXiv preprint arXiv:2407.02521
+(2024)
+\end{botherref}
+\endbibitem
+
+%%% 45
+\bibitem[\protect\citeauthoryear{Park et~al.}{2025}]{park2025comparative}
+\begin{barticle}
+\bauthor{\bsnm{Park}, \binits{Y.}},
+\bauthor{\bsnm{Jun}, \binits{W.}},
+\bauthor{\bsnm{Lee}, \binits{S.}}:
+\batitle{A comparative study of deep reinforcement learning algorithms for
+  urban autonomous driving: Addressing the geographic and regulatory challenges
+  in carla}.
+\bjtitle{Applied Sciences}
+\bvolume{15}(\bissue{12}),
+\bfpage{6838}
+(\byear{2025})
+\doiurl{10.3390/app15126838}
+\end{barticle}
+\endbibitem
+
+%%% 46
+\bibitem[\protect\citeauthoryear{Fern{'{a}}ndez~de Cabo
+  et~al.}{2022}]{cabo2022rlstudio}
+\begin{bchapter}
+\bauthor{\bsnm{Cabo}, \binits{P.}},
+\bauthor{\bsnm{Lucas~Zaragoza}, \binits{R.}},
+\bauthor{\bsnm{Arranz}, \binits{I.}},
+\bauthor{\bsnm{Paniego~Blanco}, \binits{S.}},
+\bauthor{\bsnm{Ca{\~{n}}as~Plaza}, \binits{J.M.}}:
+\bctitle{Rl-studio: A tool for reinforcement learning methods in robotics}.
+In: \bbtitle{RoboCup 2022: Robot World Cup XXV},
+pp. \bfpage{502}--\blpage{513}.
+\bpublisher{Springer},
+\blocation{Cham}
+(\byear{2022}).
+\doiurl{10.1007/978-3-031-21062-4_41}
+\end{bchapter}
+\endbibitem
+
+%%% 47
+\bibitem[\protect\citeauthoryear{Raffin
+  et~al.}{2021}]{raffin2021stablebaselines3}
+\begin{barticle}
+\bauthor{\bsnm{Raffin}, \binits{A.}},
+\bauthor{\bsnm{Hill}, \binits{A.}},
+\bauthor{\bsnm{Gleave}, \binits{A.}},
+\bauthor{\bsnm{Kanervisto}, \binits{A.}},
+\bauthor{\bsnm{Ernestus}, \binits{M.}},
+\bauthor{\bsnm{Dormann}, \binits{N.}}:
+\batitle{Stable-baselines3: Reliable reinforcement learning implementations}.
+\bjtitle{Journal of Machine Learning Research}
+\bvolume{22}(\bissue{268}),
+\bfpage{1}--\blpage{8}
+(\byear{2021})
+\end{barticle}
+\endbibitem
+
+%%% 48
+\bibitem[\protect\citeauthoryear{Quigley et~al.}{2009}]{quigley2009ros}
+\begin{bchapter}
+\bauthor{\bsnm{Quigley}, \binits{M.}},
+\bauthor{\bsnm{Conley}, \binits{K.}},
+\bauthor{\bsnm{Gerkey}, \binits{B.}},
+\bauthor{\bsnm{Faust}, \binits{J.}},
+\bauthor{\bsnm{Foote}, \binits{T.}},
+\bauthor{\bsnm{Leibs}, \binits{J.}},
+\bauthor{\bsnm{Wheeler}, \binits{R.}},
+\bauthor{\bsnm{Ng}, \binits{A.Y.}}, \betal:
+\bctitle{Ros: an open-source robot operating system}.
+In: \bbtitle{ICRA Workshop on Open Source Software},
+vol. \bseriesno{3},
+p. \bfpage{5}
+(\byear{2009}).
+\bcomment{Kobe, Japan}
+\end{bchapter}
+\endbibitem
+
+%%% 49
+\bibitem[\protect\citeauthoryear{M{\"u}ller and
+  Kudenko}{2025}]{muller2025improving}
+\begin{bchapter}
+\bauthor{\bsnm{M{\"u}ller}, \binits{H.}},
+\bauthor{\bsnm{Kudenko}, \binits{D.}}:
+\bctitle{Improving the effectiveness of potential-based reward shaping in
+  reinforcement learning}.
+In: \bbtitle{Proceedings of the 24th International Conference on Autonomous
+  Agents and Multiagent Systems (AAMAS)}
+(\byear{2025})
+\end{bchapter}
+\endbibitem
+
+%%% 50
+\bibitem[\protect\citeauthoryear{Gebele et~al.}{2022}]{gebele2022carlane}
+\begin{botherref}
+\oauthor{\bsnm{Gebele}, \binits{J.}},
+\oauthor{\bsnm{Stuhr}, \binits{B.}},
+\oauthor{\bsnm{Haselberger}, \binits{J.}}:
+CARLANE Benchmark.
+Kaggle
+(2022).
+\doiurl{10.34740/KAGGLE/DSV/3798459} .
+\url{https://www.kaggle.com/dsv/3798459}
+\end{botherref}
+\endbibitem
+
+%%% 51
+\bibitem[\protect\citeauthoryear{Philion and Fidler}{2020}]{philion2020lift}
+\begin{bchapter}
+\bauthor{\bsnm{Philion}, \binits{J.}},
+\bauthor{\bsnm{Fidler}, \binits{S.}}:
+\bctitle{Lift, splat, shoot: Encoding images from arbitrary camera rigs by
+  implicitly unprojecting to 3d}.
+In: \bbtitle{Computer Vision--ECCV 2020: 16th European Conference, Glasgow, UK,
+  August 23--28, 2020, Proceedings, Part XIV 16},
+pp. \bfpage{194}--\blpage{210}
+(\byear{2020}).
+\bcomment{Springer}
+\end{bchapter}
+\endbibitem
+
+%%% 52
+\bibitem[\protect\citeauthoryear{Li et~al.}{2022}]{li2022bevformer}
+\begin{bchapter}
+\bauthor{\bsnm{Li}, \binits{Z.}},
+\bauthor{\bsnm{Wang}, \binits{W.}},
+\bauthor{\bsnm{Li}, \binits{H.}},
+\bauthor{\bsnm{Xie}, \binits{E.}},
+\bauthor{\bsnm{Sima}, \binits{C.}},
+\bauthor{\bsnm{Lu}, \binits{T.}},
+\bauthor{\bsnm{Qiao}, \binits{Y.}},
+\bauthor{\bsnm{Dai}, \binits{J.}}:
+\bctitle{Bevformer: Spatial-temporal bird's-eye-view representation for
+  autonomous driving}.
+In: \bbtitle{Computer Vision--ECCV 2022: 17th European Conference, Tel Aviv,
+  UK, October 23--27, 2022, Proceedings, Part IX},
+pp. \bfpage{1}--\blpage{18}
+(\byear{2022}).
+\bcomment{Springer}
+\end{bchapter}
+\endbibitem
+
+\end{thebibliography}

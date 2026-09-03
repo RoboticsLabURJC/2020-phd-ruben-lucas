@@ -1,0 +1,33 @@
+\BOOKMARK [1][]{section.1}{Introduction}{}% 1
+\BOOKMARK [1][]{section.2}{Related Work}{}% 2
+\BOOKMARK [2][]{subsection.2.1}{Evolution of Decision-Making and Control Paradigms}{section.2}% 3
+\BOOKMARK [2][]{subsection.2.2}{Task-Specific Control and Environmental Adaptability}{section.2}% 4
+\BOOKMARK [2][]{subsection.2.3}{Decoupled Control Architectures and Vision-Based Perception}{section.2}% 5
+\BOOKMARK [2][]{subsection.2.4}{Continuous Lane-Following Control Benchmarks}{section.2}% 6
+\BOOKMARK [1][]{section.3}{Materials and Methods}{}% 7
+\BOOKMARK [2][]{subsection.3.1}{Frameworks}{section.3}% 8
+\BOOKMARK [2][]{subsection.3.2}{Problem Formulation and Setup}{section.3}% 9
+\BOOKMARK [3][]{subsubsection.3.2.1}{Action Space}{subsection.3.2}% 10
+\BOOKMARK [3][]{subsubsection.3.2.2}{Observation Space and Feature Extraction}{subsection.3.2}% 11
+\BOOKMARK [3][]{subsubsection.3.2.3}{Reward Function}{subsection.3.2}% 12
+\BOOKMARK [2][]{subsection.3.3}{Training Setup}{section.3}% 13
+\BOOKMARK [3][]{subsubsection.3.3.1}{Experimental DRL Configuration}{subsection.3.3}% 14
+\BOOKMARK [3][]{subsubsection.3.3.2}{Proximal Policy Optimization}{subsection.3.3}% 15
+\BOOKMARK [3][]{subsubsection.3.3.3}{Deep Deterministic Policy Gradient}{subsection.3.3}% 16
+\BOOKMARK [3][]{subsubsection.3.3.4}{Twin Delayed DDPG}{subsection.3.3}% 17
+\BOOKMARK [3][]{subsubsection.3.3.5}{Soft Actor-Critic}{subsection.3.3}% 18
+\BOOKMARK [3][]{subsubsection.3.3.6}{Variability and Agent Selection}{subsection.3.3}% 19
+\BOOKMARK [3][]{subsubsection.3.3.7}{Training Convergence and Computational Cost}{subsection.3.3}% 20
+\BOOKMARK [2][]{subsection.3.4}{Evaluation Setup}{section.3}% 21
+\BOOKMARK [2][]{subsection.3.5}{DeepLearning-based lane perception}{section.3}% 22
+\BOOKMARK [1][]{section.4}{Results and Discussion}{}% 23
+\BOOKMARK [2][]{subsection.4.1}{Algorithms Benchmark}{section.4}% 24
+\BOOKMARK [2][]{subsection.4.2}{Variety Contribution}{section.4}% 25
+\BOOKMARK [3][]{subsubsection.4.2.1}{Initial Position Variety \(A\)}{subsection.4.2}% 26
+\BOOKMARK [3][]{subsubsection.4.2.2}{Balanced Turn Distribution \(B\)}{subsection.4.2}% 27
+\BOOKMARK [3][]{subsubsection.4.2.3}{Complex Town Geometry Exposure \(C\)}{subsection.4.2}% 28
+\BOOKMARK [3][]{subsubsection.4.2.4}{Abrupt Curve Exposure \(D\)}{subsection.4.2}% 29
+\BOOKMARK [3][]{subsubsection.4.2.5}{Initial Speed Randomization \(E\)}{subsection.4.2}% 30
+\BOOKMARK [2][]{subsection.4.3}{Impact of DL-based Lane Perception vs. Ground-Truth Perception}{section.4}% 31
+\BOOKMARK [3][]{subsubsection.4.3.1}{Control Stability and Perception-Performance Correlation}{subsection.4.3}% 32
+\BOOKMARK [1][]{section.5}{Conclusions}{}% 33
