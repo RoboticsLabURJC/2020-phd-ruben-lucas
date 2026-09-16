@@ -1,0 +1,5 @@
+google_workspace/*.json
+.jekyll-cache/
+_site/
+.sass-cache/
+.jekyll-metadata
